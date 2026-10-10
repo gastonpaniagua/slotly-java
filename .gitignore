@@ -1,0 +1,15 @@
+# ---- Secretos ----
+.env*
+!.env.example
+
+# ---- Editores ----
+.idea/
+*.iml
+.vscode/
+
+# ---- Sistema operativo ----
+Thumbs.db
+.DS_Store
+
+# ---- Logs ----
+*.log
