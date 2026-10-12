@@ -1,0 +1,38 @@
+name: CI
+
+# Cuándo corre: en cada push a main y en cada pull request
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest            # máquina Linux de GitHub, ya trae Docker
+    defaults:
+      run:
+        working-directory: backend    # los "run" se ejecutan dentro de backend/
+    steps:
+      - uses: actions/checkout@v5     # baja el código del repo
+      - uses: actions/setup-java@v5   # instala Java
+        with:
+          distribution: "temurin"         # la distribución de Java, entre comillas
+          java-version: "21"
+          cache: maven
+      - run: ./mvnw -B verify               # compila, corre tests y genera el reporte de cobertura
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci                   # instala exactamente lo del package-lock.json
+      - run: npm run lint
+      - run: npm run build
