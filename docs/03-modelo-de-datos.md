@@ -22,7 +22,7 @@ erDiagram
         string zona_horaria
         boolean activo
         string marca "descripcion, logo_url, color_acento"
-        string contacto "whatsapp, instagram, tiktok, facebook (todos opcionales)"
+        string contacto "whatsapp, instagram, tiktok, facebook (todos opcionales; de las redes se guarda el usuario, no la URL)"
         string ubicacion "direccion, ciudad, latitud, longitud"
         string pago "alias, cbu, titular_cuenta, link_resena"
         int reglas "intervalo, limpieza, anticipacion, tope, cancelacion, max turnos, apartado"
