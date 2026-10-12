@@ -25,6 +25,7 @@ Es el proyecto de portfolio de Gaston, desarrollador junior. El objetivo princip
 - **2026-10-09/10:** Gaston escribió su propio schema y migraciones. Al revisarlo apareció que había perdido el aislamiento entre locales (sin claves compuestas) y que se había apartado del modelo acordado (sin bloqueos, apartado ni reglas del local). Lección: el modelo acordado está en el doc 03 y hay que comparar contra él.
 - **2026-10-10:** Gaston reinicia desde cero con **Java + Spring Boot + React**, con el mismo método. Se conservan todas las decisiones de producto y de modelo; se revisan solo las que dependen del stack.
 - **2026-10-10 (Etapa 0):** se cierran D1 (sesión con Spring Session JDBC), D4 (tests con Testcontainers) y el formato de error (`ProblemDetail` con `codigo`). D2 queda para la Etapa 8.
+- **2026-10-12:** Etapa 0 cerrada: esqueleto del back y del front, estrategia de testing (doc 06), plan de pruebas (doc 07) y CI en GitHub Actions.
 
 ## 3. Decisiones de producto (no se reabren sin una razón fuerte)
 
@@ -66,6 +67,10 @@ Decisiones chicas que se mantienen:
 - Errores de la API con `ProblemDetail` (RFC 9457, `application/problem+json`) más un campo `codigo` propio (`HORARIO_OCUPADO`, `LOCAL_NO_ENCONTRADO`, `VALIDACION`); los errores de validación suman `errores` con el detalle por campo. El front decide qué mostrar por `codigo`, nunca por el texto. **(confirmada 2026-10-10)**
 - Login del panel en `/ingresar`; panel del admin en `/admin` y del profesional en `/agenda`.
 - El pedido de reseña (HU-38) es del rol admin: el beneficio es del local.
+- La JVM corre siempre en UTC (`-Duser.timezone=UTC` en el `pom.xml`), sin depender de la zona de la máquina (BUG-001). (2026-10-12)
+- Los secretos no tienen valor por defecto en la configuración: si falta uno, la app no arranca. (2026-10-12)
+- Nombres: dominio en castellano (`Turno`, `reservar()`), términos técnicos en inglés (`Controller`, `Repository`, `health`). (2026-10-12)
+- Linter del front: ESLint. Los tests de integración usan la anotación compartida `@IntegrationTest` (un solo contenedor por corrida). (2026-10-12)
 
 ## 5. Stack elegido (2026-10-10)
 

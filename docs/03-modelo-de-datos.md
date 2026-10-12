@@ -21,7 +21,8 @@ erDiagram
         string subdominio UK
         string zona_horaria
         boolean activo
-        string marca "descripcion, logo_url, color_acento, redes"
+        string marca "descripcion, logo_url, color_acento"
+        string contacto "whatsapp, instagram, tiktok, facebook (todos opcionales)"
         string ubicacion "direccion, ciudad, latitud, longitud"
         string pago "alias, cbu, titular_cuenta, link_resena"
         int reglas "intervalo, limpieza, anticipacion, tope, cancelacion, max turnos, apartado"
@@ -51,7 +52,7 @@ erDiagram
         uuid id PK
         uuid local_id FK
         string nombre
-        string telefono "normalizado, único por local"
+        string telefono "normalizado, único por local; null solo en clientes de turnos manuales"
         string email "opcional"
         datetime consentimiento_en
         datetime ultima_resena_pedida_en
@@ -60,7 +61,7 @@ erDiagram
         uuid id PK
         uuid local_id FK
         uuid profesional_id FK
-        uuid cliente_id FK "null solo en bloqueos"
+        uuid cliente_id FK "null en bloqueos y en apartados"
         enum tipo "reserva, manual, bloqueo"
         enum estado "apartado, confirmado, cancelado, vencido, completado, ausente"
         datetime inicio "UTC"
@@ -116,9 +117,10 @@ erDiagram
 - **Limpieza:** `ocupado_hasta = fin + limpieza` lo calcula la API, porque un índice no puede sumar intervalos a fechas con zona.
 - **Integridad entre locales:** profesional, servicio, cliente y turno tienen un único `(local_id, id)`, y todas las relaciones entre ellos usan claves foráneas compuestas `(local_id, x_id)`. La base rechaza un turno del local A con un profesional, cliente o servicio del local B, aunque la API tenga un bug. Esta es la regla de seguridad más importante del multi-tenant.
 - **Horarios:** dos franjas del mismo profesional y día no se pueden pisar (otro constraint de exclusión) y el fin tiene que ser posterior al inicio. Una pausa son dos franjas. En la versión TypeScript se guardaban en minutos desde la medianoche porque Prisma maneja mal el tipo `time`; con JPA, `time` se mapea limpio a `LocalTime`, así que se usa `time` (a confirmar en la Etapa 1).
-- **Coherencia del turno (CHECK):** `fin > inicio`, `ocupado_hasta >= fin`, un bloqueo no tiene cliente y una reserva o turno manual sí, y todo apartado tiene `vence_en`.
+- **Coherencia del turno (CHECK):** `fin > inicio`, `ocupado_hasta >= fin`, todo apartado tiene `vence_en`, un bloqueo nunca tiene cliente, y una reserva o turno manual tiene cliente salvo mientras está `apartado`. El apartado se crea al llegar al paso de datos, antes de conocer al cliente; el `UPDATE` que lo confirma completa el `cliente_id`. (2026-10-12)
 - **Valores válidos (CHECK):** subdominio en minúsculas, color en `#rrggbb`, duración del servicio entre 5 y 480 minutos, precio no negativo y reglas del local dentro de rangos razonables.
-- **Cliente único por local:** no puede haber dos clientes con el mismo `telefono` en el mismo local. El teléfono se normaliza a formato internacional (`+549...`) antes de guardarlo, para que `11 2345-6789` y `+54 9 11 2345-6789` sean el mismo cliente.
+- **Cliente único por local:** no puede haber dos clientes con el mismo `telefono` en el mismo local (`UNIQUE (local_id, telefono)`; Postgres permite varios nulos). El teléfono se normaliza a formato internacional (`+549...`) antes de guardarlo, para que `11 2345-6789` y `+54 9 11 2345-6789` sean el mismo cliente. El teléfono es obligatorio en toda reserva web (lo valida la API: la regla cruza `turno` y `cliente`, así que no puede ser un CHECK) y opcional solo en los turnos manuales del panel (HU-28). (2026-10-12)
+- **Visitas y faltas:** no se guardan como contador. Se calculan contando los turnos `completado` y `ausente` del cliente, igual que los horarios libres se calculan desde la agenda: una sola fuente de verdad. (2026-10-12)
 - **Máximo de turnos futuros por teléfono:** lo chequea la API dentro de la transacción de reserva, bloqueando la fila del cliente (`SELECT … FOR UPDATE`) antes de contar, para que dos reservas simultáneas del mismo teléfono no pasen las dos.
 - **Precio y duración copiados:** `turno_servicio` guarda la duración y el precio del momento de la reserva. Cambiar un servicio solo afecta a turnos nuevos.
 - **Token del turno:** se guarda solo el hash (nunca el token en texto plano) y tiene vencimiento. Si se filtra la base, no se filtran los links.
