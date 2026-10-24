@@ -27,8 +27,8 @@ class ReglasDeTurnoEnLaBaseTest {
     @BeforeEach
     void prepararBase() {
         jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
-        localId = jdbc.queryForObject("INSERT INTO local (nombre, subdominio) VALUES (?, ?) RETURNING id", UUID.class, "Local de test", "test");
-        anaId = jdbc.queryForObject("INSERT INTO profesional (local_id, nombre ) VALUES (?,? ) RETURNING id", UUID.class, localId, "Ana");
+        localId = crearLocal("test");
+        anaId = crearProfesional(localId, "Ana");
     }
 
     @Test
@@ -49,6 +49,40 @@ class ReglasDeTurnoEnLaBaseTest {
         Integer cantidad = jdbc.queryForObject("SELECT count(*) FROM turno", Integer.class);
         assertThat(cantidad).isEqualTo(2);
     }
+    
+    @Test
+    @DisplayName("HU-13 CA3: un turno cancelado libera el horario")
+    void turnoCanceladoLiberaElHorario() {
+        insertarBloqueo(anaId, "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00");
+        jdbc.update("UPDATE turno SET estado = 'cancelado'");
+
+        insertarBloqueo(anaId, "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00");
+
+        Integer cantidad = jdbc.queryForObject("SELECT count(*) FROM turno", Integer.class);
+        assertThat(cantidad).isEqualTo(2);
+    }
+    
+    @Test
+    @DisplayName("HU-13 CA5: otro profesional puede tener un turno en el mismo horario")
+    void otroProfesionalEnElMismoHorario() {
+        UUID brunoId = crearProfesional(localId, "Bruno");
+        insertarBloqueo(anaId, "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00");
+        
+        insertarBloqueo(brunoId, "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00");
+        
+        Integer cantidad = jdbc.queryForObject("SELECT count(*) FROM turno", Integer.class);
+        assertThat(cantidad).isEqualTo(2);
+    }
+    @Test
+    @DisplayName("HU-04 CA2: la base rechaza un turno de un local con un profesional de otro local")
+    void rechazaTurnoConProfesionalDeOtroLocal() {
+        UUID otroLocalId = crearLocal("otro");
+        UUID carlaId = crearProfesional(otroLocalId, "Carla");
+
+        assertThatThrownBy(() -> insertarBloqueo(carlaId, "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00"))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("turno_local_id_profesional_id_fkey");
+    }
 
     // Inserta un bloqueo confirmado (sin cliente) del profesional, de inicio a fin.
     private void insertarBloqueo(UUID profesionalId, String inicio, String fin) {
@@ -57,4 +91,17 @@ class ReglasDeTurnoEnLaBaseTest {
                 VALUES (?, ?, 'bloqueo', 'confirmado', ?::timestamptz, ?::timestamptz, ?::timestamptz)
                 """, localId, profesionalId, inicio, fin, fin);
     }
+        // Crea un local con ese subdominio y devuelve su id.
+    private UUID crearLocal(String subdominio) {
+        
+        return jdbc.queryForObject("INSERT INTO local (nombre, subdominio) VALUES (?, ?) RETURNING id", UUID.class, "Local de test", subdominio);
+
+    }
+
+    // Crea un profesional en ese local y devuelve su id.
+    private UUID crearProfesional(UUID local, String nombre) {
+        return jdbc.queryForObject("INSERT INTO profesional (local_id, nombre) VALUES (?, ?) RETURNING id", UUID.class, local, nombre);
+    }
+    
+   
 }
