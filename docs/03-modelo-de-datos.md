@@ -2,6 +2,8 @@
 
 Modelo acordado para la v1 (diseñado el 2026-10-05 en la versión TypeScript y conservado al pasar a Java + Spring Boot). La fuente de verdad del código van a ser las migraciones SQL de Flyway: las tablas, claves y reglas se escriben a mano en SQL, y las entidades JPA se validan contra ese esquema (`spring.jpa.hibernate.ddl-auto=validate`), nunca al revés.
 
+Mapeo JPA (2026-10-27): las relaciones se guardan como ids simples (`UUID localId`, `UUID profesionalId`), sin `@ManyToOne`, porque las claves foráneas compuestas comparten la columna `local_id` y Hibernate no las mapea bien; la integridad entre locales la garantiza la base. Cada entidad mapea solo las columnas que usa la etapa en curso y suma las demás cuando se necesitan.
+
 ```mermaid
 erDiagram
     LOCAL ||--o{ PROFESIONAL : tiene
