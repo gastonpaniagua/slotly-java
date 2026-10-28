@@ -91,6 +91,8 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<jvmArguments>-Duser.timezone=UTC</jvmArguments>
+					<!-- Solo spring-boot:run arranca con el perfil dev (datos de demo). Tests y producción no. -->
+					<profiles>dev</profiles>
 				</configuration>
 			</plugin>
 			<plugin>
