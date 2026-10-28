@@ -60,4 +60,5 @@ npm run build
 ## Convenciones
 
 - **Nombres:** el dominio va en castellano (`Turno`, `Profesional`, `reservar()`, `estado`) y los términos técnicos en inglés (`Controller`, `Repository`, `Response`, `health`).
+- **Paquetes por funcionalidad, no por capa:** cada parte del negocio tiene su paquete con todo lo suyo (`ar.com.slotly.local` tiene la entidad, el repositorio, el servicio y el controlador del local). Lo que cambia junto está junto, y las clases que no hace falta exponer quedan sin `public`.
 - **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) con la historia o la etapa como alcance, por ejemplo `feat(HU-07): ofrece solo horarios que entran antes del cierre` o `chore(etapa-0): ...`.
