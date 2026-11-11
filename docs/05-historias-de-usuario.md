@@ -18,9 +18,9 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 | HU-01 | Ver los servicios del local con precio y duración | cliente             | Debe      | S      | 1     | Hecha     |
 | HU-02 | Ver horarios de atención y ubicación              | cliente             | Debe      | S      | 1     | Hecha     |
 | HU-03 | Tener mi dirección web con mi marca               | admin               | Debe      | M      | 1     | En curso  |
-| HU-04 | Que los datos de mi local no se mezclen con otro  | admin               | Debe      | M      | 1     | En curso  |
-| HU-05 | Elegir uno o varios servicios y ver el total      | cliente             | Debe      | S      | 2     | Pendiente |
-| HU-06 | Elegir profesional o "cualquiera"                 | cliente             | Debe      | S      | 2     | Pendiente |
+| HU-04 | Que los datos de mi local no se mezclen con otro  | admin               | Debe      | M      | 1     | Hecha     |
+| HU-05 | Elegir uno o varios servicios y ver el total      | cliente             | Debe      | S      | 2     | Hecha     |
+| HU-06 | Elegir profesional o "cualquiera"                 | cliente             | Debe      | S      | 2     | Hecha     |
 | HU-07 | Ver solo las horas en las que entra lo que elegí  | cliente             | Debe      | L      | 3     | Pendiente |
 | HU-08 | Ver en gris los días sin lugar                    | cliente             | Debe      | M      | 3     | Pendiente |
 | HU-09 | Que la lista de horas se actualice sola           | cliente             | Debería   | S      | 3     | Pendiente |
@@ -98,13 +98,13 @@ Pendiente: CA6 se cubre en la Etapa 9. CA1 a CA5 cubiertos el 2026-11-11 (tests 
 ### HU-04 · Datos aislados entre locales
 
 Como **admin** quiero que ningún otro local pueda ver ni tocar mis datos para confiarle a Slotly la agenda y los teléfonos de mis clientes.
-Prioridad: Debe · Tamaño: M · Etapa: 1 (y se refuerza en cada etapa) · Estado: En curso
+Prioridad: Debe · Tamaño: M · Etapa: 1 (y se refuerza en cada etapa) · Estado: Hecha
 
 - **CA1.** Dados dos locales A y B, cuando pido la home pública de A, entonces la respuesta no incluye ningún servicio, profesional ni horario de B.
 - **CA2.** Dado un turno del local A, cuando intento guardarlo (aun con SQL directo) apuntando a un profesional, servicio o cliente del local B, entonces la base lo rechaza.
 - **CA3.** Dado un ID de un recurso del local B, cuando lo pido a la API desde el subdominio de A, entonces recibo 404 (no 403, para no confirmar que existe).
 
-Pendiente: CA3 cuando haya endpoints con ID (Etapa 2 en adelante). CA1 cubierto el 2026-11-11 (test + CP-HU04-01); CA2 cubierto el 2026-11-11 con tests contra Postgres real para profesional, cliente y servicio de otro local.
+Cobertura: CA1 cubierto el 2026-11-11 (test + CP-HU04-01); CA2 cubierto el 2026-11-11 con tests contra Postgres real para profesional, cliente y servicio de otro local; CA3 cubierto en la Etapa 2 (test `servicioDeOtroLocalDa404` + CP-HU06-04). Cada endpoint nuevo con IDs suma su test de "recurso de otro local → 404".
 
 Los criterios de aislamiento del panel van en HU-16, HU-17 y HU-18.
 
@@ -115,7 +115,7 @@ Los criterios de aislamiento del panel van en HU-16, HU-17 y HU-18.
 ### HU-05 · Elegir servicios y ver el total
 
 Como **cliente** quiero elegir uno o varios servicios y ver el total de tiempo y precio para saber cuánto voy a tardar y pagar antes de elegir el horario.
-Prioridad: Debe · Tamaño: S · Etapa: 2 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 2 · Estado: Hecha
 
 - **CA1.** Dado que elijo "Corte" (45 min, $8.000) y "Barba" (30 min, $5.000), cuando miro el resumen, entonces dice "1 h 15 min · $ 13.000".
 - **CA2.** Dado que no elegí ningún servicio, cuando miro el botón "Siguiente", entonces está deshabilitado y el resumen no aparece.
@@ -125,7 +125,7 @@ Prioridad: Debe · Tamaño: S · Etapa: 2 · Estado: Pendiente
 ### HU-06 · Elegir profesional o "cualquiera"
 
 Como **cliente** quiero elegir con quién atenderme o dejar que me asignen a cualquiera disponible para atenderme con quien prefiero o conseguir turno antes.
-Prioridad: Debe · Tamaño: S · Etapa: 2 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 2 · Estado: Hecha
 
 - **CA1.** Dados los servicios que elegí, cuando llego al paso 2, entonces veo solo los profesionales activos que hacen **todos** esos servicios, más la opción "Cualquiera disponible".
 - **CA2.** Dado que ningún profesional hace todos los servicios elegidos, cuando llego al paso 2, entonces veo "Ningún profesional hace esta combinación, probá sacando un servicio" y puedo volver atrás.

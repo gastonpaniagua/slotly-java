@@ -35,13 +35,29 @@ Casos de prueba manuales, smoke test, sesiones exploratorias y registro de bugs.
 | CP-HU04-01 | Otro local ve solo lo suyo (CA1) | Todo levantado | 1. Abrir `http://otra.localhost:5173` | "Otra Barbería" en rojo, un solo servicio ("Corte clásico") y ninguno de demo; todos los días "Cerrado" (otra no tiene profesionales) | Se ve una "O" en un círculo rojo, solo se ve "Corte clásico" y ninguno de demo; todos los días "Cerrado" | Pasó | 2026-11-11 |
 | CP-E1-02 | La home se ve bien en celular | Todo levantado, Chrome | 1. F12 → ícono de celular (Ctrl+Shift+M) → "iPhone SE" 2. Recorrer la home de demo | Nada se corta ni desborda a lo ancho; los botones se tocan fácil. (En un celular real se prueba en el deploy: el celular no puede abrir `demo.localhost`) | Anda perfecto en la versión para celular | Pasó | 2026-11-11 |
 
-## Smoke test (versión Etapa 1, ~5 minutos)
+## Etapa 2 · Profesionales y primeros pasos de la reserva
+
+**Precondiciones comunes:** base, API y front levantados según el README; la API reiniciada después del paso 22 (datos demo de qué servicios hace cada profesional).
+
+| ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CP-HU05-01 | Resumen de tiempo y precio (CA1) | Todo levantado | 1. Abrir `http://demo.localhost:5173` 2. Tocar "Reservar turno" 3. Marcar "Corte de pelo" y "Barba" | Abajo dice "1 h · $ 22.000" (40 + 20 min, $ 14.000 + $ 8.000) | Deja apretar el botón "Reservar turno". Al elegir "Corte de pelo" y "Barba", abajo dice "1 h · $ 22.000" | Pasó | 2026-11-11 |
+| CP-HU05-02 | Sin servicios no se puede avanzar (CA2) | Todo levantado | 1. Entrar al paso 1 sin marcar nada 2. Marcar un servicio y desmarcarlo | "Siguiente" deshabilitado y sin resumen; al marcar se habilita y al desmarcar vuelve a deshabilitarse | Efectivamente, al desmarcar los servicios el botón "Siguiente" se bloquea y al elegir un servicio se habilita | Pasó | 2026-11-11 |
+| CP-HU05-03 | La selección se mantiene al volver (CA3) | Todo levantado | 1. Marcar "Corte de pelo" 2. "Siguiente" 3. "Atrás" 4. Repetir con el botón Atrás del navegador | En los dos casos "Corte de pelo" sigue marcado | La selección se mantiene al volver con el botón "Atrás" y con el del navegador | Pasó | 2026-11-11 |
+| CP-HU05-04 | Barra de progreso (CA4) | Todo levantado | 1. Mirar arriba en el paso 1 | "Paso 1 de 6 · Servicios" y la barra con un sexto pintado del color del local | Sí, la barra de progreso tiene el color del local y avanza en cada paso hasta el paso 3 (después dice "Próximamente") | Pasó | 2026-11-11 |
+| CP-HU06-01 | Profesionales que hacen todo (CA1) | Todo levantado | 1. Marcar solo "Corte de pelo" 2. "Siguiente" | Paso 2 con "Cualquiera disponible", Ana y Bruno | Sí, funciona: aparecen "Cualquiera disponible", Ana y Bruno, y se puede elegir "Cualquiera disponible" | Pasó | 2026-11-11 |
+| CP-HU06-02 | Nadie hace la combinación (CA2) | Todo levantado | 1. Marcar "Barba" y "Corte infantil" 2. "Siguiente" 3. "Atrás" | "Ningún profesional hace esta combinación, probá sacando un servicio"; "Atrás" vuelve al paso 1 | Sale el aviso de que ningún profesional hace esa combinación; al sacar un servicio sí aparecen los profesionales | Pasó | 2026-11-11 |
+| CP-HU06-03 | Un solo profesional salta el paso 2 (CA3) | Todo levantado | 1. Marcar solo "Barba" 2. "Siguiente" 3. "Atrás" | Va directo a "Elegí el día" (paso 3 de 6) con "Con Bruno."; "Atrás" vuelve al paso 1 | Sí: si elegís "Barba" y tocás "Siguiente" va directo a "Elegí el día" con "Con Bruno.", y "Atrás" vuelve al paso 1 | Pasó | 2026-11-11 |
+| CP-HU06-04 | Un servicio de otro local da 404 (CA4, HU-04 CA3) | API levantada | 1. En una terminal: `curl.exe -s -i -H "Host: demo.localhost" "http://localhost:8080/api/publico/profesionales?servicios=20000000-0000-0000-0000-000000000006"` | `HTTP/1.1 404` y en el cuerpo `"codigo":"SERVICIO_NO_ENCONTRADO"` (ese id es el "Corte clásico" de otra) | Sí, responde HTTP 404 y en el código aparece "SERVICIO_NO_ENCONTRADO" | Pasó | 2026-11-11 |
+
+## Smoke test (versión Etapa 2, ~6 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
 2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
 3. `http://noexiste.localhost:5173` muestra "Este local no existe en Slotly".
-4. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
-5. El último commit tiene el ✅ del CI en GitHub.
+4. "Reservar turno" → marcar "Corte de pelo" → "Siguiente" muestra "Cualquiera disponible", Ana y Bruno.
+5. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+6. El último commit tiene el ✅ del CI en GitHub.
 
 Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 
