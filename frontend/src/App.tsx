@@ -1,51 +1,41 @@
 import { useEffect, useState } from 'react'
 
-import type { components } from './api/esquema'
+import { obtenerLocal, type ResultadoLocal } from './api/publico'
+import Home from './home/Home'
+import PantallaMensaje from './PantallaMensaje'
 
-// Lo que devuelve GET /api/health, generado desde el OpenAPI del back.
-type HealthResponse = components['schemas']['HealthResponse']
+// Pide la home del local del subdominio y elige qué pantalla mostrar según la respuesta.
 function App() {
-  const [salud, setSalud] = useState<HealthResponse | null>(null)
-  const [sinConexion, setSinConexion] = useState(false)
-    
+  const [resultado, setResultado] = useState<ResultadoLocal | null>(null)
+
   useEffect(() => {
-    async function cargar() {
-      try {
-        const respuesta = await fetch('/api/health')
-        if (respuesta.status !== 200 && respuesta.status !== 503) {
-          setSinConexion(true)
-          return
-        }
-        const datos: HealthResponse = await respuesta.json()
-        setSalud(datos)
-      } catch {
-        setSinConexion(true)
-      }
-    }
-    cargar()
+    obtenerLocal().then(setResultado)
   }, [])
-   if (sinConexion) {
-    return (
-      <main>
-        <h1>Slotly</h1>
-        <p>No pudimos conectar con la API.</p>
-      </main>
-    )
+
+  if (resultado === null) {
+    return <PantallaMensaje titulo="Cargando…" />
   }
-  if (!salud) {
-    return (
-      <main>
-        <h1>Slotly</h1>
-        <p>Cargando...</p>
-      </main>
-    )
+
+  switch (resultado.estado) {
+    case 'ok':
+      return <Home local={resultado.local} />
+    case 'no-existe':
+      // HU-03 CA2: sin detalles técnicos.
+      return (
+        <PantallaMensaje
+          titulo="Este local no existe en Slotly"
+          texto="Revisá que la dirección esté bien escrita."
+        />
+      )
+    case 'error':
+      // HU-01 CA4: la API no respondió o falló.
+      return (
+        <PantallaMensaje
+          titulo="No pudimos cargar la página"
+          texto="Probá de nuevo en un rato."
+        />
+      )
   }
-  return (
-    <main>
-      <h1>Slotly</h1>
-      <p>API: {salud.estado}</p>
-      <p>Base de datos: {salud.baseDeDatos}</p>
-    </main>
-  )
 }
+
 export default App

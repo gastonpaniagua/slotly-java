@@ -1,25 +1,86 @@
-/* Estilos base de Slotly: limpio y claro, Poppins, solo modo claro. */
+/* Slotly — tokens del diseño (Claude Design). Solo modo claro. */
 :root {
-  /* Color de acento: lo pisa cada local con su color_acento. Este es el de Slotly. */
-  --acento: #1f2937;
+  /* Superficies */
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f4f6;
 
-  --texto: #374151;
-  --texto-fuerte: #111827;
-  --texto-suave: #6b7280;
-  --fondo: #ffffff;
-  --fondo-suave: #f9fafb;
-  --borde: #e5e7eb;
-  --radio: 12px;
-  --sombra: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.04);
+  /* Texto (contraste sobre blanco) */
+  --color-text: #111827;        /* 17,7:1 */
+  --color-text-soft: #4b5563;   /* 7,6:1 */
+  --color-text-muted: #6b7280;  /* 4,8:1 sobre blanco, 4,5:1 sobre --color-bg; usar desde 13 px */
 
-  font-family: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  color: var(--texto);
-  background: var(--fondo);
+  /* Bordes */
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-border-hover: #9ca3af;
+  --color-divider: #f0f1f3;
+  --color-skeleton: #e5e7eb;
+
+  /* Acento: la home los pisa con los del local (acento.ts). Por defecto, el gris de Slotly. */
+  --accent: #1f2937;
+  --accent-contrast: #ffffff;
+  --accent-hover: #1b2430;
+  --accent-ink: #1f2937;
+  --accent-tint: #e9eaeb;
+  --accent-edge: #1f2937;
+  --focus-ring: var(--accent-ink);
+
+  /* Tipografía */
+  --font-sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fs-h1: 24px;      --lh-h1: 32px;
+  --fs-h2: 18px;      --lh-h2: 26px;
+  --fs-body-lg: 16px; --lh-body-lg: 24px;
+  --fs-body: 15px;    --lh-body: 22px;
+  --fs-small: 14px;   --lh-small: 20px;
+  --fs-caption: 13px; --lh-caption: 18px;
+  --fs-badge: 12px;   --lh-badge: 16px;
+
+  /* Espaciado (base 4) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --gutter: 16px;
+  --content-max: 720px;
+
+  /* Radios */
+  --radius-sm: 8px;    /* chips */
+  --radius-md: 12px;   /* botones */
+  --radius-lg: 16px;   /* tarjetas */
+  --radius-xl: 20px;   /* tarjeta de presentación */
+  --radius-full: 999px;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px rgba(17, 24, 39, .04);
+  --shadow-md: 0 1px 3px rgba(17, 24, 39, .06), 0 4px 12px rgba(17, 24, 39, .05);
+  --shadow-lg: 0 1px 3px rgba(17, 24, 39, .06), 0 8px 24px rgba(17, 24, 39, .06);
+
+  /* Controles */
+  --tap-min: 44px;
+  --control-h: 48px;
+  --control-h-lg: 52px;
+
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --fs-h1: 32px; --lh-h1: 40px;
+    --fs-h2: 20px; --lh-h2: 28px;
+  }
 }
 
 *,
@@ -31,16 +92,16 @@
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
 }
 
 h1,
 h2,
-h3 {
-  margin: 0;
-  color: var(--texto-fuerte);
-  line-height: 1.2;
-}
-
+h3,
 p {
   margin: 0;
 }
@@ -50,6 +111,105 @@ img {
   max-width: 100%;
 }
 
-a {
-  color: var(--acento);
+.price {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Botones */
+.btn {
+  min-height: var(--control-h);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+
+.btn-lg {
+  min-height: var(--control-h-lg);
+  font-size: var(--fs-body-lg);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent-edge);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+}
+
+.btn-secondary:hover {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border-hover);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  cursor: not-allowed;
+}
+
+/* Links */
+.link {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Foco (solo teclado) */
+:is(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Pantallas de estado (cargando, local inexistente, error). */
+.pantalla-mensaje {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--gutter);
+  text-align: center;
+}
+
+.pantalla-mensaje__titulo {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-semibold);
+}
+
+.pantalla-mensaje__texto {
+  color: var(--color-text-soft);
 }
