@@ -12,13 +12,16 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 // Verifica que el advice convierte las excepciones en ProblemDetail con "codigo" (doc 00).
+// @WithMockUser simula un usuario logueado: acá se prueba el formato de errores, no la seguridad.
 @WebMvcTest(ApiExceptionHandlerTest.ControladorDePrueba.class)
 @Import(ApiExceptionHandlerTest.ControladorDePrueba.class)
+@WithMockUser
 class ApiExceptionHandlerTest {
 
     // Controlador que solo existe en este test: cada ruta tira una excepción distinta.

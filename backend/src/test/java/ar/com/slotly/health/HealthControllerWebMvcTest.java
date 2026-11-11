@@ -11,12 +11,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import ar.com.slotly.seguridad.SecurityConfig;
+
+// Carga las reglas reales de seguridad: así también prueba que el health es público.
 @WebMvcTest(HealthController.class)
+@Import(SecurityConfig.class)
 class HealthControllerWebMvcTest {
 
     @Autowired
