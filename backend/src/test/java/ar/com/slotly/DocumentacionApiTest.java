@@ -1,5 +1,6 @@
 package ar.com.slotly;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,6 +24,10 @@ class DocumentacionApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/publico/local'].get").exists())
                 .andExpect(jsonPath("$.components.schemas.LocalPublicoResponse").exists())
-                .andExpect(jsonPath("$.paths['/api/publico/local'].get.parameters").doesNotExist());
+                .andExpect(jsonPath("$.paths['/api/publico/local'].get.parameters").doesNotExist())
+                // Un campo opcional se documenta como "puede ser null"; uno obligatorio, no.
+                .andExpect(jsonPath("$.components.schemas.LocalPublicoResponse.properties.logoUrl.type",
+                        containsInAnyOrder("string", "null")))
+                .andExpect(jsonPath("$.components.schemas.LocalPublicoResponse.properties.nombre.type").value("string"));
     }
 }

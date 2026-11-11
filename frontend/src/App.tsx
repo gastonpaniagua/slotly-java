@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 
-// Lo que devuelve GET /api/health.
-// TEMPORAL: en la Etapa 1 este tipo se genera desde el OpenAPI del back.
-type HealthResponse = {
-  estado: string;
-  baseDeDatos: string;
-}
+import type { components } from './api/esquema'
+
+// Lo que devuelve GET /api/health, generado desde el OpenAPI del back.
+type HealthResponse = components['schemas']['HealthResponse']
 function App() {
   const [salud, setSalud] = useState<HealthResponse | null>(null)
   const [sinConexion, setSinConexion] = useState(false)

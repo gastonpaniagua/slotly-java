@@ -2,13 +2,15 @@ package ar.com.slotly.publico;
 
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import ar.com.slotly.servicio.Servicio;
 
 // Un servicio tal como lo ve el cliente en la home. El precio va en pesos enteros; el formato ($ 8.000) lo pone el front.
 public record ServicioPublicoResponse(
         UUID id,
         String nombre,
-        String descripcion,
+        @Schema(types = {"string", "null"}) String descripcion,
         int duracionMin,
         int precio
 ) {

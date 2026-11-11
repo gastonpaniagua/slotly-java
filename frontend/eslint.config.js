@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // esquema.ts lo genera openapi-typescript (npm run tipos): no se edita a mano.
+  globalIgnores(['dist', 'src/api/esquema.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
