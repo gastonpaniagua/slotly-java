@@ -20,6 +20,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(reglas -> reglas
                         .requestMatchers("/api/health", "/api/publico/**").permitAll()
+                        // Documentación de la API (springdoc): solo describe endpoints, no expone datos.
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(login -> login.disable())
                 .httpBasic(basico -> basico.disable())
