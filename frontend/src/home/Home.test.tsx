@@ -1,38 +1,39 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { unLocal, unServicio } from '../test/datos'
+import { renderConRouter } from '../test/router'
 import Home from './Home'
 
+// El color y el título de la pestaña se prueban en SitioDelLocal.test.tsx.
 describe('Home', () => {
-  it('HU-03 CA1: muestra el nombre y usa el color del local', () => {
-    const { container } = render(<Home local={unLocal({ nombre: 'Barbería Demo', colorAcento: '#2e7d32' })} />)
+  it('HU-03 CA1: muestra el nombre del local', () => {
+    renderConRouter(<Home local={unLocal({ nombre: 'Barbería Demo' })} />)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Barbería Demo' })).toBeInTheDocument()
-    expect(container.querySelector('.home')).toHaveStyle({ '--accent': '#2e7d32', '--accent-contrast': '#ffffff' })
   })
 
-  it('HU-03 CA1 y CA4: el título de la pestaña y la descripción son los del local', () => {
-    document.head.innerHTML = '<meta name="description" content="genérica" />'
+  it('con servicios muestra "Reservar turno" hacia el paso 1; sin servicios, no', () => {
+    const { unmount } = renderConRouter(<Home local={unLocal({ servicios: [unServicio()] })} />)
+    expect(screen.getByRole('link', { name: 'Reservar turno' })).toHaveAttribute('href', '/reservar/servicios')
+    unmount()
 
-    render(<Home local={unLocal({ nombre: 'Barbería Demo', descripcion: 'Cortes clásicos' })} />)
-
-    expect(document.title).toBe('Barbería Demo')
-    expect(document.querySelector('meta[name="description"]')).toHaveAttribute('content', 'Cortes clásicos')
+    renderConRouter(<Home local={unLocal({ servicios: [] })} />)
+    expect(screen.queryByRole('link', { name: 'Reservar turno' })).not.toBeInTheDocument()
   })
 
   it('HU-03 CA1: con logo muestra la imagen; sin logo, la inicial', () => {
-    const { unmount } = render(<Home local={unLocal({ nombre: 'Barbería Demo', logoUrl: 'https://x/logo.png' })} />)
+    const { unmount } = renderConRouter(<Home local={unLocal({ nombre: 'Barbería Demo', logoUrl: 'https://x/logo.png' })} />)
     expect(screen.getByRole('img', { name: 'Logo de Barbería Demo' })).toHaveAttribute('src', 'https://x/logo.png')
     unmount()
 
-    render(<Home local={unLocal({ nombre: 'barbería demo', logoUrl: null })} />)
+    renderConRouter(<Home local={unLocal({ nombre: 'barbería demo', logoUrl: null })} />)
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(screen.getByText('B')).toBeInTheDocument()
   })
 
   it('HU-01 CA1: muestra cada servicio con descripción, precio y duración, en el orden recibido', () => {
-    render(<Home local={unLocal({
+    renderConRouter(<Home local={unLocal({
       servicios: [
         unServicio({ nombre: 'Corte y barba', descripcion: 'El combo completo', precio: 20000, duracionMin: 75 }),
         unServicio({ nombre: 'Barba', precio: 8000, duracionMin: 20 }),
@@ -52,7 +53,7 @@ describe('Home', () => {
 
   it('HU-02 CA1: muestra la semana de lunes a domingo, con sus franjas y "Cerrado" en los días sin horario', () => {
     const franjas = [{ desde: '10:00', hasta: '13:00' }, { desde: '16:00', hasta: '20:00' }]
-    render(<Home local={unLocal({
+    renderConRouter(<Home local={unLocal({
       horarios: [0, 1, 2, 3, 4, 5, 6].map((dia) => ({ diaSemana: dia, franjas: dia >= 2 ? franjas : [] })),
     })} />)
 
@@ -65,7 +66,7 @@ describe('Home', () => {
   })
 
   it('HU-02 CA3: con dirección muestra la dirección, el mapa y "Cómo llegar" a Google Maps', () => {
-    render(<Home local={unLocal({ nombre: 'Barbería Demo', direccion: 'San Martín 1200', ciudad: 'Villa María' })} />)
+    renderConRouter(<Home local={unLocal({ nombre: 'Barbería Demo', direccion: 'San Martín 1200', ciudad: 'Villa María' })} />)
 
     const ubicacion = screen.getByRole('region', { name: 'Ubicación' })
     expect(ubicacion).toHaveTextContent('San Martín 1200, Villa María')
@@ -78,21 +79,21 @@ describe('Home', () => {
   })
 
   it('HU-02 CA3: con coordenadas, el mapa y "Cómo llegar" usan el punto exacto', () => {
-    render(<Home local={unLocal({ direccion: 'San Martín 1200', latitud: -32.41, longitud: -63.24 })} />)
+    renderConRouter(<Home local={unLocal({ direccion: 'San Martín 1200', latitud: -32.41, longitud: -63.24 })} />)
 
     expect(screen.getByRole('link', { name: 'Cómo llegar' }))
       .toHaveAttribute('href', 'https://www.google.com/maps/dir/?api=1&destination=-32.41%2C-63.24')
   })
 
   it('HU-02 CA4: sin dirección no aparece la sección de ubicación ni el mapa', () => {
-    render(<Home local={unLocal({ direccion: null })} />)
+    renderConRouter(<Home local={unLocal({ direccion: null })} />)
 
     expect(screen.queryByRole('region', { name: 'Ubicación' })).not.toBeInTheDocument()
     expect(document.querySelector('iframe')).not.toBeInTheDocument()
   })
 
   it('HU-01 CA3: sin servicios muestra "Todavía no hay servicios para reservar"', () => {
-    render(<Home local={unLocal({ servicios: [] })} />)
+    renderConRouter(<Home local={unLocal({ servicios: [] })} />)
 
     expect(screen.getByText('Todavía no hay servicios para reservar.')).toBeInTheDocument()
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()

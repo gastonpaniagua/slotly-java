@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { obtenerLocal, type ResultadoLocal } from './api/publico'
 import { esDominioRaiz } from './dominio'
-import Home from './home/Home'
 import HomeCargando from './home/HomeCargando'
+import SitioDelLocal from './local/SitioDelLocal'
 import PaginaSlotly from './PaginaSlotly'
 import PantallaMensaje from './PantallaMensaje'
 
@@ -20,7 +20,8 @@ function App({ host = window.location.hostname }: Props) {
   return <HomeDelLocal />
 }
 
-// Pide la home del local y muestra la pantalla que corresponde a la respuesta.
+// Pide los datos del local una sola vez y muestra la pantalla que corresponde a la respuesta.
+// Con el local cargado, la home y la reserva usan los mismos datos (no se vuelven a pedir al cambiar de paso).
 function HomeDelLocal() {
   const [resultado, setResultado] = useState<ResultadoLocal | null>(null)
   // Cada vez que cambia, el efecto vuelve a pedir el local (sirve para "Probar de nuevo").
@@ -50,7 +51,7 @@ function HomeDelLocal() {
 
   switch (resultado.estado) {
     case 'ok':
-      return <Home local={resultado.local} />
+      return <SitioDelLocal local={resultado.local} />
     case 'no-existe':
       // HU-03 CA2: sin detalles técnicos.
       return (

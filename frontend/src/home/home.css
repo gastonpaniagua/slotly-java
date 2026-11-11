@@ -58,6 +58,12 @@
   color: var(--color-text-soft);
 }
 
+.encabezado__reservar {
+  margin-top: var(--space-3);
+  width: 100%;
+  max-width: 320px;
+}
+
 /* ---- Secciones ---- */
 
 .seccion__titulo {

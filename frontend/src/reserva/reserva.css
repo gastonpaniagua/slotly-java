@@ -1,0 +1,161 @@
+/* Asistente de reserva, con los tokens del diseño. El color del local entra por --accent-*. */
+
+.reserva {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  /* Abajo deja lugar para el pie fijo con el resumen y los botones. */
+  padding: var(--space-6) var(--gutter) 180px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.reserva__titulo {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: var(--fw-bold);
+}
+
+.reserva__ayuda {
+  color: var(--color-text-soft);
+}
+
+/* ---- Barra de progreso ---- */
+
+.progreso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progreso__texto {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--color-text-muted);
+}
+
+.progreso__nombre {
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-soft);
+}
+
+.progreso__barra {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.progreso__relleno {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  transition: width .3s ease;
+}
+
+/* ---- Opciones elegibles (servicios, profesionales) ---- */
+
+.opciones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.opcion:hover {
+  border-color: var(--color-border-hover);
+}
+
+/* Marcada: borde y fondo suave del color del local. */
+.opcion:has(.opcion__marca:checked) {
+  border-color: var(--accent-ink);
+  background: var(--accent-tint);
+}
+
+.opcion:has(.opcion__marca:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.opcion__marca {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--accent-ink);
+}
+
+.opcion__datos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.opcion__nombre {
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+}
+
+.opcion__descripcion {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--color-text-soft);
+}
+
+.opcion__detalle {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--color-text-muted);
+}
+
+.opcion__precio {
+  font-weight: var(--fw-semibold);
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+
+/* ---- Pie fijo: resumen + botones ---- */
+
+.reserva__pie {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-4) var(--gutter);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 12px rgba(17, 24, 39, .04);
+}
+
+.reserva__resumen {
+  max-width: var(--content-max);
+  margin: 0 auto var(--space-3);
+  font-weight: var(--fw-semibold);
+  text-align: center;
+}
+
+.reserva__botones {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-3);
+}

@@ -1,3 +1,5 @@
+import { Link } from 'react-router'
+
 import type { LocalPublico } from '../api/tipos'
 
 type Props = {
@@ -5,6 +7,7 @@ type Props = {
 }
 
 // Nombre, logo y descripción del local (HU-03 CA1). Sin logo, se muestra la inicial en un círculo del color del local.
+// Si hay servicios para reservar, el botón principal lleva al paso 1 de la reserva.
 function Encabezado({ local }: Props) {
   return (
     <header className="encabezado">
@@ -17,6 +20,11 @@ function Encabezado({ local }: Props) {
       )}
       <h1 className="encabezado__nombre">{local.nombre}</h1>
       {local.descripcion && <p className="encabezado__descripcion">{local.descripcion}</p>}
+      {local.servicios.length > 0 && (
+        <Link className="btn btn-primary btn-lg encabezado__reservar" to="/reservar/servicios">
+          Reservar turno
+        </Link>
+      )}
     </header>
   )
 }
