@@ -9,6 +9,7 @@
   --color-text: #111827;        /* 17,7:1 */
   --color-text-soft: #4b5563;   /* 7,6:1 */
   --color-text-muted: #6b7280;  /* 4,8:1 sobre blanco, 4,5:1 sobre --color-bg; usar desde 13 px */
+  --color-danger: #b42318;      /* mensajes de error, 6,5:1 sobre blanco (no venía en el diseño) */
 
   /* Bordes */
   --color-border: #e5e7eb;

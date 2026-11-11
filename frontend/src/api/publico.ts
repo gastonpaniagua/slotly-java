@@ -1,4 +1,4 @@
-﻿import type { LocalPublico } from './tipos'
+﻿import type { LocalPublico, ProfesionalPublico } from './tipos'
 
 // Lo que puede pasar al pedir la home. Las pantallas eligen qué mostrar según el estado.
 export type ResultadoLocal =
@@ -23,6 +23,26 @@ export async function obtenerLocal(): Promise<ResultadoLocal> {
     return { estado: 'error' }
   } catch {
     // Sin conexión, o la API caída y el proxy de Vite sin respuesta.
+    return { estado: 'error' }
+  }
+}
+
+export type ResultadoProfesionales =
+  | { estado: 'ok'; profesionales: ProfesionalPublico[] }
+  | { estado: 'error' }
+
+// Los profesionales que hacen todos los servicios elegidos (paso 2 de la reserva, HU-06).
+// Un 404 acá significa que algún servicio dejó de estar disponible mientras el cliente elegía: para la pantalla es un error.
+export async function obtenerProfesionales(servicioIds: string[]): Promise<ResultadoProfesionales> {
+  try {
+    const parametros = new URLSearchParams({ servicios: servicioIds.join(',') })
+    const respuesta = await fetch(`/api/publico/profesionales?${parametros}`)
+    if (!respuesta.ok) {
+      return { estado: 'error' }
+    }
+    const profesionales: ProfesionalPublico[] = await respuesta.json()
+    return { estado: 'ok', profesionales }
+  } catch {
     return { estado: 'error' }
   }
 }

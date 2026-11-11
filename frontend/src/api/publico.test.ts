@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { obtenerLocal } from './publico'
+import { obtenerLocal, obtenerProfesionales } from './publico'
 
 // El fetch se reemplaza por uno simulado (doc 06): acá se prueba cómo se interpreta cada respuesta.
 function responder(status: number, cuerpo: unknown) {
@@ -44,5 +44,28 @@ describe('obtenerLocal', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Not Found', { status: 404 })))
 
     expect(await obtenerLocal()).toEqual({ estado: 'error' })
+  })
+})
+
+describe('obtenerProfesionales', () => {
+  it('pide los profesionales con los servicios elegidos separados por coma', async () => {
+    responder(200, [{ id: 'ana', nombre: 'Ana', fotoUrl: null }])
+
+    const resultado = await obtenerProfesionales(['s1', 's2'])
+
+    expect(fetch).toHaveBeenCalledWith('/api/publico/profesionales?servicios=s1%2Cs2')
+    expect(resultado).toEqual({ estado: 'ok', profesionales: [{ id: 'ana', nombre: 'Ana', fotoUrl: null }] })
+  })
+
+  it('un 404 (un servicio dejó de estar disponible) es un error', async () => {
+    responder(404, { status: 404, codigo: 'SERVICIO_NO_ENCONTRADO' })
+
+    expect(await obtenerProfesionales(['s1'])).toEqual({ estado: 'error' })
+  })
+
+  it('si la API no responde devuelve error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+    expect(await obtenerProfesionales(['s1'])).toEqual({ estado: 'error' })
   })
 })

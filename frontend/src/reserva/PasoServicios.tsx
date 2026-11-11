@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 
 import type { ServicioPublico } from '../api/tipos'
 import { formatearDuracion, formatearPrecio } from '../formato'
@@ -8,12 +8,14 @@ type Props = {
   servicios: ServicioPublico[]
   elegidos: string[]
   alCambiarElegidos: (ids: string[]) => void
+  // "Siguiente": Reserva busca los profesionales y decide a qué paso ir.
+  alAvanzar: () => void
+  buscando: boolean
+  error: boolean
 }
 
 // Paso 1 de la reserva: elegir uno o varios servicios y ver el total de tiempo y precio (HU-05).
-function PasoServicios({ servicios, elegidos, alCambiarElegidos }: Props) {
-  const navegar = useNavigate()
-
+function PasoServicios({ servicios, elegidos, alCambiarElegidos, alAvanzar, buscando, error }: Props) {
   function alternar(id: string) {
     alCambiarElegidos(elegidos.includes(id) ? elegidos.filter((e) => e !== id) : [...elegidos, id])
   }
@@ -50,6 +52,11 @@ function PasoServicios({ servicios, elegidos, alCambiarElegidos }: Props) {
       </ul>
 
       <footer className="reserva__pie">
+        {error && (
+          <p className="reserva__error" role="alert">
+            No pudimos buscar los profesionales. Probá de nuevo.
+          </p>
+        )}
         {/* HU-05 CA2: sin servicios elegidos no hay resumen. */}
         {seleccion.length > 0 && (
           <p className="reserva__resumen" role="status" aria-label="Resumen">
@@ -61,10 +68,10 @@ function PasoServicios({ servicios, elegidos, alCambiarElegidos }: Props) {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={seleccion.length === 0}
-            onClick={() => navegar('/reservar/profesional')}
+            disabled={seleccion.length === 0 || buscando}
+            onClick={alAvanzar}
           >
-            Siguiente
+            {buscando ? 'Buscando…' : 'Siguiente'}
           </button>
         </div>
       </footer>

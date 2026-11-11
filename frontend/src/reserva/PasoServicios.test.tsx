@@ -1,9 +1,20 @@
 import { fireEvent, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { obtenerProfesionales } from '../api/publico'
 import SitioDelLocal from '../local/SitioDelLocal'
 import { unLocal, unServicio } from '../test/datos'
 import { renderConRouter } from '../test/router'
+
+// "Siguiente" pide los profesionales: se simula una respuesta con dos, así siempre se pasa al paso 2.
+vi.mock('../api/publico', () => ({ obtenerProfesionales: vi.fn() }))
+
+beforeEach(() => {
+  vi.mocked(obtenerProfesionales).mockReset().mockResolvedValue({
+    estado: 'ok',
+    profesionales: [{ id: 'ana', nombre: 'Ana', fotoUrl: null }, { id: 'bruno', nombre: 'Bruno', fotoUrl: null }],
+  })
+})
 
 // Se prueba a través de SitioDelLocal para que funcionen las rutas reales (/, /reservar/...).
 function abrirReserva(ruta = '/reservar/servicios') {
@@ -39,11 +50,12 @@ describe('Paso 1: servicios', () => {
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
   })
 
-  it('HU-05 CA3: después de avanzar, "Atrás" vuelve con la selección marcada', () => {
+  it('HU-05 CA3: después de avanzar, "Atrás" vuelve con la selección marcada', async () => {
     abrirReserva()
     fireEvent.click(screen.getByRole('checkbox', { name: /Barba/ }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    expect(await screen.findByRole('heading', { name: 'Elegí con quién' })).toBeInTheDocument()
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
 
     fireEvent.click(screen.getByRole('link', { name: 'Atrás' }))
