@@ -40,6 +40,20 @@ VALUES
     ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Bruno', 2)
 ON CONFLICT (id) DO NOTHING;
 
+-- Qué servicios hace cada profesional. Armado para ver los tres casos del paso 2 de la reserva (HU-06):
+-- "Corte de pelo" → Ana y Bruno; "Barba" → solo Bruno (se salta el paso); "Barba" + "Corte infantil" → nadie.
+INSERT INTO profesional_servicio (local_id, profesional_id, servicio_id)
+VALUES
+    -- Ana: Corte de pelo, Corte y barba, Corte infantil
+    ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001'),
+    ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003'),
+    ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000004'),
+    -- Bruno: Corte de pelo, Barba, Corte y barba
+    ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001'),
+    ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002'),
+    ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003')
+ON CONFLICT DO NOTHING;
+
 -- Horario de demo: martes (2) a sábado (6), de 10 a 13 y de 16 a 20, los dos profesionales
 INSERT INTO horario (id, local_id, profesional_id, dia_semana, hora_inicio, hora_fin)
 VALUES

@@ -19,6 +19,7 @@ public class Profesional {
     private UUID localId;
 
     private String nombre;
+    private String fotoUrl;
     private int orden;
     private boolean activo;
 
@@ -35,6 +36,10 @@ public class Profesional {
 
     public String getNombre() {
         return nombre;
+    }
+
+    public String getFotoUrl() {
+        return fotoUrl;
     }
 
     public int getOrden() {
