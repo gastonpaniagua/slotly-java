@@ -50,6 +50,47 @@ describe('Home', () => {
     expect(servicios[1]).toHaveTextContent('20 min')
   })
 
+  it('HU-02 CA1: muestra la semana de lunes a domingo, con sus franjas y "Cerrado" en los días sin horario', () => {
+    const franjas = [{ desde: '10:00', hasta: '13:00' }, { desde: '16:00', hasta: '20:00' }]
+    render(<Home local={unLocal({
+      horarios: [0, 1, 2, 3, 4, 5, 6].map((dia) => ({ diaSemana: dia, franjas: dia >= 2 ? franjas : [] })),
+    })} />)
+
+    const dias = within(screen.getByRole('region', { name: 'Horarios de atención' })).getAllByRole('term')
+    expect(dias.map((dia) => dia.textContent)).toEqual(
+      ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'])
+    expect(dias[0].nextElementSibling).toHaveTextContent('Cerrado')
+    expect(dias[1].nextElementSibling).toHaveTextContent('10:00 a 13:00 y 16:00 a 20:00')
+    expect(dias[6].nextElementSibling).toHaveTextContent('Cerrado')
+  })
+
+  it('HU-02 CA3: con dirección muestra la dirección, el mapa y "Cómo llegar" a Google Maps', () => {
+    render(<Home local={unLocal({ nombre: 'Barbería Demo', direccion: 'San Martín 1200', ciudad: 'Villa María' })} />)
+
+    const ubicacion = screen.getByRole('region', { name: 'Ubicación' })
+    expect(ubicacion).toHaveTextContent('San Martín 1200, Villa María')
+    expect(within(ubicacion).getByTitle('Mapa con la ubicación de Barbería Demo'))
+      .toHaveAttribute('src', expect.stringContaining('q=San%20Mart%C3%ADn%201200%2C%20Villa%20Mar%C3%ADa'))
+    const comoLlegar = within(ubicacion).getByRole('link', { name: 'Cómo llegar' })
+    expect(comoLlegar).toHaveAttribute('href',
+      'https://www.google.com/maps/dir/?api=1&destination=San%20Mart%C3%ADn%201200%2C%20Villa%20Mar%C3%ADa')
+    expect(comoLlegar).toHaveAttribute('target', '_blank')
+  })
+
+  it('HU-02 CA3: con coordenadas, el mapa y "Cómo llegar" usan el punto exacto', () => {
+    render(<Home local={unLocal({ direccion: 'San Martín 1200', latitud: -32.41, longitud: -63.24 })} />)
+
+    expect(screen.getByRole('link', { name: 'Cómo llegar' }))
+      .toHaveAttribute('href', 'https://www.google.com/maps/dir/?api=1&destination=-32.41%2C-63.24')
+  })
+
+  it('HU-02 CA4: sin dirección no aparece la sección de ubicación ni el mapa', () => {
+    render(<Home local={unLocal({ direccion: null })} />)
+
+    expect(screen.queryByRole('region', { name: 'Ubicación' })).not.toBeInTheDocument()
+    expect(document.querySelector('iframe')).not.toBeInTheDocument()
+  })
+
   it('HU-01 CA3: sin servicios muestra "Todavía no hay servicios para reservar"', () => {
     render(<Home local={unLocal({ servicios: [] })} />)
 
