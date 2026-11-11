@@ -84,6 +84,41 @@ class ReglasDeTurnoEnLaBaseTest {
             .hasMessageContaining("turno_local_id_profesional_id_fkey");
     }
 
+    @Test
+    @DisplayName("HU-04 CA2: la base rechaza un turno de un local con un cliente de otro local")
+    void rechazaTurnoConClienteDeOtroLocal() {
+        UUID otroLocalId = crearLocal("otro");
+        UUID clienteDeOtroId = crearCliente(otroLocalId, "Carla");
+
+        assertThatThrownBy(() -> jdbc.update("""
+                INSERT INTO turno (local_id, profesional_id, cliente_id, tipo, estado, inicio, fin, ocupado_hasta)
+                VALUES (?, ?, ?, 'manual', 'confirmado', ?::timestamptz, ?::timestamptz, ?::timestamptz)
+                """, localId, anaId, clienteDeOtroId,
+                "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00", "2026-11-03T10:45:00-03:00"))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("turno_local_id_cliente_id_fkey");
+    }
+
+    @Test
+    @DisplayName("HU-04 CA2: la base rechaza un servicio de otro local dentro de un turno")
+    void rechazaServicioDeOtroLocalEnElTurno() {
+        UUID otroLocalId = crearLocal("otro");
+        UUID servicioDeOtroId = crearServicio(otroLocalId, "Corte de otro");
+        UUID turnoId = jdbc.queryForObject("""
+                INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta)
+                VALUES (?, ?, 'bloqueo', 'confirmado', ?::timestamptz, ?::timestamptz, ?::timestamptz)
+                RETURNING id
+                """, UUID.class, localId, anaId,
+                "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00", "2026-11-03T10:45:00-03:00");
+
+        assertThatThrownBy(() -> jdbc.update("""
+                INSERT INTO turno_servicio (local_id, turno_id, servicio_id, duracion_min, precio)
+                VALUES (?, ?, ?, 45, 8000)
+                """, localId, turnoId, servicioDeOtroId))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("turno_servicio_local_id_servicio_id_fkey");
+    }
+
     // Inserta un bloqueo confirmado (sin cliente) del profesional, de inicio a fin.
     private void insertarBloqueo(UUID profesionalId, String inicio, String fin) {
         jdbc.update("""
@@ -101,6 +136,17 @@ class ReglasDeTurnoEnLaBaseTest {
     // Crea un profesional en ese local y devuelve su id.
     private UUID crearProfesional(UUID local, String nombre) {
         return jdbc.queryForObject("INSERT INTO profesional (local_id, nombre) VALUES (?, ?) RETURNING id", UUID.class, local, nombre);
+    }
+
+    // Crea un cliente en ese local y devuelve su id.
+    private UUID crearCliente(UUID local, String nombre) {
+        return jdbc.queryForObject("INSERT INTO cliente (local_id, nombre) VALUES (?, ?) RETURNING id", UUID.class, local, nombre);
+    }
+
+    // Crea un servicio de 45 min en ese local y devuelve su id.
+    private UUID crearServicio(UUID local, String nombre) {
+        return jdbc.queryForObject("INSERT INTO servicio (local_id, nombre, duracion_min, precio) VALUES (?, ?, 45, 8000) RETURNING id",
+                UUID.class, local, nombre);
     }
     
    

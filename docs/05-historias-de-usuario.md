@@ -15,10 +15,10 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 
 | ID    | Historia                                          | Rol                 | Prioridad | Tamaño | Etapa | Estado    |
 | ----- | ------------------------------------------------- | ------------------- | --------- | ------ | ----- | --------- |
-| HU-01 | Ver los servicios del local con precio y duración | cliente             | Debe      | S      | 1     | Pendiente |
-| HU-02 | Ver horarios de atención y ubicación              | cliente             | Debe      | S      | 1     | Pendiente |
-| HU-03 | Tener mi dirección web con mi marca               | admin               | Debe      | M      | 1     | Pendiente |
-| HU-04 | Que los datos de mi local no se mezclen con otro  | admin               | Debe      | M      | 1     | Pendiente |
+| HU-01 | Ver los servicios del local con precio y duración | cliente             | Debe      | S      | 1     | Hecha     |
+| HU-02 | Ver horarios de atención y ubicación              | cliente             | Debe      | S      | 1     | Hecha     |
+| HU-03 | Tener mi dirección web con mi marca               | admin               | Debe      | M      | 1     | En curso  |
+| HU-04 | Que los datos de mi local no se mezclen con otro  | admin               | Debe      | M      | 1     | En curso  |
 | HU-05 | Elegir uno o varios servicios y ver el total      | cliente             | Debe      | S      | 2     | Pendiente |
 | HU-06 | Elegir profesional o "cualquiera"                 | cliente             | Debe      | S      | 2     | Pendiente |
 | HU-07 | Ver solo las horas en las que entra lo que elegí  | cliente             | Debe      | L      | 3     | Pendiente |
@@ -64,7 +64,7 @@ La Etapa 9 (calidad, observabilidad y cierre) no agrega historias nuevas: cubre 
 ### HU-01 · Ver los servicios del local
 
 Como **cliente** quiero ver los servicios del local con su precio y duración para saber qué puedo reservar y cuánto me va a salir.
-Prioridad: Debe · Tamaño: S · Etapa: 1 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 1 · Estado: Hecha
 
 - **CA1.** Dado el local demo con servicios activos, cuando abro `demo.localhost:5173`, entonces veo cada servicio activo con nombre, descripción corta, precio en pesos (`$ 8.000`) y duración (`45 min`, `1 h 15 min`), en el orden que definió el local.
 - **CA2.** Dado un servicio oculto (inactivo), cuando abro la home, entonces no aparece ni en la página ni en la respuesta de la API pública.
@@ -74,7 +74,7 @@ Prioridad: Debe · Tamaño: S · Etapa: 1 · Estado: Pendiente
 ### HU-02 · Ver horarios de atención y ubicación
 
 Como **cliente** quiero ver los horarios de atención de la semana y cómo llegar para saber cuándo y dónde ir.
-Prioridad: Debe · Tamaño: S · Etapa: 1 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 1 · Estado: Hecha
 
 - **CA1.** Dado el horario del seed (10 a 13 y 16 a 20, de martes a sábado), cuando abro la home, entonces veo cada día de la semana con sus franjas en hora del local y "Cerrado" en los días sin horario.
 - **CA2.** Dado que mi navegador está en otra zona horaria, cuando abro la home, entonces los horarios se siguen mostrando en hora del local.
@@ -84,7 +84,7 @@ Prioridad: Debe · Tamaño: S · Etapa: 1 · Estado: Pendiente
 ### HU-03 · Mi dirección web con mi marca
 
 Como **admin** quiero que mi local tenga su propia dirección (`milocal.slotly.com.ar`) con mi nombre, logo y color para que mis clientes sientan que la web es mía.
-Prioridad: Debe · Tamaño: M · Etapa: 1 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 1 · Estado: En curso
 
 - **CA1.** Dado el local demo, cuando abro `demo.localhost:5173`, entonces veo su nombre, logo y color de acento, y el título de la pestaña es el nombre del local.
 - **CA2.** Dado un subdominio que no corresponde a ningún local (`noexiste.localhost:5173`), cuando lo abro, entonces la API responde 404 `LOCAL_NO_ENCONTRADO` y veo una página "Este local no existe en Slotly", sin errores técnicos.
@@ -93,14 +93,18 @@ Prioridad: Debe · Tamaño: M · Etapa: 1 · Estado: Pendiente
 - **CA5.** Dado el dominio raíz sin subdominio (`localhost:5173`), cuando lo abro, entonces veo una página simple de Slotly y no la home de un local.
 - **CA6.** Dado el link del local pegado en WhatsApp o Instagram, cuando se genera la vista previa, entonces muestra nombre, descripción e imagen del local. (Etapa 9: en producción, quien sirve `index.html` reemplaza los metadatos según el subdominio antes de mandarlo.)
 
+Pendiente: CA6 se cubre en la Etapa 9. CA1 a CA5 cubiertos el 2026-11-11 (tests + CP-HU03-01 a 03).
+
 ### HU-04 · Datos aislados entre locales
 
 Como **admin** quiero que ningún otro local pueda ver ni tocar mis datos para confiarle a Slotly la agenda y los teléfonos de mis clientes.
-Prioridad: Debe · Tamaño: M · Etapa: 1 (y se refuerza en cada etapa) · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 1 (y se refuerza en cada etapa) · Estado: En curso
 
 - **CA1.** Dados dos locales A y B, cuando pido la home pública de A, entonces la respuesta no incluye ningún servicio, profesional ni horario de B.
 - **CA2.** Dado un turno del local A, cuando intento guardarlo (aun con SQL directo) apuntando a un profesional, servicio o cliente del local B, entonces la base lo rechaza.
 - **CA3.** Dado un ID de un recurso del local B, cuando lo pido a la API desde el subdominio de A, entonces recibo 404 (no 403, para no confirmar que existe).
+
+Pendiente: CA3 cuando haya endpoints con ID (Etapa 2 en adelante). CA1 cubierto el 2026-11-11 (test + CP-HU04-01); CA2 cubierto el 2026-11-11 con tests contra Postgres real para profesional, cliente y servicio de otro local.
 
 Los criterios de aislamiento del panel van en HU-16, HU-17 y HU-18.
 

@@ -24,13 +24,26 @@ Casos de prueba manuales, smoke test, sesiones exploratorias y registro de bugs.
 | ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | CP-E1-01 | Con la base caída, el health responde rápido | Base y API levantadas | 1. `docker compose stop` con la API corriendo 2. `curl.exe -s -w "\n%{http_code} en %{time_total} s\n" http://localhost:8080/api/health` | `503` con `"baseDeDatos":"caida"` en ~5 s (antes ~30 s, ver CP-E0-02) | `503` con `"baseDeDatos":"caida"` en 5,28 s | Pasó | 2026-10-28 |
+| CP-HU03-01 | La home tiene la marca del local (CA1, CA4) | Todo levantado, base recreada con `docker compose down -v` | 1. Abrir `http://demo.localhost:5173` 2. Mirar el título de la pestaña 3. F12 → Elements → mirar `<html lang>` y `<title>` | "Barbería Demo" con la inicial "B" en un círculo verde y franja verde arriba; pestaña "Barbería Demo"; `lang="es-AR"` | Se ve "Barbería Demo" con la inicial "B" en un círculo verde y franja verde arriba; la pestaña dice "Barbería Demo"; y también se ve el `lang="es-AR"` | Pasó | 2026-11-11 |
+| CP-HU03-02 | Local inexistente (CA2) | Todo levantado | 1. Abrir `http://noexiste.localhost:5173` | "Este local no existe en Slotly", sin códigos ni errores técnicos | Se ve claro el mensaje "Este local no existe en Slotly", sin códigos ni errores | Pasó | 2026-11-11 |
+| CP-HU03-03 | Dominio raíz (CA5) | Todo levantado | 1. Abrir `http://localhost:5173` | Página de Slotly con la "S", no la home de un local | Te lleva perfecto a la página de Slotly con una "S" | Pasó | 2026-11-11 |
+| CP-HU01-01 | Servicios con formato y sin ocultos (CA1, CA2) | Todo levantado | 1. Abrir `http://demo.localhost:5173` | 4 servicios en este orden: Corte de pelo, Barba, Corte y barba, Corte infantil; "Corte y barba" con "1 h 15 min" y "$ 20.000"; "Color" no aparece | Aparece todo en ese orden con ese precio y "Color" no aparece | Pasó | 2026-11-11 |
+| CP-HU01-02 | API caída y reintento (CA4) | Base y front levantados, API frenada | 1. Abrir `http://demo.localhost:5173` 2. Levantar la API 3. Tocar "Probar de nuevo" | Paso 1: "No pudimos cargar la página. Probá de nuevo en un rato." con el botón. Paso 3: carga la home sin recargar la página | Paso 1: aparece "No pudimos cargar la página. Probá de nuevo en un rato." con el botón. Paso 3: con la API levantada, "Probar de nuevo" carga la home sin recargar la página | Pasó | 2026-11-11 |
+| CP-HU02-01 | Horarios de la semana (CA1) | Todo levantado | 1. Abrir `http://demo.localhost:5173` 2. Bajar hasta "Horarios de atención" | De lunes a domingo; lunes y domingo "Cerrado"; martes a sábado "10:00 a 13:00 y 16:00 a 20:00" | Aparece de lunes a domingo; lunes y domingo "Cerrado"; y con ese horario de martes a sábado | Pasó | 2026-11-11 |
+| CP-HU02-02 | Horarios en hora del local con el navegador en otra zona (CA2) | Todo levantado, Chrome | 1. F12 → ⋮ → More tools → Sensors → Location: "Tokyo" 2. Recargar la página con F12 abierto | Los horarios no cambian: siguen "10:00 a 13:00 y 16:00 a 20:00" | Con la ubicación en Tokyo los horarios siguen "10:00 a 13:00 y 16:00 a 20:00" | Pasó | 2026-11-11 |
+| CP-HU02-03 | Ubicación y "Cómo llegar" (CA3) | Todo levantado | 1. Bajar hasta "Ubicación" 2. Tocar "Cómo llegar" | Mapa de Villa María y "San Martín 1200, Villa María"; el botón abre Google Maps con la ruta en otra pestaña | Sí, funciona perfecto: el botón abre Google Maps con la ruta en otra pestaña | Pasó | 2026-11-11 |
+| CP-HU04-01 | Otro local ve solo lo suyo (CA1) | Todo levantado | 1. Abrir `http://otra.localhost:5173` | "Otra Barbería" en rojo, un solo servicio ("Corte clásico") y ninguno de demo; todos los días "Cerrado" (otra no tiene profesionales) | Se ve una "O" en un círculo rojo, solo se ve "Corte clásico" y ninguno de demo; todos los días "Cerrado" | Pasó | 2026-11-11 |
+| CP-E1-02 | La home se ve bien en celular | Todo levantado, Chrome | 1. F12 → ícono de celular (Ctrl+Shift+M) → "iPhone SE" 2. Recorrer la home de demo | Nada se corta ni desborda a lo ancho; los botones se tocan fácil. (En un celular real se prueba en el deploy: el celular no puede abrir `demo.localhost`) | Anda perfecto en la versión para celular | Pasó | 2026-11-11 |
 
-## Smoke test (versión Etapa 0, ~3 minutos)
+## Smoke test (versión Etapa 1, ~5 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
-2. `http://demo.localhost:5173` muestra "API: ok" y "Base de datos: ok".
-3. `.\mvnw.cmd test` en `backend/` termina en `BUILD SUCCESS`.
-4. El último commit tiene el ✅ del CI en GitHub.
+2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
+3. `http://noexiste.localhost:5173` muestra "Este local no existe en Slotly".
+4. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+5. El último commit tiene el ✅ del CI en GitHub.
+
+Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 
 ## Bugs
 
