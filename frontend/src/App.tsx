@@ -1,19 +1,51 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { obtenerLocal, type ResultadoLocal } from './api/publico'
+import { esDominioRaiz } from './dominio'
 import Home from './home/Home'
+import HomeCargando from './home/HomeCargando'
+import PaginaSlotly from './PaginaSlotly'
 import PantallaMensaje from './PantallaMensaje'
 
-// Pide la home del local del subdominio y elige qué pantalla mostrar según la respuesta.
-function App() {
+type Props = {
+  // El host se recibe para poder probar App con cualquier dirección; en el navegador es el de la barra.
+  host?: string
+}
+
+// Elige qué mostrar: la página de Slotly en el dominio raíz, o la home del local del subdominio.
+function App({ host = window.location.hostname }: Props) {
+  if (esDominioRaiz(host)) {
+    return <PaginaSlotly />
+  }
+  return <HomeDelLocal />
+}
+
+// Pide la home del local y muestra la pantalla que corresponde a la respuesta.
+function HomeDelLocal() {
   const [resultado, setResultado] = useState<ResultadoLocal | null>(null)
+  // Cada vez que cambia, el efecto vuelve a pedir el local (sirve para "Probar de nuevo").
+  const [intento, setIntento] = useState(0)
 
   useEffect(() => {
-    obtenerLocal().then(setResultado)
+    // Si el componente se desmonta o hay un intento nuevo, se ignora la respuesta vieja.
+    let vigente = true
+    obtenerLocal().then((r) => {
+      if (vigente) {
+        setResultado(r)
+      }
+    })
+    return () => {
+      vigente = false
+    }
+  }, [intento])
+
+  const reintentar = useCallback(() => {
+    setResultado(null)
+    setIntento((n) => n + 1)
   }, [])
 
   if (resultado === null) {
-    return <PantallaMensaje titulo="Cargando…" />
+    return <HomeCargando />
   }
 
   switch (resultado.estado) {
@@ -28,11 +60,12 @@ function App() {
         />
       )
     case 'error':
-      // HU-01 CA4: la API no respondió o falló.
+      // HU-01 CA4: la API no respondió o falló. Se puede reintentar sin recargar la página.
       return (
         <PantallaMensaje
           titulo="No pudimos cargar la página"
           texto="Probá de nuevo en un rato."
+          accion={{ texto: 'Probar de nuevo', alHacerClic: reintentar }}
         />
       )
   }

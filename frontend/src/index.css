@@ -211,5 +211,68 @@ img {
 }
 
 .pantalla-mensaje__texto {
+  max-width: 420px;
   color: var(--color-text-soft);
+}
+
+.pantalla-mensaje__accion {
+  margin-top: var(--space-4);
+}
+
+/* Marca de Slotly en la página del dominio raíz. */
+.marca-slotly {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-2);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 32px;
+  font-weight: var(--fw-bold);
+}
+
+/* Texto solo para lectores de pantalla (invisible en pantalla). */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Esqueletos de carga. */
+.esqueleto {
+  background: var(--color-skeleton);
+  border-radius: var(--radius-sm);
+  animation: latido 1.4s ease-in-out infinite;
+}
+
+.esqueleto--circulo {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-full);
+}
+
+.esqueleto--titulo {
+  width: 60%;
+  height: 28px;
+}
+
+.esqueleto--linea {
+  width: 80%;
+  height: 14px;
+}
+
+.esqueleto--linea-corta {
+  width: 40%;
+  height: 16px;
+}
+
+@keyframes latido {
+  50% {
+    opacity: .5;
+  }
 }
