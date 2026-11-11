@@ -1,8 +1,10 @@
 package ar.com.slotly.publico;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import ar.com.slotly.local.Local;
+import ar.com.slotly.servicio.Servicio;
 
 // Lo que ve cualquiera de un local en su home. Sin datos internos (CBU, activo, reglas de turnos).
 public record LocalPublicoResponse(
@@ -17,11 +19,12 @@ public record LocalPublicoResponse(
         String direccion,
         String ciudad,
         BigDecimal latitud,
-        BigDecimal longitud
+        BigDecimal longitud,
+        List<ServicioPublicoResponse> servicios
 ) {
 
-    // Arma la respuesta a partir de la entidad.
-    static LocalPublicoResponse desde(Local local) {
+    // Arma la respuesta a partir de la entidad y sus servicios visibles (ya filtrados y ordenados).
+    static LocalPublicoResponse desde(Local local, List<Servicio> servicios) {
         return new LocalPublicoResponse(
                 local.getNombre(),
                 local.getDescripcion(),
@@ -34,6 +37,7 @@ public record LocalPublicoResponse(
                 local.getDireccion(),
                 local.getCiudad(),
                 local.getLatitud(),
-                local.getLongitud());
+                local.getLongitud(),
+                servicios.stream().map(ServicioPublicoResponse::desde).toList());
     }
 }

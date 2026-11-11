@@ -14,14 +14,23 @@ VALUES
      '#c0392b', '+5493534099337', 'otra_Barber', 'Intendente Stoll 565', 'Villa María')
 ON CONFLICT (id) DO NOTHING;
 
--- Servicios de demo: 4 activos y 1 oculto (para probar que la home no lo muestra)
-INSERT INTO servicio (id, local_id, nombre, duracion_min, precio, orden, activo)
+-- Servicios de demo: 4 activos y 1 oculto (para probar que la home no lo muestra).
+-- Corte y barba dura 75 min para ver el formato "1 h 15 min" (HU-01 CA1).
+-- El último es de otra: sirve para comprobar a mano que la home de demo no lo muestra (HU-04 CA1).
+INSERT INTO servicio (id, local_id, nombre, descripcion, duracion_min, precio, orden, activo)
 VALUES
-    ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Corte de pelo',  40, 14000, 1, true),
-    ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Barba',          20,  8000, 2, true),
-    ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'Corte y barba',  60, 20000, 3, true),
-    ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'Corte infantil', 30, 10000, 4, true),
-    ('20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', 'Color',          90, 30000, 5, false)
+    ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Corte de pelo',
+     'Corte a tijera o máquina, con lavado.',                      40, 14000, 1, true),
+    ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Barba',
+     'Perfilado y arreglo de barba con navaja.',                    20,  8000, 2, true),
+    ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'Corte y barba',
+     'El combo completo: corte, lavado y barba.',                   75, 20000, 3, true),
+    ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'Corte infantil',
+     'Para chicos de hasta 12 años.',                               30, 10000, 4, true),
+    ('20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', 'Color',
+     'Coloración completa. Consultá antes por WhatsApp.',          90, 30000, 5, false),
+    ('20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000002', 'Corte clásico',
+     'Corte tradicional de barbería.',                              30, 12000, 1, true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Profesionales de demo
