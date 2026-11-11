@@ -117,6 +117,44 @@ class PublicoControllerTest {
                 .andExpect(jsonPath("$.servicios[*].nombre", contains("Corte de pelo")));
     }
 
+    @Test
+    @DisplayName("HU-02 CA1 y HU-04 CA1: el horario junta las franjas de los profesionales activos del local, nada más")
+    void devuelveElHorarioDeAtencion() throws Exception {
+        UUID anaId = crearProfesional(demoId, "Ana", true);
+        UUID brunoId = crearProfesional(demoId, "Bruno", true);
+        UUID inactivoId = crearProfesional(demoId, "Ex empleado", false);
+        UUID otraId = jdbc.queryForObject(
+                "INSERT INTO local (nombre, subdominio) VALUES ('Otra Barbería', 'otra') RETURNING id", UUID.class);
+        UUID carlaId = crearProfesional(otraId, "Carla", true);
+
+        crearFranja(demoId, anaId, 2, "10:00", "13:00");
+        crearFranja(demoId, brunoId, 2, "16:00", "20:00");
+        crearFranja(demoId, inactivoId, 0, "10:00", "13:00");  // domingo, pero el profesional está inactivo
+        crearFranja(otraId, carlaId, 1, "10:00", "13:00");     // lunes, pero es de otro local
+
+        mockMvc.perform(get("/api/publico/local").header(HttpHeaders.HOST, "demo.localhost"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.horarios[*].diaSemana", contains(0, 1, 2, 3, 4, 5, 6)))
+                .andExpect(jsonPath("$.horarios[0].franjas").isEmpty())
+                .andExpect(jsonPath("$.horarios[1].franjas").isEmpty())
+                .andExpect(jsonPath("$.horarios[2].franjas[*].desde", contains("10:00", "16:00")))
+                .andExpect(jsonPath("$.horarios[2].franjas[*].hasta", contains("13:00", "20:00")));
+    }
+
+    // Crea un profesional en ese local y devuelve su id.
+    private UUID crearProfesional(UUID localId, String nombre, boolean activo) {
+        return jdbc.queryForObject("INSERT INTO profesional (local_id, nombre, activo) VALUES (?, ?, ?) RETURNING id",
+                UUID.class, localId, nombre, activo);
+    }
+
+    // Crea una franja del horario semanal de ese profesional.
+    private void crearFranja(UUID localId, UUID profesionalId, int dia, String desde, String hasta) {
+        jdbc.update("""
+                INSERT INTO horario (local_id, profesional_id, dia_semana, hora_inicio, hora_fin)
+                VALUES (?, ?, ?, ?::time, ?::time)
+                """, localId, profesionalId, dia, desde, hasta);
+    }
+
     // Crea un servicio de 75 min y $ 8.000 en ese local.
     private void crearServicio(UUID localId, String nombre, int orden, boolean activo) {
         jdbc.update("""

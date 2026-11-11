@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
+import ar.com.slotly.profesional.Horario;
+import ar.com.slotly.profesional.HorarioRepository;
 import ar.com.slotly.servicio.Servicio;
 import ar.com.slotly.servicio.ServicioRepository;
 
@@ -20,16 +22,20 @@ class PublicoController {
 
     private final LocalResolver localResolver;
     private final ServicioRepository servicioRepository;
+    private final HorarioRepository horarioRepository;
 
-    PublicoController(LocalResolver localResolver, ServicioRepository servicioRepository) {
+    PublicoController(LocalResolver localResolver, ServicioRepository servicioRepository,
+            HorarioRepository horarioRepository) {
         this.localResolver = localResolver;
         this.servicioRepository = servicioRepository;
+        this.horarioRepository = horarioRepository;
     }
 
     @GetMapping("/local")
     LocalPublicoResponse local(@RequestHeader(HttpHeaders.HOST) String host) {
         Local local = localResolver.resolver(host);
         List<Servicio> servicios = servicioRepository.findByLocalIdAndActivoTrueOrderByOrdenAscNombreAsc(local.getId());
-        return LocalPublicoResponse.desde(local, servicios);
+        List<Horario> franjas = horarioRepository.buscarDeProfesionalesActivos(local.getId());
+        return LocalPublicoResponse.desde(local, servicios, franjas);
     }
 }

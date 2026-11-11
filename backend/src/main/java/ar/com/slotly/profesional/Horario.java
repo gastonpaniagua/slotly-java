@@ -26,6 +26,14 @@ public class Horario {
     protected Horario() {
     }
 
+    public Horario(UUID localId, UUID profesionalId, int diaSemana, LocalTime horaInicio, LocalTime horaFin) {
+        this.localId = localId;
+        this.profesionalId = profesionalId;
+        this.diaSemana = diaSemana;
+        this.horaInicio = horaInicio;
+        this.horaFin = horaFin;
+    }
+
     public UUID getId() {
         return id;
     }
