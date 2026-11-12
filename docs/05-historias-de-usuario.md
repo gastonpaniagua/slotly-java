@@ -30,9 +30,9 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 | HU-13 | Que nunca haya dos turnos superpuestos            | admin               | Debe      | M      | 4     | Hecha     |
 | HU-14 | Máximo 2 turnos futuros por teléfono              | admin               | Debe      | S      | 4     | Hecha     |
 | HU-15 | Frenar reservas automáticas                       | admin               | Debe      | S      | 4     | Hecha     |
-| HU-16 | Iniciar y cerrar sesión en el panel               | profesional y admin | Debe      | M      | 5     | Pendiente |
-| HU-17 | Ver mi agenda del día y de la semana              | profesional         | Debe      | M      | 5     | Pendiente |
-| HU-18 | Ver la agenda de todos los profesionales          | admin               | Debe      | S      | 5     | Pendiente |
+| HU-16 | Iniciar y cerrar sesión en el panel               | profesional y admin | Debe      | M      | 5     | Hecha     |
+| HU-17 | Ver mi agenda del día y de la semana              | profesional         | Debe      | M      | 5     | Hecha     |
+| HU-18 | Ver la agenda de todos los profesionales          | admin               | Debe      | S      | 5     | Hecha     |
 | HU-19 | Ver mi turno desde el link                        | cliente             | Debe      | M      | 6     | Pendiente |
 | HU-20 | Cancelar mi turno                                 | cliente             | Debe      | S      | 6     | Pendiente |
 | HU-21 | Reprogramar mi turno                              | cliente             | Debe      | M      | 6     | Pendiente |
@@ -255,7 +255,7 @@ Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Hecha
 ### HU-16 · Iniciar y cerrar sesión en el panel
 
 Como **profesional o admin** quiero entrar al panel con mi usuario y contraseña para gestionar mi agenda sin que nadie más pueda verla.
-Prioridad: Debe · Tamaño: M · Etapa: 5 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 5 · Estado: Hecha
 
 - **CA1.** Dado un usuario válido del local demo, cuando inicio sesión en `demo.localhost:5173/ingresar`, entonces entro a la agenda y la sesión queda en una cookie httpOnly.
 - **CA2.** Dado un mail inexistente o una contraseña incorrecta, cuando intento entrar, entonces veo el mismo mensaje "Mail o contraseña incorrectos" y la respuesta tarda lo mismo en los dos casos.
@@ -266,10 +266,12 @@ Prioridad: Debe · Tamaño: M · Etapa: 5 · Estado: Pendiente
 - **CA7.** Dado que cierro sesión en una pestaña, cuando hago algo en otra, entonces me lleva al login (la sesión se invalida en el servidor).
 - **CA8.** Dada una contraseña guardada, cuando miro la base, entonces está hasheada con argon2id.
 
+Cubierta el 2026-11-12 con tests y casos manuales (CP-HU16-01 a 07). CA5 (una sesión del local A usada contra el local B) y la parte "tarda lo mismo" de CA2 quedan solo con tests automáticos (`IngresoTest` e `IngresoServiceTest`): el navegador no manda la cookie de un subdominio a otro y medir milisegundos a mano no sirve.
+
 ### HU-17 · Ver mi agenda
 
 Como **profesional** quiero ver mis turnos del día y de la semana para organizarme.
-Prioridad: Debe · Tamaño: M · Etapa: 5 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 5 · Estado: Hecha
 
 - **CA1.** Dado que inicié sesión como profesional, cuando abro la agenda, entonces veo mis turnos de hoy en hora del local con cliente, servicios y estado, ordenados por hora.
 - **CA2.** Dado que cambio a vista semana, cuando la veo, entonces aparecen mis turnos de los 7 días y puedo pasar a la semana anterior y la siguiente.
@@ -280,11 +282,13 @@ Prioridad: Debe · Tamaño: M · Etapa: 5 · Estado: Pendiente
 ### HU-18 · Ver la agenda de todos
 
 Como **admin** quiero ver la agenda de todos los profesionales para saber cómo viene el día del local.
-Prioridad: Debe · Tamaño: S · Etapa: 5 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 5 · Estado: Hecha
 
 - **CA1.** Dado que inicié sesión como admin, cuando abro la agenda, entonces puedo ver todos los profesionales juntos o filtrar por uno.
 - **CA2.** Dado un profesional de otro local, cuando el admin pide su agenda, entonces recibe 404.
 - **CA3.** Dado un profesional, cuando intenta usar los endpoints de admin, entonces recibe 403.
+
+Cubierta el 2026-11-12 con tests y casos manuales (CP-HU18-01 a 03). CA2 se probó a mano con un id que no existe en el local; el caso de un profesional de otro local lo cubre `AgendaTest` (misma respuesta: 404).
 
 ---
 

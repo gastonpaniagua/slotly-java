@@ -201,7 +201,65 @@ $hoy = (Get-Date).Date; $martes = $hoy.AddDays(8 - (([int]$hoy.DayOfWeek + 6) % 
 $hoy = (Get-Date).Date; $martes = $hoy.AddDays(8 - (([int]$hoy.DayOfWeek + 6) % 7)).ToString('yyyy-MM-dd'); Set-Content -Path $env:TEMP\pedido.json -Value ('{"servicios":["20000000-0000-0000-0000-000000000002"],"profesional":"30000000-0000-0000-0000-000000000002","fecha":"' + $martes + '","hora":"11:00","estado":"confirmado"}'); curl.exe -s -i -H "Host: demo.localhost" -H "Content-Type: application/json" --data-binary "@$env:TEMP\pedido.json" http://localhost:8080/api/publico/apartados
 ```
 
-## Smoke test (versión Etapa 4, ~8 minutos)
+## Etapa 5 · Acceso al panel y agenda
+
+**Precondiciones comunes:** base, API y front levantados, con la API reiniciada después del paso 40. Usuarios de la demo (contraseña `demo1234`): `admin@demo.com` (admin, y además Ana) y `bruno@demo.com` (profesional). "El martes que viene" es el de la semana siguiente. "Consola" es la consola del navegador (F12 → Console), con la sesión de ese usuario abierta en el panel.
+
+Quedan cubiertos solo con tests automáticos: HU-16 CA5 (una sesión del local demo usada contra otro local, en `IngresoTest`), porque el navegador no manda la cookie de un subdominio a otro y a mano no se puede reproducir; y la parte "tarda lo mismo" de HU-16 CA2 (`IngresoServiceTest`), porque medir milisegundos a mano no sirve.
+
+| ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CP-HU16-01 | Ingresar y cookie httpOnly (CA1) | Sin sesión | 1. Abrir `demo.localhost:5173/ingresar` 2. Entrar como `admin@demo.com` 3. En la consola: `document.cookie` | Entra a la agenda; `document.cookie` no muestra `SLOTLY_SESION` (JavaScript no la puede leer) | Entra a la agenda; aparece solo XSRF-TOKEN y no SLOTLY_SESION, así que JavaScript no puede leer la cookie de la sesión | Paso | 2026/11/12 |
+| CP-HU16-02 | Mismo mensaje para los dos errores (CA2) | Sin sesión | 1. Entrar con `nadie@demo.com` / `demo1234` 2. Entrar con `bruno@demo.com` / `otra` | Las dos veces: "Mail o contraseña incorrectos." | Las dos veces: "Mail o contraseña incorrectos." | Paso | 2026/11/12 |
+| CP-HU16-03 | Bloqueo después de 5 fallos (CA3) | Sin sesión | 1. Cinco intentos con `bruno@demo.com` y una contraseña mal 2. Un sexto con `demo1234` 3. Reiniciar la API y volver a entrar | En el sexto: "Demasiados intentos. Probá de nuevo en 15 minutos."; después de reiniciar entra (el contador vive en memoria) | En el sexto intento aparece "Demasiados intentos. Probá de nuevo en 15 minutos."; al reiniciar la API deja entrar | Paso | 2026/11/12 |
+| CP-HU16-04 | Un usuario de otro local no entra (CA4) | Sin sesión | 1. Abrir `otra.localhost:5173/ingresar` 2. Entrar como `admin@demo.com` | "Mail o contraseña incorrectos." | Aparece "Mail o contraseña incorrectos." | Paso | 2026/11/12 |
+| CP-HU16-05 | Vuelve a la página pedida (CA6) | Sin sesión, L1 | 1. Abrir `demo.localhost:5173/agenda?vista=semana&dia=2026-12-01` 2. Entrar como `bruno@demo.com` | Lleva al login; después de entrar muestra "Semana del 30 de noviembre al 6 de diciembre" | Lleva al login y, después de entrar, muestra "Semana del 30 de noviembre al 6 de diciembre" | Paso | 2026/11/12 |
+| CP-HU16-06 | Salir en una pestaña cierra las dos (CA7) | Sesión de Bruno | 1. Abrir la agenda en dos pestañas 2. En la A, "Salir" 3. En la B, tocar "Día siguiente" | Las dos terminan en el login | Al salir en la A, la B también va al login al tocar cualquier cosa | Paso | 2026/11/12 |
+| CP-HU16-07 | Contraseña con argon2id (CA8) | — | 1. Correr C7 | Las dos filas con un hash que empieza con `$argon2id$` | C7 muestra las dos filas con un hash que empieza con `$argon2id$` | Paso | 2026/11/12 |
+| CP-HU17-01 | Agenda del día (CA1) | L1 | 1. Como cliente, reservar "Barba" con Bruno el martes que viene a las 10:00 2. Entrar como `bruno@demo.com` 3. Ir con › hasta ese martes | "10:00 a 10:20" con el nombre del cliente, "Barba", su celular y "Confirmado" | Después de reservar como cliente, en la agenda de Bruno aparece "10:00 a 10:20" con el nombre del cliente, "Barba", su celular y "Confirmado" | Paso | 2026/11/12 |
+| CP-HU17-02 | Vista semana (CA2) | Después de CP-HU17-01 | 1. Tocar "Semana" 2. "Semana siguiente" y "Semana anterior" | Los 7 días de lunes a domingo, el turno en su martes, y se puede pasar de semana | Funcionan los tres: "Semana", "Semana siguiente" y "Semana anterior" | Paso | 2026/11/12 |
+| CP-HU17-03 | Agenda de otro: 403 (CA3) | Sesión de Bruno | 1. En la consola, correr C8 | `403` | C8 en la consola responde `403` | Paso | 2026/11/12 |
+| CP-HU17-04 | Día sin turnos (CA4) | Sesión de Bruno | 1. Ir a un miércoles sin turnos | "Sin turnos", sin mensaje de error | "Sin turnos", sin mensaje de error | Paso | 2026/11/12 |
+| CP-HU17-05 | Bloqueos y pausas (CA5) | Después de CP-HU17-01, S11 | 1. Ver la agenda de Bruno del martes que viene | "Pausa 13:00 a 16:00" (borde punteado) y "Bloqueado: Médico" de 17:00 a 18:00 (con rayas), distintos del turno | Después de S11, en la agenda de Bruno del martes están "Pausa 13:00 a 16:00" (borde punteado) y "Bloqueado: Médico" de 17:00 a 18:00 (con rayas), distintos del turno | Paso | 2026/11/12 |
+| CP-HU18-01 | El admin ve a todos y filtra (CA1) | Después de CP-HU17-05 | 1. Entrar como `admin@demo.com` 2. Ir al martes que viene 3. Elegir "Bruno" en "Profesional" y después "Todos" | Con "Todos", Ana y Bruno con su horario; con "Bruno", solo él | Con "Todos", Ana y Bruno con su horario; con "Bruno", solo él | Paso | 2026/11/12 |
+| CP-HU18-02 | Profesional inexistente: 404 (CA2) | Sesión de admin | 1. En la consola, correr C9 | `404` | C9 en la consola responde `404` (Not Found) | Paso | 2026/11/12 |
+| CP-HU18-03 | Profesional en un endpoint de admin (CA3) | Sesión de Bruno | 1. En la consola, correr C10 | `403` | C10 con la sesión de Bruno responde `403` | Paso | 2026/11/12 |
+
+### Comandos de la Etapa 5
+
+S11 y C7 se corren desde `C:\dev\slotly-java`; C8 a C10, en la consola del navegador.
+
+**S11** · Bruno bloqueado el martes que viene de 17:00 a 18:00, por "Médico":
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "WITH m AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') + interval '8 days' AS d) INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta, motivo) SELECT '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'bloqueo', 'confirmado', (d + time '17:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '18:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '18:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', 'Médico' FROM m;"
+```
+
+**C7** · Usuarios del panel y el comienzo de su hash:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "SELECT email, rol, left(password_hash, 10) AS hash FROM usuario ORDER BY email;"
+```
+
+**C8** · Siendo Bruno, pide la agenda de Ana:
+
+```js
+fetch('/api/panel/agenda?dias=1&profesional=30000000-0000-0000-0000-000000000001').then(r => r.status)
+```
+
+**C9** · Siendo admin, pide la agenda de un profesional que no existe en el local:
+
+```js
+fetch('/api/panel/agenda?dias=1&profesional=00000000-0000-0000-0000-000000000000').then(r => r.status)
+```
+
+**C10** · Siendo Bruno, usa un endpoint de admin:
+
+```js
+fetch('/api/admin/algo').then(r => r.status)
+```
+
+## Smoke test (versión Etapa 5, ~9 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
 2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
@@ -209,8 +267,9 @@ $hoy = (Get-Date).Date; $martes = $hoy.AddDays(8 - (([int]$hoy.DayOfWeek + 6) % 
 4. "Reservar turno" → marcar "Corte de pelo" → "Siguiente" muestra "Cualquiera disponible", Ana y Bruno.
 5. Volver, marcar solo "Barba" → "Siguiente" muestra el calendario con un día elegido → "Siguiente" muestra horas.
 6. Elegir una hora → completar los datos → "Confirmar" muestra "¡Listo! Tu turno quedó reservado"; recargar muestra el mismo turno.
-7. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
-8. El último commit tiene el ✅ del CI en GitHub.
+7. `demo.localhost:5173/agenda` lleva al login; con `admin@demo.com` / `demo1234` muestra la agenda con el filtro "Profesional".
+8. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+9. El último commit tiene el ✅ del CI en GitHub.
 
 Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 
