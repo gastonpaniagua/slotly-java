@@ -1,13 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 
-import { obtenerHoras } from '../api/publico'
-import type { ResultadoApartar } from '../api/reserva'
+import { obtenerHoras, type Resultado } from '../api/publico'
+import type { HorasLibres } from '../api/tipos'
 import { fechaLarga } from '../fechas'
 import BarraProgreso from './BarraProgreso'
 
 // Cada cuánto se vuelve a pedir la lista mientras el cliente mira (HU-09 CA1).
 const REFRESCO_MS = 15_000
+
+// Lo que puede pasar al tocar el botón de avanzar (apartar en la reserva, confirmar el cambio al reprogramar).
+type ResultadoAvanzar =
+  | { estado: 'ok' }
+  | { estado: 'ocupado' }
+  | { estado: 'demasiados' }
+  | { estado: 'error'; mensaje?: string }
 
 type Props = {
   servicios: string[]
@@ -19,13 +26,21 @@ type Props = {
   horaApartada: string | null
   alElegirHora: (hora: string | null) => void
   // "Siguiente": Reserva aparta la hora y, si sale bien, pasa al paso 5.
-  alAvanzar: () => Promise<ResultadoApartar>
+  alAvanzar: () => Promise<ResultadoAvanzar>
+  // Para reusar la lista al reprogramar (HU-21): de dónde salen las horas (estable, con useCallback), a dónde
+  // vuelve "Atrás", qué paso de la barra mostrar (null: sin barra) y los textos del botón.
+  cargarHoras?: () => Promise<Resultado<HorasLibres>>
+  atras?: string
+  paso?: number | null
+  textos?: { avanzar: string; avanzando: string }
 }
+
+const TEXTOS_RESERVA = { avanzar: 'Siguiente', avanzando: 'Apartando…' }
 
 // Paso 4 de la reserva: elegir la hora (HU-07). La lista se actualiza sola (HU-09): cada 15 s y al volver a la
 // pestaña. Si una hora se ocupa mientras el cliente mira, desaparece; si era la elegida, se desmarca y se avisa.
 function PasoHora({ servicios, profesional, nombreProfesional, fecha, horaElegida, horaApartada, alElegirHora,
-  alAvanzar }: Props) {
+  alAvanzar, cargarHoras, atras = '/reservar/dia', paso = 4, textos = TEXTOS_RESERVA }: Props) {
   const [horas, setHoras] = useState<string[] | null>(null)
   const [falloLaPrimera, setFalloLaPrimera] = useState(false)
   const [falloElRefresco, setFalloElRefresco] = useState(false)
@@ -47,7 +62,7 @@ function PasoHora({ servicios, profesional, nombreProfesional, fecha, horaElegid
     let vigente = true
 
     async function cargar() {
-      const resultado = await obtenerHoras(servicios, profesional, fecha)
+      const resultado = await (cargarHoras ? cargarHoras() : obtenerHoras(servicios, profesional, fecha))
       if (!vigente) {
         return
       }
@@ -90,7 +105,7 @@ function PasoHora({ servicios, profesional, nombreProfesional, fecha, horaElegid
       document.removeEventListener('visibilitychange', alVolver)
       window.removeEventListener('focus', alVolver)
     }
-  }, [servicios, profesional, fecha, intento, alElegirHora])
+  }, [servicios, profesional, fecha, intento, alElegirHora, cargarHoras])
 
   function elegir(hora: string) {
     setSeOcupo(false)
@@ -114,7 +129,7 @@ function PasoHora({ servicios, profesional, nombreProfesional, fecha, horaElegid
     } else if (resultado.estado === 'demasiados') {
       setAvisoAlApartar('Demasiados intentos, esperá un minuto.')
     } else {
-      setAvisoAlApartar('No pudimos apartar el horario. Probá de nuevo.')
+      setAvisoAlApartar(resultado.mensaje ?? 'No pudimos apartar el horario. Probá de nuevo.')
     }
   }
 
@@ -129,7 +144,7 @@ function PasoHora({ servicios, profesional, nombreProfesional, fecha, horaElegid
 
   return (
     <main className="reserva">
-      <BarraProgreso paso={4} />
+      {paso !== null && <BarraProgreso paso={paso} />}
       <h1 className="reserva__titulo">Elegí la hora</h1>
       <p className="reserva__ayuda">{fechaLarga(fecha)}, con {nombreProfesional}.</p>
 
@@ -179,14 +194,14 @@ function PasoHora({ servicios, profesional, nombreProfesional, fecha, horaElegid
       <footer className="reserva__pie">
         {horaElegida && <p className="reserva__resumen">{fechaLarga(fecha)} · {horaElegida}</p>}
         <div className="reserva__botones">
-          <Link className="btn btn-secondary" to="/reservar/dia">Atrás</Link>
+          <Link className="btn btn-secondary" to={atras}>Atrás</Link>
           <button
             type="button"
             className="btn btn-primary"
             disabled={horaElegida === null || apartando}
             onClick={avanzar}
           >
-            {apartando ? 'Apartando…' : 'Siguiente'}
+            {apartando ? textos.avanzando : textos.avanzar}
           </button>
         </div>
       </footer>

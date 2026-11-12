@@ -20,7 +20,10 @@ function PaginaTurno({ local }: Props) {
   const { id = '' } = useParams()
   const ubicacion = useLocation()
   const token = new URLSearchParams(ubicacion.hash.replace(/^#/, '')).get('t') ?? ''
-  const recienConfirmado = (ubicacion.state as { recienConfirmado?: boolean } | null)?.recienConfirmado === true
+  const estadoDeLaNavegacion = ubicacion.state as { recienConfirmado?: boolean; reprogramado?: boolean } | null
+  const recienConfirmado = estadoDeLaNavegacion?.recienConfirmado === true
+  // HU-21: se llega acá recién reprogramado, con el link del turno nuevo.
+  const recienReprogramado = estadoDeLaNavegacion?.reprogramado === true
   const [intento, setIntento] = useState(0)
   const clave = `${id}|${token}|${intento}`
   const [respuesta, setRespuesta] = useState<{ clave: string; resultado: ResultadoTurno } | null>(null)
@@ -105,6 +108,9 @@ function PaginaTurno({ local }: Props) {
     <main className="reserva">
       {recienConfirmado && <BarraProgreso paso={6} />}
       <h1 className="reserva__titulo">{recienConfirmado ? '¡Listo! Tu turno quedó reservado' : 'Tu turno'}</h1>
+      {recienReprogramado && !aviso && (
+        <p className="reserva__aviso" role="status">Listo, cambiaste tu turno. Este es tu turno nuevo.</p>
+      )}
       {aviso && <p className="reserva__aviso" role="status">{aviso}</p>}
       {turno.estado === 'cancelado' && !aviso && (
         <p className="reserva__aviso" role="alert">Este turno está cancelado.</p>
@@ -131,7 +137,8 @@ function PaginaTurno({ local }: Props) {
       {/* HU-10 CA5: los datos para transferir, también en la confirmación. */}
       {turno.transferencia && turno.estado === 'confirmado' && <DatosTransferencia datos={turno.transferencia} />}
 
-      <Cambios turno={turno} local={local} alCancelar={cancelar} />
+      <Cambios turno={turno} local={local} alCancelar={cancelar}
+        linkReprogramar={`/turno/${id}/reprogramar/dia#t=${encodeURIComponent(token)}`} />
 
       {recienConfirmado && (
         <p className="reserva__ayuda">
@@ -148,11 +155,12 @@ type CambiosProps = {
   turno: TurnoPublico
   local: LocalPublico
   alCancelar: () => Promise<void>
+  linkReprogramar: string
 }
 
-// Qué puede hacer el cliente con su turno: cancelarlo (HU-20; reprogramar llega en el paso 44). Fuera de plazo,
-// el local decide (CA2).
-function Cambios({ turno, local, alCancelar }: CambiosProps) {
+// Qué puede hacer el cliente con su turno: reprogramarlo (HU-21) o cancelarlo (HU-20). Fuera de plazo, el local
+// decide (HU-20 CA2 y HU-21 CA4).
+function Cambios({ turno, local, alCancelar, linkReprogramar }: CambiosProps) {
   const [confirmando, setConfirmando] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
@@ -200,6 +208,7 @@ function Cambios({ turno, local, alCancelar }: CambiosProps) {
   }
   return (
     <div className="turno__acciones">
+      <Link className="btn btn-primary" to={linkReprogramar}>Reprogramar</Link>
       <button type="button" className="btn btn-secondary" onClick={() => setConfirmando(true)}>Cancelar turno</button>
     </div>
   )

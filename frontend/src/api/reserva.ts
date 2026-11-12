@@ -1,4 +1,5 @@
-import type { ApartadoCreado, ConfirmarPedido, CrearApartadoPedido, TurnoPublico } from './tipos'
+import type { Resultado } from './publico'
+import type { ApartadoCreado, ConfirmarPedido, CrearApartadoPedido, DiasConLugar, HorasLibres, TurnoPublico } from './tipos'
 
 // Lo que devuelve la API cuando algo sale mal: el front decide por el código (doc 00); el detalle es para mostrar.
 type Problema = { codigo?: string; detail?: string; errores?: { campo: string; mensaje: string }[] }
@@ -123,6 +124,57 @@ export async function cancelarTurno(id: string, token: string): Promise<Resultad
         return { estado: 'invalido' }
       case 'LINK_VENCIDO':
         return { estado: 'vencido' }
+      default:
+        return { estado: 'error' }
+    }
+  } catch {
+    return { estado: 'error' }
+  }
+}
+
+// HU-21: días y horas para mover el turno. No se mandan servicios ni profesional: la API usa los del turno.
+async function pedirConToken<T>(url: string, token: string): Promise<Resultado<T>> {
+  try {
+    const respuesta = await fetch(url, { headers: { 'X-Token-Turno': token } })
+    return respuesta.ok ? { estado: 'ok', datos: (await respuesta.json()) as T } : { estado: 'error' }
+  } catch {
+    return { estado: 'error' }
+  }
+}
+
+export function obtenerDiasParaReprogramar(id: string, token: string, desde?: string): Promise<Resultado<DiasConLugar>> {
+  const parametros = new URLSearchParams(desde ? { desde } : {})
+  return pedirConToken(`/api/publico/turnos/${id}/reprogramar/dias?${parametros}`, token)
+}
+
+export function obtenerHorasParaReprogramar(id: string, token: string, fecha: string): Promise<Resultado<HorasLibres>> {
+  return pedirConToken(`/api/publico/turnos/${id}/reprogramar/horas?${new URLSearchParams({ fecha })}`, token)
+}
+
+export type ResultadoReprogramar =
+  | { estado: 'ok'; id: string; token: string; turno: TurnoPublico }
+  | { estado: 'ocupado' }
+  | { estado: 'fuera-de-plazo' }
+  | { estado: 'error' }
+
+// HU-21 CA2: mueve el turno. El turno nuevo tiene su propio link (id y token nuevos); el viejo queda cancelado.
+export async function reprogramarTurno(id: string, token: string, fecha: string, hora: string): Promise<ResultadoReprogramar> {
+  try {
+    const respuesta = await fetch(`/api/publico/turnos/${id}/reprogramar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Token-Turno': token },
+      body: JSON.stringify({ fecha, hora }),
+    })
+    if (respuesta.ok) {
+      const datos = (await respuesta.json()) as { id: string; token: string; turno: TurnoPublico }
+      return { estado: 'ok', ...datos }
+    }
+    const problema = (await respuesta.json().catch(() => null)) as Problema | null
+    switch (problema?.codigo) {
+      case 'HORARIO_OCUPADO':
+        return { estado: 'ocupado' }
+      case 'FUERA_DE_PLAZO':
+        return { estado: 'fuera-de-plazo' }
       default:
         return { estado: 'error' }
     }

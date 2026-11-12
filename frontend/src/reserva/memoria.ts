@@ -52,6 +52,12 @@ export function recordarTurno(turno: TurnoRecordado) {
   guardar(CLAVE_TURNOS, [...otros, turno].slice(-MAXIMO_TURNOS))
 }
 
+// Al reprogramar (HU-21), el turno nuevo (con su link) reemplaza al viejo en "Mis turnos".
+export function reemplazarTurno(idViejo: string, nuevo: TurnoRecordado) {
+  const otros = leerTurnos().filter((t) => t.id !== idViejo && t.id !== nuevo.id)
+  guardar(CLAVE_TURNOS, [...otros, nuevo].slice(-MAXIMO_TURNOS))
+}
+
 // El link de "Mi turno": el token va después del #, la parte de la URL que el navegador nunca manda al servidor.
 export function linkDelTurno(turno: { id: string; token: string }): string {
   return `/turno/${turno.id}#t=${encodeURIComponent(turno.token)}`

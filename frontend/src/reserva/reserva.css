@@ -536,3 +536,15 @@
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
 }
+
+/* Reprogramar (HU-21): recuerda cuál es el turno que se está cambiando. */
+.reprogramar__actual {
+  max-width: var(--content-max);
+  margin: var(--space-4) auto 0;
+  padding: var(--space-3) var(--gutter);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--color-text-soft);
+}

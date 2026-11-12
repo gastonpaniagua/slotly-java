@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
-import { obtenerDias } from '../api/publico'
+import { obtenerDias, type Resultado } from '../api/publico'
+import type { DiasConLugar } from '../api/tipos'
 import { diasDeLaSemana, fechaLarga, lunesDe, nombreCortoDelDia, numeroDelDia, sumarDias, textoDeLaSemana } from '../fechas'
 import BarraProgreso from './BarraProgreso'
 
@@ -12,13 +13,22 @@ type Props = {
   atras: string
   fechaElegida: string | null
   alElegirFecha: (fecha: string) => void
+  // Para reusar el calendario al reprogramar (HU-21): de dónde salen los días (por defecto, la disponibilidad
+  // pública para estos servicios y profesional), a dónde lleva "Siguiente", qué paso de la barra mostrar (null:
+  // sin barra) y qué decir si no hay lugar. Si se pasa cargarDias, tiene que ser estable (useCallback).
+  cargarDias?: (desde?: string) => Promise<Resultado<DiasConLugar>>
+  siguiente?: string
+  paso?: number | null
+  sinLugar?: string
 }
 
 type Limites = { hoy: string; ultimoDia: string }
 
 // Paso 3 de la reserva: elegir el día en un calendario semanal (HU-08).
 // Los días sin lugar (cerrados, completos o fuera del tope) aparecen en gris y no se pueden tocar.
-function PasoDia({ servicios, profesional, nombreProfesional, atras, fechaElegida, alElegirFecha }: Props) {
+function PasoDia({ servicios, profesional, nombreProfesional, atras, fechaElegida, alElegirFecha, cargarDias,
+  siguiente = '/reservar/hora', paso = 3,
+  sinLugar = 'No hay lugar en las próximas semanas. Probá con otro profesional o sacando un servicio.' }: Props) {
   const navegar = useNavigate()
   // fecha → hay lugar. Se va completando de a 6 semanas.
   const [dias, setDias] = useState<Map<string, boolean>>(new Map())
@@ -33,7 +43,8 @@ function PasoDia({ servicios, profesional, nombreProfesional, atras, fechaElegid
 
   useEffect(() => {
     let vigente = true
-    obtenerDias(servicios, profesional, desdeACargar).then((resultado) => {
+    const pedido = cargarDias ? cargarDias(desdeACargar) : obtenerDias(servicios, profesional, desdeACargar)
+    pedido.then((resultado) => {
       if (!vigente) {
         return
       }
@@ -57,7 +68,7 @@ function PasoDia({ servicios, profesional, nombreProfesional, atras, fechaElegid
     return () => {
       vigente = false
     }
-  }, [servicios, profesional, desdeACargar, intento, alElegirFecha])
+  }, [servicios, profesional, desdeACargar, intento, alElegirFecha, cargarDias])
 
   // HU-08 CA3: no se va a semanas anteriores a la actual ni después de la que tiene el último día permitido.
   const primeraSemana = limites ? lunesDe(limites.hoy) : null
@@ -81,7 +92,7 @@ function PasoDia({ servicios, profesional, nombreProfesional, atras, fechaElegid
 
   return (
     <main className="reserva">
-      <BarraProgreso paso={3} />
+      {paso !== null && <BarraProgreso paso={paso} />}
       <h1 className="reserva__titulo">Elegí el día</h1>
       <p className="reserva__ayuda">Con {nombreProfesional}.</p>
 
@@ -144,7 +155,7 @@ function PasoDia({ servicios, profesional, nombreProfesional, atras, fechaElegid
 
       {estado === 'listo' && !hayAlgunDiaConLugar && (
         <p className="reserva__aviso" role="alert">
-          No hay lugar en las próximas semanas. Probá con otro profesional o sacando un servicio.
+          {sinLugar}
         </p>
       )}
 
@@ -156,7 +167,7 @@ function PasoDia({ servicios, profesional, nombreProfesional, atras, fechaElegid
             type="button"
             className="btn btn-primary"
             disabled={fechaElegida === null}
-            onClick={() => navegar('/reservar/hora')}
+            onClick={() => navegar(siguiente)}
           >
             Siguiente
           </button>

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { cancelarTurno, obtenerTurno } from './reserva'
+import { cancelarTurno, obtenerHorasParaReprogramar, obtenerTurno, reprogramarTurno } from './reserva'
 
 function responder(status: number, cuerpo: unknown) {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
@@ -63,5 +63,33 @@ describe('cancelarTurno', () => {
     expect(await cancelarTurno('abc', 'x')).toEqual({ estado: 'vencido' })
     responder(500, { codigo: 'ERROR_INTERNO' })
     expect(await cancelarTurno('abc', 'x')).toEqual({ estado: 'error' })
+  })
+})
+
+describe('reprogramar', () => {
+  it('HU-21: las horas se piden con el token y sin servicios ni profesional (la API usa los del turno)', async () => {
+    responder(200, { fecha: '2026-11-18', horas: ['10:00'] })
+
+    expect(await obtenerHorasParaReprogramar('abc', 'secreto', '2026-11-18'))
+      .toEqual({ estado: 'ok', datos: { fecha: '2026-11-18', horas: ['10:00'] } })
+    expect(fetch).toHaveBeenCalledWith('/api/publico/turnos/abc/reprogramar/horas?fecha=2026-11-18',
+      { headers: { 'X-Token-Turno': 'secreto' } })
+  })
+
+  it('HU-21 CA2: reprogramar devuelve el id y el token del turno nuevo', async () => {
+    responder(200, { id: 'nuevo', token: 't2', turno: { id: 'nuevo' } })
+
+    expect(await reprogramarTurno('abc', 'secreto', '2026-11-18', '11:00'))
+      .toEqual({ estado: 'ok', id: 'nuevo', token: 't2', turno: { id: 'nuevo' } })
+    const [url, opciones] = vi.mocked(fetch).mock.calls[0]
+    expect(url).toBe('/api/publico/turnos/abc/reprogramar')
+    expect(JSON.parse(opciones?.body as string)).toEqual({ fecha: '2026-11-18', hora: '11:00' })
+  })
+
+  it('HU-21 CA3 y CA4: HORARIO_OCUPADO y FUERA_DE_PLAZO', async () => {
+    responder(409, { codigo: 'HORARIO_OCUPADO' })
+    expect(await reprogramarTurno('abc', 'x', '2026-11-18', '11:00')).toEqual({ estado: 'ocupado' })
+    responder(409, { codigo: 'FUERA_DE_PLAZO' })
+    expect(await reprogramarTurno('abc', 'x', '2026-11-18', '11:00')).toEqual({ estado: 'fuera-de-plazo' })
   })
 })
