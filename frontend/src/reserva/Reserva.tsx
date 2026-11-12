@@ -3,10 +3,10 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router'
 
 import { obtenerProfesionales } from '../api/publico'
 import { apartar, confirmar, type ResultadoApartar, type ResultadoConfirmar } from '../api/reserva'
-import type { ApartadoCreado, LocalPublico, ProfesionalPublico, TurnoPublico } from '../api/tipos'
+import type { ApartadoCreado, LocalPublico, ProfesionalPublico } from '../api/tipos'
 import { CUALQUIERA } from './constantes'
 import { DATOS_VACIOS, type DatosCliente } from './datosCliente'
-import PasoConfirmacion from './PasoConfirmacion'
+import { leerCliente, linkDelTurno, recordarCliente, recordarTurno } from './memoria'
 import PasoDatos from './PasoDatos'
 import PasoDia from './PasoDia'
 import PasoHora from './PasoHora'
@@ -42,10 +42,10 @@ function Reserva({ local }: Props) {
   }, [fechaElegida])
   const [buscando, setBuscando] = useState(false)
   const [errorAlBuscar, setErrorAlBuscar] = useState(false)
-  // El horario apartado al pasar al paso 5 (HU-11), los datos del formulario y el turno ya confirmado.
+  // El horario apartado al pasar al paso 5 (HU-11) y los datos del formulario.
+  // HU-10 CA9: si ya reservó desde este navegador, nombre y celular vienen precargados.
   const [apartado, setApartado] = useState<ApartadoVigente | null>(null)
-  const [datos, setDatos] = useState<DatosCliente>(DATOS_VACIOS)
-  const [turno, setTurno] = useState<TurnoPublico | null>(null)
+  const [datos, setDatos] = useState<DatosCliente>(() => ({ ...DATOS_VACIOS, ...leerCliente() }))
 
   // Si cambian los servicios, lo elegido después ya no vale: se vuelve a pedir y a elegir.
   function cambiarServicios(ids: string[]) {
@@ -120,8 +120,13 @@ function Reserva({ local }: Props) {
       consentimiento: datos.consentimiento,
     })
     if (resultado.estado === 'ok') {
-      setTurno(resultado.turno)
-      navegar('/reservar/confirmacion', { replace: true })
+      // HU-10 CA9: el navegador recuerda al cliente y el link de su turno.
+      const { id, token } = apartado.apartado
+      recordarCliente({ nombre: datos.nombre.trim(), telefono: datos.telefono.trim() })
+      recordarTurno({ id, token, fecha: resultado.turno.fecha, hora: resultado.turno.hora })
+      // La confirmación es "Mi turno": recargarla vuelve a pedir el mismo turno (CA7). replace: "Atrás" no vuelve
+      // al formulario de un turno ya confirmado.
+      navegar(linkDelTurno({ id, token }), { replace: true, state: { recienConfirmado: true } })
     }
     return resultado
   }
@@ -218,10 +223,6 @@ function Reserva({ local }: Props) {
               />
             )
         }
-      />
-      <Route
-        path="confirmacion"
-        element={turno === null ? <Navigate to="/reservar/servicios" replace /> : <PasoConfirmacion turno={turno} />}
       />
       <Route path="*" element={<Navigate to="/reservar/servicios" replace />} />
     </Routes>

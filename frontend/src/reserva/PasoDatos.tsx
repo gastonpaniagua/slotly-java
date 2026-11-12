@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 
 import type { ResultadoConfirmar } from '../api/reserva'
 import type { ApartadoCreado, ServicioPublico } from '../api/tipos'
@@ -28,6 +28,7 @@ function PasoDatos({ apartado, creadoEnMs, servicios, datos, alCambiarDatos, alC
   const [enviando, setEnviando] = useState(false)
   const [vencido, setVencido] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
+  const [maximo, setMaximo] = useState(false)
 
   // La cuenta regresiva: se mide desde que se creó el apartado en este navegador, así no depende de que el reloj
   // del celular esté en hora (solo de que avance).
@@ -46,6 +47,7 @@ function PasoDatos({ apartado, creadoEnMs, servicios, datos, alCambiarDatos, alC
   async function enviar(evento: FormEvent) {
     evento.preventDefault()
     setAviso(null)
+    setMaximo(false)
     const encontrados = validarDatos(datos)
     if (Object.keys(encontrados).length > 0) {
       // HU-10 CA2 y CA4: no se envía; cada error se marca junto a su campo y el foco va al primero.
@@ -68,6 +70,7 @@ function PasoDatos({ apartado, creadoEnMs, servicios, datos, alCambiarDatos, alC
         break
       case 'maximo':
         setAviso(resultado.mensaje)
+        setMaximo(true)
         break
       case 'demasiados':
         setAviso('Demasiados intentos, esperá un minuto.')
@@ -162,7 +165,13 @@ function PasoDatos({ apartado, creadoEnMs, servicios, datos, alCambiarDatos, alC
           {errores.consentimiento && <p id="error-consentimiento" className="campo__error">{errores.consentimiento}</p>}
         </div>
 
-        {aviso && <p className="reserva__aviso" role="alert">{aviso}</p>}
+        {aviso && (
+          <div className="reserva__aviso" role="alert">
+            <p>{aviso}</p>
+            {/* HU-14 CA1: con el máximo de turnos, acceso directo a los que ya tiene. */}
+            {maximo && <Link className="link" to="/mis-turnos">Ver mis turnos</Link>}
+          </div>
+        )}
 
         <footer className="reserva__pie">
           <div className="reserva__botones">

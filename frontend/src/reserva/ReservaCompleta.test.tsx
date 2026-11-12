@@ -2,15 +2,21 @@ import { fireEvent, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { obtenerDias, obtenerHoras, obtenerProfesionales } from '../api/publico'
-import { apartar, confirmar } from '../api/reserva'
-import type { ApartadoCreado } from '../api/tipos'
+import { apartar, confirmar, obtenerTurno } from '../api/reserva'
+import type { ApartadoCreado, TurnoPublico } from '../api/tipos'
 import SitioDelLocal from '../local/SitioDelLocal'
 import { unLocal, unServicio } from '../test/datos'
 import { renderConRouter } from '../test/router'
 
 // La reserva de punta a punta, con la API simulada: que los pasos estén bien conectados entre sí.
 vi.mock('../api/publico', () => ({ obtenerProfesionales: vi.fn(), obtenerDias: vi.fn(), obtenerHoras: vi.fn() }))
-vi.mock('../api/reserva', () => ({ apartar: vi.fn(), confirmar: vi.fn() }))
+vi.mock('../api/reserva', () => ({ apartar: vi.fn(), confirmar: vi.fn(), obtenerTurno: vi.fn() }))
+
+const TURNO: TurnoPublico = {
+  id: 'apartado-10:00', estado: 'confirmado', fecha: '2026-11-17', hora: '10:00', profesionalNombre: 'Bruno',
+  servicios: [{ nombre: 'Corte', duracionMin: 30, precio: 8000 }], duracionMin: 30, precioTotal: 8000,
+  formaPago: 'efectivo', transferencia: null,
+}
 
 function apartadoDe(hora: string): ApartadoCreado {
   return {
@@ -31,7 +37,8 @@ beforeEach(() => {
     estado: 'ok', datos: { fecha: '2026-11-17', horas: ['10:00', '10:30'] },
   })
   vi.mocked(apartar).mockReset().mockImplementation(async (pedido) => ({ estado: 'ok', apartado: apartadoDe(pedido.hora) }))
-  vi.mocked(confirmar).mockReset()
+  vi.mocked(confirmar).mockReset().mockResolvedValue({ estado: 'ok', turno: TURNO })
+  vi.mocked(obtenerTurno).mockReset().mockResolvedValue(TURNO)
 })
 
 // Corte → (Bruno es el único) → martes 17 (elegido solo) → la hora pedida → paso 5.
@@ -64,14 +71,6 @@ describe('Reserva completa', () => {
   })
 
   it('HU-10 CA1: confirma con los datos y muestra el turno con el día en palabras', async () => {
-    vi.mocked(confirmar).mockResolvedValue({
-      estado: 'ok',
-      turno: {
-        id: 'apartado-10:00', estado: 'confirmado', fecha: '2026-11-17', hora: '10:00', profesionalNombre: 'Bruno',
-        servicios: [{ nombre: 'Corte', duracionMin: 30, precio: 8000 }], duracionMin: 30, precioTotal: 8000,
-        formaPago: 'efectivo', transferencia: null,
-      },
-    })
     await llegarAlPaso5('10:00')
     completarDatos()
 
@@ -98,6 +97,32 @@ describe('Reserva completa', () => {
       hora: '10:30', anterior: { id: 'apartado-10:00', token: 'token-10:00' },
     }))
     expect(screen.getByLabelText('Nombre')).toHaveValue('  Lucía  ')
+    expect(screen.getByLabelText('Celular')).toHaveValue('11 2345-6789')
+  })
+
+  it('HU-10 CA9: después de reservar, el navegador recuerda los datos y el turno, y la home ofrece "Mis turnos"', async () => {
+    await llegarAlPaso5('10:00')
+    completarDatos()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await screen.findByRole('heading', { name: '¡Listo! Tu turno quedó reservado' })
+
+    fireEvent.click(screen.getByRole('link', { name: 'Volver al inicio' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Mis turnos' }))
+    fireEvent.click(screen.getByRole('link', { name: /martes 17 de noviembre, 10:00/ }))
+    expect(await screen.findByRole('heading', { name: 'Tu turno' })).toBeInTheDocument()
+    expect(obtenerTurno).toHaveBeenLastCalledWith('apartado-10:00', 'token-10:00')
+
+    // Una reserva nueva arranca con nombre y celular precargados.
+    fireEvent.click(screen.getByRole('link', { name: 'Volver al inicio' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Reservar turno' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Corte/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await screen.findByRole('button', { name: 'martes 17 de noviembre' })
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    fireEvent.click(await screen.findByRole('button', { name: '10:30' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await screen.findByRole('heading', { name: 'Tus datos' })
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Lucía')
     expect(screen.getByLabelText('Celular')).toHaveValue('11 2345-6789')
   })
 

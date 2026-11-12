@@ -5,6 +5,8 @@ import type { LocalPublico } from '../api/tipos'
 import { variablesDeAcento } from '../acento'
 import Home from '../home/Home'
 import PaginaPrivacidad from '../PaginaPrivacidad'
+import PaginaMisTurnos from '../reserva/PaginaMisTurnos'
+import PaginaTurno from '../reserva/PaginaTurno'
 import Reserva from '../reserva/Reserva'
 
 type Props = {
@@ -31,6 +33,8 @@ function SitioDelLocal({ local }: Props) {
         <Route index element={<Home local={local} />} />
         <Route path="reservar/*" element={<Reserva local={local} />} />
         <Route path="privacidad" element={<PaginaPrivacidad />} />
+        <Route path="turno/:id" element={<PaginaTurno />} />
+        <Route path="mis-turnos" element={<PaginaMisTurnos />} />
         {/* Cualquier otra dirección vuelve a la home del local. */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

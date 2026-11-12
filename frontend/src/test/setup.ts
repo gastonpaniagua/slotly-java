@@ -4,7 +4,8 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
 
-// Desmonta lo que dibujó cada test, así ninguno ve lo del anterior.
+// Desmonta lo que dibujó cada test y borra lo que guardó en el navegador, así ninguno ve lo del anterior.
 afterEach(() => {
   cleanup()
+  localStorage.clear()
 })
