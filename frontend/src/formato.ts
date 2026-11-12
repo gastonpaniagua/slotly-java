@@ -19,3 +19,9 @@ export function formatearDuracion(minutos: number): string {
   }
   return `${horas} h ${resto} min`
 }
+
+// Link para escribirle al local por WhatsApp. El número viene en formato internacional (+5493534000000);
+// wa.me lo quiere solo con dígitos.
+export function linkDeWhatsApp(numero: string): string {
+  return `https://wa.me/${numero.replace(/\D/g, '')}`
+}

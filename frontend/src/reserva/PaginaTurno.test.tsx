@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { obtenerTurno } from '../api/reserva'
-import type { TurnoPublico } from '../api/tipos'
+import type { LocalPublico, TurnoPublico } from '../api/tipos'
+import { unLocal } from '../test/datos'
 import PaginaTurno from './PaginaTurno'
 
 vi.mock('../api/reserva', () => ({ obtenerTurno: vi.fn() }))
@@ -13,17 +14,24 @@ const TURNO: TurnoPublico = {
   servicios: [{ nombre: 'Corte', duracionMin: 30, precio: 8000 }, { nombre: 'Barba', duracionMin: 20, precio: 5000 }],
   duracionMin: 50, precioTotal: 13000, formaPago: 'transferencia',
   transferencia: { alias: 'barberia.demo', cbu: '0000003100000000000001', titular: 'Juan Pérez' },
+  yaPaso: false, puedeCambiar: true,
 }
+
+const LOCAL = unLocal({ direccion: 'San Martín 1200', ciudad: 'Villa María', whatsapp: '+5493534000000' })
 
 beforeEach(() => {
   vi.mocked(obtenerTurno).mockReset()
 })
 
-function abrir(entrada: string | { pathname: string; hash: string; state: unknown }) {
+function conTurno(datos: Partial<TurnoPublico> = {}) {
+  vi.mocked(obtenerTurno).mockResolvedValue({ estado: 'ok', turno: { ...TURNO, ...datos } })
+}
+
+function abrir(entrada: string | { pathname: string; hash: string; state: unknown }, local: LocalPublico = LOCAL) {
   render(
     <MemoryRouter initialEntries={[entrada]}>
       <Routes>
-        <Route path="/turno/:id" element={<PaginaTurno />} />
+        <Route path="/turno/:id" element={<PaginaTurno local={local} />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -31,7 +39,7 @@ function abrir(entrada: string | { pathname: string; hash: string; state: unknow
 
 describe('Mi turno', () => {
   it('pide el turno con el id de la dirección y el token que está después del #', async () => {
-    vi.mocked(obtenerTurno).mockResolvedValue(TURNO)
+    conTurno()
 
     abrir('/turno/abc#t=x%2Fy')
 
@@ -40,7 +48,7 @@ describe('Mi turno', () => {
   })
 
   it('HU-10 CA1 y CA5: recién reservado muestra "¡Listo!", el día en palabras, profesional, servicios, total, pago y transferencia', async () => {
-    vi.mocked(obtenerTurno).mockResolvedValue(TURNO)
+    conTurno()
 
     abrir({ pathname: '/turno/abc', hash: '#t=secreto', state: { recienConfirmado: true } })
 
@@ -55,8 +63,16 @@ describe('Mi turno', () => {
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '6')
   })
 
+  it('HU-19 CA1: muestra la dirección del local', async () => {
+    conTurno()
+
+    abrir('/turno/abc#t=secreto')
+
+    expect(await screen.findByText('Dónde: San Martín 1200, Villa María')).toBeInTheDocument()
+  })
+
   it('HU-10 CA7: al recargar (sin el aviso de recién reservado) se ve el mismo turno, sin crear otro', async () => {
-    vi.mocked(obtenerTurno).mockResolvedValue(TURNO)
+    conTurno()
 
     abrir('/turno/abc#t=secreto')
 
@@ -65,19 +81,59 @@ describe('Mi turno', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   })
 
-  it('con un link roto o vencido lo dice, sin errores técnicos', async () => {
-    vi.mocked(obtenerTurno).mockResolvedValue(null)
+  it('HU-19 CA2: con un link roto dice "Este link no es válido" y ofrece entrar con el teléfono', async () => {
+    vi.mocked(obtenerTurno).mockResolvedValue({ estado: 'invalido' })
 
     abrir('/turno/abc#t=inventado')
 
-    expect(await screen.findByRole('heading', { name: 'No encontramos ese turno' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Este link no es válido' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Entrar con mi teléfono' })).toHaveAttribute('href', '/entrar')
+  })
+
+  it('HU-19 CA3: con un link vencido dice "Este link venció"', async () => {
+    vi.mocked(obtenerTurno).mockResolvedValue({ estado: 'vencido' })
+
+    abrir('/turno/abc#t=secreto')
+
+    expect(await screen.findByRole('heading', { name: 'Este link venció' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Entrar con mi teléfono' })).toBeInTheDocument()
+  })
+
+  it('si la API no responde, lo dice y "Probar de nuevo" lo vuelve a pedir', async () => {
+    vi.mocked(obtenerTurno).mockResolvedValueOnce({ estado: 'error' })
+      .mockResolvedValueOnce({ estado: 'ok', turno: TURNO })
+
+    abrir('/turno/abc#t=secreto')
+    fireEvent.click(await screen.findByRole('button', { name: 'Probar de nuevo' }))
+
+    expect(await screen.findByRole('heading', { name: 'Tu turno' })).toBeInTheDocument()
   })
 
   it('un turno cancelado lo avisa', async () => {
-    vi.mocked(obtenerTurno).mockResolvedValue({ ...TURNO, estado: 'cancelado' })
+    conTurno({ estado: 'cancelado', puedeCambiar: false })
 
     abrir('/turno/abc#t=secreto')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Este turno está cancelado.')
+  })
+
+  it('HU-20 CA2: con menos de 3 horas, en vez de cambiarlo pide escribirle al local por WhatsApp', async () => {
+    conTurno({ puedeCambiar: false })
+
+    abrir('/turno/abc#t=secreto')
+
+    expect(await screen.findByText('Falta poco para tu turno: para cancelarlo o cambiarlo, escribile al local.'))
+      .toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Escribir por WhatsApp' }))
+      .toHaveAttribute('href', 'https://wa.me/5493534000000')
+  })
+
+  it('un turno que ya pasó lo dice y no ofrece cambios', async () => {
+    conTurno({ yaPaso: true, puedeCambiar: false })
+
+    abrir('/turno/abc#t=secreto')
+
+    expect(await screen.findByText('Este turno ya pasó.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Escribir por WhatsApp' })).not.toBeInTheDocument()
   })
 })

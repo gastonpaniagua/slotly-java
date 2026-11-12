@@ -49,10 +49,13 @@ public class ConfirmacionService {
 
     // Un turno tal como lo ve el cliente: la pantalla de confirmación y "Mi turno" muestran esto.
     // transferencia: alias, CBU y titular del local, solo si eligió pagar por transferencia (HU-10 CA5).
+    // yaPaso: el turno ya empezó. puedeCambiar: el cliente todavía puede cancelarlo o reprogramarlo solo (está
+    // confirmado y faltan más horas que las que pide el local, HU-20 CA2); si no, tiene que escribirle al local.
     public record TurnoPublico(UUID id, String estado, LocalDate fecha, @JsonFormat(pattern = "HH:mm") LocalTime hora,
             String profesionalNombre, List<ServicioDelTurno> servicios, int duracionMin, int precioTotal,
             @Schema(types = {"string", "null"}) String formaPago,
-            @Schema(types = {"object", "null"}) DatosTransferencia transferencia) {
+            @Schema(types = {"object", "null"}) DatosTransferencia transferencia,
+            boolean yaPaso, boolean puedeCambiar) {
     }
 
     public record ServicioDelTurno(String nombre, int duracionMin, int precio) {
@@ -97,15 +100,19 @@ public class ConfirmacionService {
         return ver(local, id);
     }
 
-    // "Mi turno": el turno con ese id y ese token, si el token no venció (HU-10 CA7 y CA9).
+    // "Mi turno": el turno con ese id y ese token (HU-10 CA7 y CA9, HU-19).
+    // Token que no corresponde, turno inexistente o de otro local: 404, lo mismo en los tres casos (HU-19 CA2 y CA5).
+    // Token correcto pero vencido (30 días después del turno): 410, para poder decir "Este link venció" (CA3).
     @Transactional(readOnly = true)
     public TurnoPublico verConToken(Local local, UUID id, String token) {
-        Integer coincide = jdbc.queryForObject("""
-                SELECT count(*) FROM turno
-                WHERE id = ? AND local_id = ? AND token_hash = ? AND token_vence_en > ?
-                """, Integer.class, id, local.getId(), TokenSecreto.hash(token), Timestamp.from(reloj.instant()));
-        if (coincide == null || coincide == 0) {
+        List<Timestamp> venceEn = jdbc.queryForList("""
+                SELECT token_vence_en FROM turno WHERE id = ? AND local_id = ? AND token_hash = ?
+                """, Timestamp.class, id, local.getId(), TokenSecreto.hash(token));
+        if (venceEn.isEmpty() || venceEn.get(0) == null) {
             throw turnoNoEncontrado();
+        }
+        if (!venceEn.get(0).toInstant().isAfter(reloj.instant())) {
+            throw new SlotlyException(HttpStatus.GONE, "LINK_VENCIDO", "Este link venció.");
         }
         return ver(local, id);
     }
@@ -157,15 +164,22 @@ public class ConfirmacionService {
                 """, (fila, n) -> new ServicioDelTurno(fila.getString("nombre"), fila.getInt("duracion_min"),
                 fila.getInt("precio")), id, local.getId());
 
-        ZonedDateTime inicio = ((Timestamp) turno.get("inicio")).toInstant().atZone(ZoneId.of(local.getZonaHoraria()));
+        Instant comienzo = ((Timestamp) turno.get("inicio")).toInstant();
+        ZonedDateTime inicio = comienzo.atZone(ZoneId.of(local.getZonaHoraria()));
+        String estado = (String) turno.get("estado");
+        Instant ahora = reloj.instant();
+        boolean yaPaso = !ahora.isBefore(comienzo);
+        boolean puedeCambiar = "confirmado".equals(estado)
+                && ahora.isBefore(comienzo.minus(Duration.ofHours(local.getCancelarHastaHoras())));
         String formaPago = (String) turno.get("forma_pago");
         DatosTransferencia transferencia = "transferencia".equals(formaPago)
                 ? new DatosTransferencia(local.getAlias(), local.getCbu(), local.getTitularCuenta())
                 : null;
-        return new TurnoPublico(id, (String) turno.get("estado"), inicio.toLocalDate(), inicio.toLocalTime(),
+        return new TurnoPublico(id, estado, inicio.toLocalDate(), inicio.toLocalTime(),
                 (String) turno.get("profesional"), servicios,
                 servicios.stream().mapToInt(ServicioDelTurno::duracionMin).sum(),
-                servicios.stream().mapToInt(ServicioDelTurno::precio).sum(), formaPago, transferencia);
+                servicios.stream().mapToInt(ServicioDelTurno::precio).sum(), formaPago, transferencia,
+                yaPaso, puedeCambiar);
     }
 
     private static SlotlyException turnoNoEncontrado() {

@@ -282,6 +282,8 @@ export interface components {
             precioTotal: number;
             formaPago: string | null;
             transferencia: components["schemas"]["DatosTransferencia"];
+            yaPaso: boolean;
+            puedeCambiar: boolean;
         };
         IngresarRequest: {
             email: string;

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -180,6 +181,84 @@ class ConfirmacionTest {
                 .andExpect(jsonPath("$.codigo").value("TURNO_NO_ENCONTRADO"));
         mockMvc.perform(get("/api/publico/turnos/" + apartado.id()).header(HttpHeaders.HOST, demo.host()))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("HU-19 CA1 y HU-20 CA2: Mi turno dice si el cliente todavía puede cambiarlo solo (más de 3 horas antes)")
+    void puedeCambiarHastaTresHorasAntes() throws Exception {
+        Apartado apartado = apartar(demo, "10:00", demo.corte());   // martes 10:00 en Buenos Aires = 13:00 UTC
+        confirmar(demo, apartado, CELULAR, "efectivo");
+
+        verTurno(demo, apartado.id(), apartado.token())
+                .andExpect(jsonPath("$.puedeCambiar").value(true))
+                .andExpect(jsonPath("$.yaPaso").value(false));
+
+        reloj.fijar(Instant.parse("2026-11-17T09:59:00Z"));   // 6:59: faltan 3 h 1 min
+        verTurno(demo, apartado.id(), apartado.token()).andExpect(jsonPath("$.puedeCambiar").value(true));
+
+        reloj.fijar(Instant.parse("2026-11-17T10:00:00Z"));   // 7:00: faltan justo 3 horas
+        verTurno(demo, apartado.id(), apartado.token())
+                .andExpect(jsonPath("$.puedeCambiar").value(false))
+                .andExpect(jsonPath("$.yaPaso").value(false));
+
+        reloj.fijar(Instant.parse("2026-11-17T13:00:00Z"));   // 10:00: empezó
+        verTurno(demo, apartado.id(), apartado.token())
+                .andExpect(jsonPath("$.puedeCambiar").value(false))
+                .andExpect(jsonPath("$.yaPaso").value(true));
+    }
+
+    @Test
+    @DisplayName("HU-19: un turno cancelado ya no se puede cambiar")
+    void canceladoNoSeCambia() throws Exception {
+        Apartado apartado = apartar(demo, "10:00", demo.corte());
+        confirmar(demo, apartado, CELULAR, "efectivo");
+        jdbc.update("UPDATE turno SET estado = 'cancelado' WHERE id = ?", apartado.id());
+
+        verTurno(demo, apartado.id(), apartado.token())
+                .andExpect(jsonPath("$.estado").value("cancelado"))
+                .andExpect(jsonPath("$.puedeCambiar").value(false));
+    }
+
+    @Test
+    @DisplayName("HU-19 CA3: 30 días después del turno el link vence: 410 LINK_VENCIDO (distinto de un link inválido)")
+    void linkVencido() throws Exception {
+        Apartado apartado = apartar(demo, "10:00", demo.corte());
+        confirmar(demo, apartado, CELULAR, "efectivo");
+        Instant vence = jdbc.queryForObject("SELECT token_vence_en FROM turno WHERE id = ?", Timestamp.class,
+                apartado.id()).toInstant();
+        assertThat(vence).isEqualTo(Instant.parse("2026-11-17T13:30:00Z").plus(Duration.ofDays(30)));
+
+        reloj.fijar(vence.minusSeconds(1));
+        verTurno(demo, apartado.id(), apartado.token()).andExpect(status().isOk());
+
+        reloj.fijar(vence);
+        verTurno(demo, apartado.id(), apartado.token())
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.codigo").value("LINK_VENCIDO"));
+        // Con un token inventado sigue siendo "no encontrado": el vencimiento solo lo ve quien tiene el link.
+        verTurno(demo, apartado.id(), "inventado").andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("HU-19 CA5: el link de un turno del local demo, abierto en el subdominio de otro local, no encuentra nada")
+    void linkDeOtroLocal() throws Exception {
+        LocalDePrueba otra = crearLocal("otra");
+        Apartado apartado = apartar(demo, "10:00", demo.corte());
+        confirmar(demo, apartado, CELULAR, "efectivo");
+
+        verTurno(otra, apartado.id(), apartado.token())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.codigo").value("TURNO_NO_ENCONTRADO"));
+    }
+
+    @Test
+    @DisplayName("HU-19 CA4: en la base solo está el hash del token, nunca el token")
+    void soloElHash() throws Exception {
+        Apartado apartado = apartar(demo, "10:00", demo.corte());
+        confirmar(demo, apartado, CELULAR, "efectivo");
+
+        String guardado = jdbc.queryForObject("SELECT token_hash FROM turno WHERE id = ?", String.class, apartado.id());
+        assertThat(guardado).isNotEqualTo(apartado.token()).isEqualTo(TokenSecreto.hash(apartado.token()));
     }
 
     @Test

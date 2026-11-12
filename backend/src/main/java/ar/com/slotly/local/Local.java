@@ -47,6 +47,8 @@ public class Local {
     private int topeDias;
     private int apartadoMin;
     private int maxTurnosFuturos;
+    // Hasta cuántas horas antes del turno el cliente puede cancelarlo o reprogramarlo solo (HU-20 y HU-21).
+    private int cancelarHastaHoras;
 
     // Pago por transferencia (se muestra solo en la reserva que elige transferencia, HU-10 CA5)
     private String alias;
@@ -149,6 +151,10 @@ public class Local {
     // Cuántos turnos futuros puede tener un mismo teléfono en este local (HU-14).
     public int getMaxTurnosFuturos() {
         return maxTurnosFuturos;
+    }
+
+    public int getCancelarHastaHoras() {
+        return cancelarHastaHoras;
     }
 
     public String getAlias() {

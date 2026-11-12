@@ -73,12 +73,27 @@ export async function confirmar(id: string, pedido: ConfirmarPedido): Promise<Re
   }
 }
 
-// Un turno con su token: la confirmación al recargar y "Mi turno" (HU-10 CA7 y CA9).
-export async function obtenerTurno(id: string, token: string): Promise<TurnoPublico | null> {
+export type ResultadoTurno =
+  | { estado: 'ok'; turno: TurnoPublico }
+  | { estado: 'invalido' }
+  | { estado: 'vencido' }
+  | { estado: 'error' }
+
+// Un turno con su token: la confirmación al recargar y "Mi turno" (HU-10 CA7 y CA9, HU-19).
+// "invalido": el token no corresponde, el turno no existe o es de otro local (CA2 y CA5). "vencido": pasaron
+// 30 días desde el turno (CA3).
+export async function obtenerTurno(id: string, token: string): Promise<ResultadoTurno> {
   try {
     const respuesta = await fetch(`/api/publico/turnos/${id}`, { headers: { 'X-Token-Turno': token } })
-    return respuesta.ok ? ((await respuesta.json()) as TurnoPublico) : null
+    if (respuesta.ok) {
+      return { estado: 'ok', turno: (await respuesta.json()) as TurnoPublico }
+    }
+    const problema = (await respuesta.json().catch(() => null)) as Problema | null
+    if (problema?.codigo === 'TURNO_NO_ENCONTRADO') {
+      return { estado: 'invalido' }
+    }
+    return problema?.codigo === 'LINK_VENCIDO' ? { estado: 'vencido' } : { estado: 'error' }
   } catch {
-    return null
+    return { estado: 'error' }
   }
 }

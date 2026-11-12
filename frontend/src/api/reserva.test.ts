@@ -1,0 +1,42 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { obtenerTurno } from './reserva'
+
+function responder(status: number, cuerpo: unknown) {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(cuerpo), { status, headers: { 'Content-Type': 'application/json' } }),
+  ))
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('obtenerTurno', () => {
+  it('manda el token en el header X-Token-Turno (no en la dirección)', async () => {
+    responder(200, { id: 'abc' })
+
+    expect(await obtenerTurno('abc', 'secreto')).toEqual({ estado: 'ok', turno: { id: 'abc' } })
+    expect(fetch).toHaveBeenCalledWith('/api/publico/turnos/abc', { headers: { 'X-Token-Turno': 'secreto' } })
+  })
+
+  it('HU-19 CA2: TURNO_NO_ENCONTRADO es un link inválido', async () => {
+    responder(404, { codigo: 'TURNO_NO_ENCONTRADO' })
+
+    expect(await obtenerTurno('abc', 'x')).toEqual({ estado: 'invalido' })
+  })
+
+  it('HU-19 CA3: LINK_VENCIDO es un link vencido', async () => {
+    responder(410, { codigo: 'LINK_VENCIDO' })
+
+    expect(await obtenerTurno('abc', 'x')).toEqual({ estado: 'vencido' })
+  })
+
+  it('otro error, o la API caída, es "error" (no "link inválido")', async () => {
+    responder(500, { codigo: 'ERROR_INTERNO' })
+    expect(await obtenerTurno('abc', 'x')).toEqual({ estado: 'error' })
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    expect(await obtenerTurno('abc', 'x')).toEqual({ estado: 'error' })
+  })
+})

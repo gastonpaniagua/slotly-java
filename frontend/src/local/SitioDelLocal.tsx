@@ -36,7 +36,7 @@ function SitioDelLocal({ local }: Props) {
         <Route index element={<Home local={local} />} />
         <Route path="reservar/*" element={<Reserva local={local} />} />
         <Route path="privacidad" element={<PaginaPrivacidad />} />
-        <Route path="turno/:id" element={<PaginaTurno />} />
+        <Route path="turno/:id" element={<PaginaTurno local={local} />} />
         <Route path="mis-turnos" element={<PaginaMisTurnos />} />
         {/* Panel (Etapa 5): el login y, con sesión, la agenda. */}
         <Route path="ingresar" element={<PaginaIngresar local={local} />} />

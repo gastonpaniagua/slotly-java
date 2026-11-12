@@ -15,7 +15,7 @@ vi.mock('../api/reserva', () => ({ apartar: vi.fn(), confirmar: vi.fn(), obtener
 const TURNO: TurnoPublico = {
   id: 'apartado-10:00', estado: 'confirmado', fecha: '2026-11-17', hora: '10:00', profesionalNombre: 'Bruno',
   servicios: [{ nombre: 'Corte', duracionMin: 30, precio: 8000 }], duracionMin: 30, precioTotal: 8000,
-  formaPago: 'efectivo', transferencia: null,
+  formaPago: 'efectivo', transferencia: null, yaPaso: false, puedeCambiar: true,
 }
 
 function apartadoDe(hora: string): ApartadoCreado {
@@ -38,7 +38,7 @@ beforeEach(() => {
   })
   vi.mocked(apartar).mockReset().mockImplementation(async (pedido) => ({ estado: 'ok', apartado: apartadoDe(pedido.hora) }))
   vi.mocked(confirmar).mockReset().mockResolvedValue({ estado: 'ok', turno: TURNO })
-  vi.mocked(obtenerTurno).mockReset().mockResolvedValue(TURNO)
+  vi.mocked(obtenerTurno).mockReset().mockResolvedValue({ estado: 'ok', turno: TURNO })
 })
 
 // Corte → (Bruno es el único) → martes 17 (elegido solo) → la hora pedida → paso 5.
