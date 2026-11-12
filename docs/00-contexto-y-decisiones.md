@@ -64,7 +64,7 @@ Decisiones chicas que se mantienen:
 
 - Teléfonos normalizados a formato internacional antes de guardarlos (en Java, `libphonenumber` de Google).
 - El horario de atención de la home se calcula juntando los horarios de los profesionales activos (una sola fuente de verdad).
-- Errores de la API con `ProblemDetail` (RFC 9457, `application/problem+json`) más un campo `codigo` propio (`APARTADO_VENCIDO`, `DEMASIADOS_INTENTOS`, `HORARIO_OCUPADO`, `LOCAL_NO_ENCONTRADO`, `MAXIMO_TURNOS`, `NO_AUTENTICADO`, `PROFESIONAL_NO_ENCONTRADO`, `SERVICIO_NO_ENCONTRADO`, `TURNO_NO_ENCONTRADO`, `VALIDACION`); los errores de validación suman `errores` con el detalle por campo. El front decide qué mostrar por `codigo`, nunca por el texto. **(confirmada 2026-10-10)**
+- Errores de la API con `ProblemDetail` (RFC 9457, `application/problem+json`) más un campo `codigo` propio (`APARTADO_VENCIDO`, `CREDENCIALES_INVALIDAS`, `DEMASIADOS_INTENTOS`, `HORARIO_OCUPADO`, `LOCAL_NO_ENCONTRADO`, `MAXIMO_TURNOS`, `NO_AUTENTICADO`, `PROFESIONAL_NO_ENCONTRADO`, `SERVICIO_NO_ENCONTRADO`, `SIN_PERMISO`, `TURNO_NO_ENCONTRADO`, `VALIDACION`); los errores de validación suman `errores` con el detalle por campo. El front decide qué mostrar por `codigo`, nunca por el texto. **(confirmada 2026-10-10)**
 - Login del panel en `/ingresar`. La agenda es una sola página, `/agenda`, para el profesional y el admin (el admin además filtra por profesional); `/admin` queda para la configuración del local (Etapa 7). (2026-11-12)
 - El pedido de reseña (HU-38) es del rol admin: el beneficio es del local.
 - La JVM corre siempre en UTC (`-Duser.timezone=UTC` en el `pom.xml`), sin depender de la zona de la máquina (BUG-001). (2026-10-12)
