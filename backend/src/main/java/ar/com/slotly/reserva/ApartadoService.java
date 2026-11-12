@@ -49,9 +49,12 @@ public class ApartadoService {
     }
 
     // El apartado creado. El token se devuelve esta única vez: en la base solo queda su hash.
+    // transferencia: los datos para pagar por transferencia, para mostrarlos en el resumen si el cliente la elige
+    // (HU-10 CA5). Solo los recibe quien está reservando, nunca la home.
     public record Apartado(UUID id, String token, Instant venceEn, int segundosParaConfirmar,
             UUID profesionalId, String profesionalNombre, LocalDate fecha,
-            @JsonFormat(pattern = "HH:mm") LocalTime hora, int duracionMin, int precioTotal) {
+            @JsonFormat(pattern = "HH:mm") LocalTime hora, int duracionMin, int precioTotal,
+            ConfirmacionService.DatosTransferencia transferencia) {
     }
 
     @Transactional
@@ -121,7 +124,8 @@ public class ApartadoService {
         return new Apartado(id, token, venceEn, local.getApartadoMin() * 60,
                 horario.profesional().getId(), horario.profesional().getNombre(), pedido.fecha(), pedido.hora(),
                 servicios.stream().mapToInt(Servicio::getDuracionMin).sum(),
-                servicios.stream().mapToInt(Servicio::getPrecio).sum());
+                servicios.stream().mapToInt(Servicio::getPrecio).sum(),
+                new ConfirmacionService.DatosTransferencia(local.getAlias(), local.getCbu(), local.getTitularCuenta()));
     }
 
     // Ya con el candado: ¿el profesional elegido sigue libre? Si otro pedido entró mientras esperábamos, no.

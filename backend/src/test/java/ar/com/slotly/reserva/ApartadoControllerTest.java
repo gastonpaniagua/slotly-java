@@ -116,6 +116,17 @@ class ApartadoControllerTest {
     }
 
     @Test
+    @DisplayName("HU-10 CA5: el apartado trae los datos de transferencia del local para el resumen del paso 5")
+    void traeLosDatosDeTransferencia() throws Exception {
+        jdbc.update("UPDATE local SET alias = 'barberia.demo', cbu = '0000003100000000000001', titular_cuenta = 'Juan Pérez'");
+
+        apartar(List.of(corteId), anaId.toString(), "10:00", null)
+                .andExpect(jsonPath("$.transferencia.alias").value("barberia.demo"))
+                .andExpect(jsonPath("$.transferencia.cbu").value("0000003100000000000001"))
+                .andExpect(jsonPath("$.transferencia.titular").value("Juan Pérez"));
+    }
+
+    @Test
     @DisplayName("HU-10 CA8: la duración y el precio de cada servicio quedan copiados en el turno")
     void copiaDuracionYPrecio() throws Exception {
         String id = idDe(apartar(List.of(corteId, barbaId), anaId.toString(), "10:00", null));

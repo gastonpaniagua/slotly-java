@@ -12,3 +12,12 @@ export type ProfesionalPublico = Esquemas['ProfesionalPublicoResponse']
 export type DiasConLugar = Esquemas['DiasConLugar']
 export type DiaConLugar = Esquemas['Dia']
 export type HorasLibres = Esquemas['HorasResponse']
+export type CrearApartadoPedido = Esquemas['CrearApartadoRequest']
+export type ApartadoCreado = Esquemas['Apartado']
+export type ConfirmarPedido = Esquemas['ConfirmarRequest']
+export type DatosTransferencia = Esquemas['DatosTransferencia']
+// La API manda transferencia: null cuando se paga en efectivo, pero swagger no puede marcar como "puede ser null"
+// un campo que es otro objeto (ignora la anotación): se corrige acá para que el compilador obligue a contemplarlo.
+export type TurnoPublico = Omit<Esquemas['TurnoPublico'], 'transferencia'> & {
+  transferencia: DatosTransferencia | null
+}

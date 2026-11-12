@@ -2,8 +2,11 @@ import { useCallback, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router'
 
 import { obtenerProfesionales } from '../api/publico'
-import type { LocalPublico, ProfesionalPublico } from '../api/tipos'
+import { apartar, confirmar, type ResultadoApartar, type ResultadoConfirmar } from '../api/reserva'
+import type { ApartadoCreado, LocalPublico, ProfesionalPublico, TurnoPublico } from '../api/tipos'
 import { CUALQUIERA } from './constantes'
+import { DATOS_VACIOS, type DatosCliente } from './datosCliente'
+import PasoConfirmacion from './PasoConfirmacion'
 import PasoDatos from './PasoDatos'
 import PasoDia from './PasoDia'
 import PasoHora from './PasoHora'
@@ -14,6 +17,9 @@ import './reserva.css'
 type Props = {
   local: LocalPublico
 }
+
+// El apartado vigente y cuándo se creó en este navegador (para la cuenta regresiva, sin depender de su reloj).
+type ApartadoVigente = { apartado: ApartadoCreado; creadoEnMs: number }
 
 // El asistente de reserva. Lo que el cliente va eligiendo vive acá, arriba de los pasos:
 // así, al volver con "Atrás" (o con el botón del navegador), la selección sigue marcada (HU-05 CA3).
@@ -36,6 +42,10 @@ function Reserva({ local }: Props) {
   }, [fechaElegida])
   const [buscando, setBuscando] = useState(false)
   const [errorAlBuscar, setErrorAlBuscar] = useState(false)
+  // El horario apartado al pasar al paso 5 (HU-11), los datos del formulario y el turno ya confirmado.
+  const [apartado, setApartado] = useState<ApartadoVigente | null>(null)
+  const [datos, setDatos] = useState<DatosCliente>(DATOS_VACIOS)
+  const [turno, setTurno] = useState<TurnoPublico | null>(null)
 
   // Si cambian los servicios, lo elegido después ya no vale: se vuelve a pedir y a elegir.
   function cambiarServicios(ids: string[]) {
@@ -76,9 +86,52 @@ function Reserva({ local }: Props) {
     }
   }
 
+  // "Siguiente" en el paso 4: se aparta la hora antes de pasar al formulario (HU-11 CA1). Si ya había un apartado
+  // (volvió y eligió otra hora), se manda para liberarlo (CA3).
+  async function avanzarDesdeHora(): Promise<ResultadoApartar> {
+    if (profesionalElegido === null || fechaElegida === null || horaDelDia === null) {
+      return { estado: 'error' }
+    }
+    const resultado = await apartar({
+      servicios: serviciosElegidos,
+      profesional: profesionalElegido,
+      fecha: fechaElegida,
+      hora: horaDelDia,
+      anterior: apartado ? { id: apartado.apartado.id, token: apartado.apartado.token } : undefined,
+    })
+    if (resultado.estado === 'ok') {
+      setApartado({ apartado: resultado.apartado, creadoEnMs: Date.now() })
+      navegar('/reservar/datos')
+    }
+    return resultado
+  }
+
+  // "Confirmar" en el paso 5.
+  async function confirmarReserva(): Promise<ResultadoConfirmar> {
+    if (apartado === null) {
+      return { estado: 'vencido' }
+    }
+    const resultado = await confirmar(apartado.apartado.id, {
+      token: apartado.apartado.token,
+      nombre: datos.nombre.trim(),
+      telefono: datos.telefono.trim(),
+      email: datos.email.trim() === '' ? null : datos.email.trim(),
+      formaPago: datos.formaPago,
+      consentimiento: datos.consentimiento,
+    })
+    if (resultado.estado === 'ok') {
+      setTurno(resultado.turno)
+      navegar('/reservar/confirmacion', { replace: true })
+    }
+    return resultado
+  }
+
   const nombreElegido = profesionalElegido === CUALQUIERA
     ? 'Cualquiera disponible'
     : profesionales?.find((p) => p.id === profesionalElegido)?.nombre ?? null
+
+  // La hora que este cliente tiene apartada ese día: se le sigue mostrando aunque para los demás esté ocupada.
+  const horaApartada = apartado !== null && apartado.apartado.fecha === fechaElegida ? apartado.apartado.hora : null
 
   return (
     <Routes>
@@ -142,7 +195,9 @@ function Reserva({ local }: Props) {
                 nombreProfesional={nombreElegido}
                 fecha={fechaElegida}
                 horaElegida={horaDelDia}
+                horaApartada={horaApartada}
                 alElegirHora={elegirHora}
+                alAvanzar={avanzarDesdeHora}
               />
             )
         }
@@ -150,10 +205,23 @@ function Reserva({ local }: Props) {
       <Route
         path="datos"
         element={
-          nombreElegido === null || fechaElegida === null || horaDelDia === null
+          apartado === null || fechaElegida === null || horaDelDia === null
             ? <Navigate to="/reservar/servicios" replace />
-            : <PasoDatos fecha={fechaElegida} hora={horaDelDia} nombreProfesional={nombreElegido} />
+            : (
+              <PasoDatos
+                apartado={apartado.apartado}
+                creadoEnMs={apartado.creadoEnMs}
+                servicios={local.servicios.filter((s) => serviciosElegidos.includes(s.id))}
+                datos={datos}
+                alCambiarDatos={setDatos}
+                alConfirmar={confirmarReserva}
+              />
+            )
         }
+      />
+      <Route
+        path="confirmacion"
+        element={turno === null ? <Navigate to="/reservar/servicios" replace /> : <PasoConfirmacion turno={turno} />}
       />
       <Route path="*" element={<Navigate to="/reservar/servicios" replace />} />
     </Routes>

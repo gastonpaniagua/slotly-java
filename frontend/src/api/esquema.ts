@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/api/publico/apartados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aparta un horario por unos minutos mientras el cliente completa sus datos (HU-11) */
+        post: operations["apartar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publico/apartados/{id}/confirmar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirma el apartado con los datos del cliente y devuelve el turno (HU-10) */
+        post: operations["confirmar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publico/turnos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un turno con su token: la pantalla de confirmación y "Mi turno" (HU-10 CA7 y CA9) */
+        get: operations["ver"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publico/profesionales": {
         parameters: {
             query?: never;
@@ -62,7 +113,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Qué días de un rango (hasta 6 semanas) tienen al menos una hora libre (HU-08) */
+        /** Qué días de un rango (hasta 6 semanas) tienen al menos una hora libre (HU-08). Sin desde: el lunes de esta semana en el local; sin hasta: 6 semanas */
         get: operations["dias"];
         put?: never;
         post?: never;
@@ -92,6 +143,78 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AnteriorRequest: {
+            /** Format: uuid */
+            id: string;
+            token: string;
+        };
+        CrearApartadoRequest: {
+            servicios: string[];
+            profesional: string;
+            /** Format: date */
+            fecha: string;
+            /** @example 10:15 */
+            hora: string;
+            anterior?: components["schemas"]["AnteriorRequest"];
+        };
+        Apartado: {
+            /** Format: uuid */
+            id: string;
+            token: string;
+            /** Format: date-time */
+            venceEn: string;
+            /** Format: int32 */
+            segundosParaConfirmar: number;
+            /** Format: uuid */
+            profesionalId: string;
+            profesionalNombre: string;
+            /** Format: date */
+            fecha: string;
+            /** Format: time-local */
+            hora: string;
+            /** Format: int32 */
+            duracionMin: number;
+            /** Format: int32 */
+            precioTotal: number;
+            transferencia: components["schemas"]["DatosTransferencia"];
+        };
+        DatosTransferencia: {
+            alias: string | null;
+            cbu: string | null;
+            titular: string | null;
+        };
+        ConfirmarRequest: {
+            token: string;
+            nombre: string;
+            telefono: string;
+            email?: string | null;
+            formaPago: string;
+            consentimiento: boolean;
+        };
+        ServicioDelTurno: {
+            nombre: string;
+            /** Format: int32 */
+            duracionMin: number;
+            /** Format: int32 */
+            precio: number;
+        };
+        TurnoPublico: {
+            /** Format: uuid */
+            id: string;
+            estado: string;
+            /** Format: date */
+            fecha: string;
+            /** Format: time-local */
+            hora: string;
+            profesionalNombre: string;
+            servicios: components["schemas"]["ServicioDelTurno"][];
+            /** Format: int32 */
+            duracionMin: number;
+            /** Format: int32 */
+            precioTotal: number;
+            formaPago: string | null;
+            transferencia: components["schemas"]["DatosTransferencia"];
+        };
         ProfesionalPublicoResponse: {
             /** Format: uuid */
             id: string;
@@ -165,6 +288,80 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    apartar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CrearApartadoRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Apartado"];
+                };
+            };
+        };
+    };
+    confirmar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmarRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TurnoPublico"];
+                };
+            };
+        };
+    };
+    ver: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Token-Turno": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TurnoPublico"];
+                };
+            };
+        };
+    };
     profesionales: {
         parameters: {
             query: {
@@ -236,8 +433,8 @@ export interface operations {
             query: {
                 servicios: string[];
                 profesional: string;
-                desde: string;
-                hasta: string;
+                desde?: string;
+                hasta?: string;
             };
             header?: never;
             path?: never;

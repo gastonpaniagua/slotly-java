@@ -185,7 +185,7 @@ class ConfirmacionTest {
     @DisplayName("Con un token que no corresponde no se puede confirmar el apartado de otro")
     void confirmarConOtroToken() throws Exception {
         Apartado apartado = apartar(demo, "10:00", demo.corte());
-        Apartado falso = new Apartado(apartado.id(), "inventado", null, 0, null, null, null, null, 0, 0);
+        Apartado falso = new Apartado(apartado.id(), "inventado", null, 0, null, null, null, null, 0, 0, null);
 
         confirmar(demo, falso, CELULAR, "efectivo")
                 .andExpect(status().isNotFound())

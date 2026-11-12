@@ -307,6 +307,183 @@
   color: var(--color-text-muted);
 }
 
+/* ---- Resumen del turno (pasos 5 y 6) ---- */
+
+.resumen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  background: var(--accent-tint);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.resumen__cuando {
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+}
+
+.resumen__servicios {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.resumen__total {
+  font-weight: var(--fw-semibold);
+  color: var(--accent-ink);
+}
+
+/* HU-11 CA4: cuánto queda para confirmar. */
+.cuenta-regresiva {
+  font-size: var(--fs-small);
+  color: var(--color-text-soft);
+}
+
+.cuenta-regresiva strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+/* ---- Formulario (paso 5) ---- */
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.campo__etiqueta {
+  padding: 0;
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+}
+
+.campo input[type="text"],
+.campo input[type="tel"],
+.campo input[type="email"] {
+  min-height: var(--control-h);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.campo input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.campo input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.campo__ayuda {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--color-text-muted);
+}
+
+.campo__error {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--color-danger);
+}
+
+.campo__opciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.campo__opcion,
+.campo__consentimiento {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  cursor: pointer;
+}
+
+.campo__opcion input,
+.campo__consentimiento input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--accent-ink);
+}
+
+/* ---- Datos de transferencia (HU-10 CA5) ---- */
+
+.transferencia {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.transferencia__fila {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.transferencia__fila:last-child {
+  border-bottom: none;
+}
+
+.transferencia__nombre {
+  font-size: var(--fs-caption);
+  color: var(--color-text-muted);
+}
+
+.transferencia__valor {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.transferencia__texto {
+  font-weight: var(--fw-medium);
+  overflow-wrap: anywhere;
+}
+
+.transferencia__copiar {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  font-size: var(--fs-small);
+  flex-shrink: 0;
+}
+
+/* ---- Política de privacidad ---- */
+
+.privacidad h2 {
+  margin-top: var(--space-4);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+}
+
+.privacidad p {
+  color: var(--color-text-soft);
+}
+
 /* ---- Pie fijo: resumen + botones ---- */
 
 .reserva__pie {
