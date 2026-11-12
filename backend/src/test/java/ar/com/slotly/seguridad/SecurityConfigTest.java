@@ -1,6 +1,7 @@
 package ar.com.slotly.seguridad;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,5 +29,20 @@ class SecurityConfigTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE))
                 .andExpect(jsonPath("$.codigo").value("NO_AUTENTICADO"))
                 .andExpect(jsonPath("$.detail").value("Tenés que iniciar sesión."));
+    }
+
+    @Test
+    @DisplayName("Etapa 4: un POST público sin token CSRF no lo frena la seguridad (llega a Spring MVC)")
+    void postPublicoSinCsrf() throws Exception {
+        // /api/publico/local solo acepta GET: que responda 405 (y no 403) prueba que CSRF no lo bloqueó.
+        mockMvc.perform(post("/api/publico/local"))
+                .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    @DisplayName("Etapa 4: fuera de lo público, un POST sin token CSRF se rechaza")
+    void postPrivadoSinCsrf() throws Exception {
+        mockMvc.perform(post("/api/privado"))
+                .andExpect(status().isForbidden());
     }
 }

@@ -50,6 +50,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- Normaliza teléfonos (11 2345-6789 y +54 9 11 2345 6789 son el mismo cliente, HU-10 CA3). La librería de Google. -->
+		<dependency>
+			<groupId>com.googlecode.libphonenumber</groupId>
+			<artifactId>libphonenumber</artifactId>
+			<version>9.0.43</version>
+		</dependency>
 		<!-- Documentación de la API (/swagger-ui y /v3/api-docs). Spring Boot no maneja su versión: la 3.x es la línea para Boot 4. -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

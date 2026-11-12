@@ -23,6 +23,9 @@ public class SecurityConfig {
                         // Documentación de la API (springdoc): solo describe endpoints, no expone datos.
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
+                // CSRF protege a quien tiene una sesión iniciada. El flujo público no usa sesión ni cookies de login
+                // (la reserva se identifica con un token dentro del pedido), así que ahí no aplica. El panel la mantiene.
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/publico/**"))
                 .formLogin(login -> login.disable())
                 .httpBasic(basico -> basico.disable())
                 // Sin login, el 401 sale por el ApiExceptionHandler: mismo ProblemDetail con "codigo" que el resto.
