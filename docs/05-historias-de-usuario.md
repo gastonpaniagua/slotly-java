@@ -21,15 +21,15 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 | HU-04 | Que los datos de mi local no se mezclen con otro  | admin               | Debe      | M      | 1     | Hecha     |
 | HU-05 | Elegir uno o varios servicios y ver el total      | cliente             | Debe      | S      | 2     | Hecha     |
 | HU-06 | Elegir profesional o "cualquiera"                 | cliente             | Debe      | S      | 2     | Hecha     |
-| HU-07 | Ver solo las horas en las que entra lo que elegí  | cliente             | Debe      | L      | 3     | En curso  |
+| HU-07 | Ver solo las horas en las que entra lo que elegí  | cliente             | Debe      | L      | 3     | Hecha     |
 | HU-08 | Ver en gris los días sin lugar                    | cliente             | Debe      | M      | 3     | Hecha     |
 | HU-09 | Que la lista de horas se actualice sola           | cliente             | Debería   | S      | 3     | Hecha     |
-| HU-10 | Reservar sin crear cuenta                         | cliente             | Debe      | M      | 4     | Pendiente |
-| HU-11 | Que nadie me saque el horario mientras completo   | cliente             | Debe      | M      | 4     | Pendiente |
-| HU-12 | Elegir otra hora si la mía se ocupó               | cliente             | Debe      | S      | 4     | Pendiente |
-| HU-13 | Que nunca haya dos turnos superpuestos            | admin               | Debe      | M      | 4     | Pendiente |
-| HU-14 | Máximo 2 turnos futuros por teléfono              | admin               | Debe      | S      | 4     | Pendiente |
-| HU-15 | Frenar reservas automáticas                       | admin               | Debe      | S      | 4     | Pendiente |
+| HU-10 | Reservar sin crear cuenta                         | cliente             | Debe      | M      | 4     | Hecha     |
+| HU-11 | Que nadie me saque el horario mientras completo   | cliente             | Debe      | M      | 4     | Hecha     |
+| HU-12 | Elegir otra hora si la mía se ocupó               | cliente             | Debe      | S      | 4     | Hecha     |
+| HU-13 | Que nunca haya dos turnos superpuestos            | admin               | Debe      | M      | 4     | Hecha     |
+| HU-14 | Máximo 2 turnos futuros por teléfono              | admin               | Debe      | S      | 4     | Hecha     |
+| HU-15 | Frenar reservas automáticas                       | admin               | Debe      | S      | 4     | Hecha     |
 | HU-16 | Iniciar y cerrar sesión en el panel               | profesional y admin | Debe      | M      | 5     | Pendiente |
 | HU-17 | Ver mi agenda del día y de la semana              | profesional         | Debe      | M      | 5     | Pendiente |
 | HU-18 | Ver la agenda de todos los profesionales          | admin               | Debe      | S      | 5     | Pendiente |
@@ -139,7 +139,7 @@ Prioridad: Debe · Tamaño: S · Etapa: 2 · Estado: Hecha
 ### HU-07 · Ver solo las horas en las que entra lo que elegí
 
 Como **cliente** quiero ver solo las horas en las que entra completo lo que elegí para no reservar algo que después no se puede cumplir.
-Prioridad: Debe · Tamaño: L · Etapa: 3 · Estado: En curso
+Prioridad: Debe · Tamaño: L · Etapa: 3 · Estado: Hecha
 
 - **CA1.** Dado un servicio de 1 h y cierre a las 20:00, cuando veo las horas del día, entonces la última opción es 19:00 (no 19:15, 19:30 ni 19:45).
 - **CA2.** Dado un servicio de 45 min y pausa de 13:00 a 16:00, cuando veo las horas, entonces 12:15 aparece y 12:30 no (no se ofrece nada que cruce la pausa).
@@ -153,7 +153,7 @@ Prioridad: Debe · Tamaño: L · Etapa: 3 · Estado: En curso
 - **CA10.** Dado un local en una zona con cambio de horario de verano, cuando pido el día del cambio, entonces las horas se calculan en hora local sin duplicar ni perder opciones.
 - **CA11.** Dado un pedido con servicios de otro local o un profesional que no hace el servicio, cuando lo hago, entonces la API responde 400 o 404 con un mensaje claro.
 
-Pendiente: la segunda mitad de CA9 (al reservar con "Cualquiera disponible" se asigna al que tenga menos turnos ese día) se verifica en la Etapa 4 con HU-10, cuando exista la reserva; la regla ya está programada y probada (`MotorDisponibilidad.elegirParaCualquiera`). El resto quedó cubierto el 2026-11-12: CA1 a CA7, CA9 (ver las horas) y CA11 con tests y casos manuales (CP-HU07-01 a 07); CA8 y CA10 solo con tests automáticos (la demo no tiene limpieza y Argentina no tiene horario de verano).
+Cubierta el 2026-11-12. La segunda mitad de CA9 (al reservar con "Cualquiera disponible" se asigna al que tenga menos turnos ese día) se cerró en la Etapa 4 con los tests "HU-07 CA9" de `ApartadoControllerTest`. El resto: CA1 a CA7, CA9 (ver las horas) y CA11 con tests y casos manuales (CP-HU07-01 a 07); CA8 y CA10 solo con tests automáticos (la demo no tiene limpieza y Argentina no tiene horario de verano).
 
 ### HU-08 · Días sin lugar en gris
 
@@ -182,7 +182,7 @@ Prioridad: Debería · Tamaño: S · Etapa: 3 · Estado: Hecha
 ### HU-10 · Reservar sin crear cuenta
 
 Como **cliente** quiero reservar dejando solo mi nombre y teléfono para no tener que crear una cuenta para cortarme el pelo.
-Prioridad: Debe · Tamaño: M · Etapa: 4 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 4 · Estado: Hecha
 
 - **CA1.** Dado que elegí servicios, profesional, día y hora, cuando completo nombre, teléfono, forma de pago y acepto el consentimiento, y toco "Confirmar", entonces veo la pantalla de confirmación con el día en palabras ("jueves 9 de octubre, 10:30"), profesional, servicios, total y forma de pago.
 - **CA2.** Dado que no acepto el consentimiento (con link a la política de privacidad), cuando toco "Confirmar", entonces no se envía y se marca el campo.
@@ -197,7 +197,7 @@ Prioridad: Debe · Tamaño: M · Etapa: 4 · Estado: Pendiente
 ### HU-11 · Apartado mientras completo mis datos
 
 Como **cliente** quiero que el horario quede apartado mientras completo mis datos para que nadie me lo saque mientras escribo.
-Prioridad: Debe · Tamaño: M · Etapa: 4 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 4 · Estado: Hecha
 
 - **CA1.** Dado que elegí una hora y paso al formulario de datos, cuando se crea el apartado, entonces esa hora deja de ofrecerse a otros clientes.
 - **CA2.** Dado un apartado de 5 minutos, cuando pasan 5 minutos sin confirmar, entonces la hora vuelve a ofrecerse y, si intento confirmar, veo "Se venció el tiempo para confirmar" y vuelvo al paso de horas.
@@ -208,16 +208,18 @@ Prioridad: Debe · Tamaño: M · Etapa: 4 · Estado: Pendiente
 ### HU-12 · Elegir otra hora si la mía se ocupó
 
 Como **cliente** quiero que me avisen si el horario se ocupó y me dejen elegir otro para no perder todo lo que completé.
-Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Hecha
 
 - **CA1.** Dado que la hora se ocupó entre que la elegí y confirmé, cuando toco "Confirmar", entonces veo "Ese horario se acaba de ocupar, elegí otro" y vuelvo al paso de horas con la lista actualizada.
 - **CA2.** Dado ese caso, cuando vuelvo al paso de horas, entonces mis servicios, profesional y datos personales se conservan.
 - **CA3.** Dado ese caso, cuando miro la respuesta de la API, entonces es un 409 con un código de error propio (`HORARIO_OCUPADO`), no un 500 ni el error de la base.
 
+Nota: con el apartado (HU-11) la hora ya no se puede perder entre el formulario y "Confirmar"; el momento en que puede estar ocupada es al tocar "Siguiente" en el paso de horas, y ahí aparece el aviso de CA1.
+
 ### HU-13 · Nunca dos turnos superpuestos
 
 Como **admin** quiero que nunca haya dos turnos superpuestos del mismo profesional para no tener dos clientes esperando a la misma hora.
-Prioridad: Debe · Tamaño: M · Etapa: 4 (el constraint se crea en la 1) · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 4 (el constraint se crea en la 1) · Estado: Hecha
 
 - **CA1.** Dado un turno de 10:00 a 10:45, cuando se intenta guardar otro del mismo profesional de 10:30 a 11:00 (por API o SQL directo), entonces la base lo rechaza.
 - **CA2.** Dado un turno de 10:00 a 10:45, cuando se guarda otro de 10:45 a 11:30, entonces se acepta (turnos consecutivos no se pisan).
@@ -229,7 +231,7 @@ Prioridad: Debe · Tamaño: M · Etapa: 4 (el constraint se crea en la 1) · Est
 ### HU-14 · Máximo 2 turnos futuros por teléfono
 
 Como **admin** quiero que un mismo teléfono no pueda tener más de 2 turnos futuros para evitar que alguien me llene la agenda con reservas falsas.
-Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Hecha
 
 - **CA1.** Dado un teléfono con 2 turnos futuros confirmados en el local, cuando intenta reservar un tercero, entonces ve "Ya tenés 2 turnos reservados" con acceso a "Mi turno" y no se crea.
 - **CA2.** Dado un teléfono con 2 turnos, uno ya pasado, cuando reserva, entonces se acepta (solo cuentan los futuros).
@@ -240,7 +242,7 @@ Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Pendiente
 ### HU-15 · Frenar reservas automáticas
 
 Como **admin** quiero que nadie pueda disparar reservas en masa para que un bot no me deje la agenda llena de turnos falsos.
-Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 4 · Estado: Hecha
 
 - **CA1.** Dada una misma IP que hace más de 10 pedidos de reserva o apartado por minuto, cuando hace el siguiente, entonces recibe 429 con "Demasiados intentos, esperá un minuto" y no se crea nada.
 - **CA2.** Dado el límite superado, cuando pasa el minuto, entonces puede volver a intentar.

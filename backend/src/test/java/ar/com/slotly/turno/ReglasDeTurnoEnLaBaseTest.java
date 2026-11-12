@@ -74,6 +74,28 @@ class ReglasDeTurnoEnLaBaseTest {
         assertThat(cantidad).isEqualTo(2);
     }
     @Test
+    @DisplayName("HU-13 CA6: un bloqueo o un turno manual que se cruza con una reserva también se rechaza")
+    void bloqueoYManualRespetanLaMismaRegla() {
+        UUID clienteId = crearCliente(localId, "Lucía");
+        jdbc.update("""
+                INSERT INTO turno (local_id, profesional_id, cliente_id, tipo, estado, inicio, fin, ocupado_hasta)
+                VALUES (?, ?, ?, 'reserva', 'confirmado', ?::timestamptz, ?::timestamptz, ?::timestamptz)
+                """, localId, anaId, clienteId,
+                "2026-11-03T10:00:00-03:00", "2026-11-03T10:45:00-03:00", "2026-11-03T10:45:00-03:00");
+
+        assertThatThrownBy(() -> insertarBloqueo(anaId, "2026-11-03T10:30:00-03:00", "2026-11-03T11:00:00-03:00"))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("turno_sin_superposicion");
+        assertThatThrownBy(() -> jdbc.update("""
+                INSERT INTO turno (local_id, profesional_id, cliente_id, tipo, estado, inicio, fin, ocupado_hasta)
+                VALUES (?, ?, ?, 'manual', 'confirmado', ?::timestamptz, ?::timestamptz, ?::timestamptz)
+                """, localId, anaId, clienteId,
+                "2026-11-03T10:15:00-03:00", "2026-11-03T10:45:00-03:00", "2026-11-03T10:45:00-03:00"))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("turno_sin_superposicion");
+    }
+
+    @Test
     @DisplayName("HU-04 CA2: la base rechaza un turno de un local con un profesional de otro local")
     void rechazaTurnoConProfesionalDeOtroLocal() {
         UUID otroLocalId = crearLocal("otro");

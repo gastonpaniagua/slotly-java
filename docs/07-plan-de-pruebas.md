@@ -77,10 +77,10 @@ CA8 (limpieza) y CA10 (horario de verano) se cubren solo con tests automáticos 
 
 Todos usan el local demo (`10000000-…-001`), Ana (`30000000-…-001`) y Bruno (`30000000-…-002`). Las horas son de Buenos Aires.
 
-**L1** · Borra todos los turnos de la demo (son solo de prueba):
+**L1** · Borra todos los turnos de la demo (son solo de prueba). Primero sus servicios (`turno_servicio`), porque la base no deja borrar un turno que todavía los tiene:
 
 ```bash
-docker compose exec db psql -U slotly -d slotly -c "DELETE FROM turno;"
+docker compose exec db psql -U slotly -d slotly -c "DELETE FROM turno_servicio; DELETE FROM turno;"
 ```
 
 **S1** · Bruno con un turno el martes que viene de 10:00 a 10:45:
@@ -125,15 +125,92 @@ docker compose exec db psql -U slotly -d slotly -c "WITH m AS (SELECT date_trunc
 curl.exe -s -i -H "Host: demo.localhost" "http://localhost:8080/api/publico/disponibilidad/horas?servicios=20000000-0000-0000-0000-000000000004&profesional=30000000-0000-0000-0000-000000000002&fecha=2026-12-01"
 ```
 
-## Smoke test (versión Etapa 3, ~7 minutos)
+## Etapa 4 · Reservar un turno
+
+**Precondiciones comunes:** base, API y front levantados según el README (la API reiniciada con el código de la Etapa 4). "El martes que viene" es el de la semana siguiente. Antes de cada caso que lo dice, correr **L1** (sección de la Etapa 3) para empezar sin turnos de prueba. Para dos clientes a la vez se usan dos pestañas: cada una tiene su propia reserva.
+
+Quedan cubiertos solo con tests automáticos: HU-10 CA8 (precio y duración copiados, `ApartadoControllerTest`), HU-13 entera (el constraint en `ReglasDeTurnoEnLaBaseTest` y 10 reservas simultáneas en `ApartadoControllerTest`) y HU-14 CA2, CA4 y CA5 (turno ya pasado, otro local y dos confirmaciones a la vez, en `ConfirmacionTest`): necesitan mover el reloj, otro local con profesionales o simultaneidad real.
+
+| ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CP-HU10-01 | Reserva completa con transferencia (CA1, CA5) | L1 y después S7 | 1. "Barba" → martes que viene → 10:00 → Siguiente 2. Completar los datos y elegir "Transferencia" 3. Confirmar | En el paso 5 aparecen alias, CBU y titular con botones "Copiar"; la confirmación dice "martes … 10:00", Bruno, Barba, total, "Pago: Transferencia" y los datos para transferir | Correcto: aparece toda la información | Paso | 2026/11/12 |
+| CP-HU10-02 | Sin consentimiento no se reserva (CA2) | L1 | 1. Llegar al paso 5 2. Completar todo menos la casilla 3. Confirmar 4. Tocar el link de la política | "Tenés que aceptar la política de privacidad." junto a la casilla y no avanza; el link abre la política de privacidad | Si no se marca la casilla de la política de privacidad, no deja avanzar | Paso | 2026/11/12 |
+| CP-HU10-03 | Datos inválidos (CA4) | L1 | 1. Llegar al paso 5 2. Nombre vacío, celular "123", mail "ana@" 3. Confirmar | Cada error aparece debajo de su campo y no avanza | Aparece el error en cada campo y no avanza | Paso | 2026/11/12 |
+| CP-HU10-04 | Mismo celular escrito de dos formas (CA3) | L1 | 1. Reservar con "11 2345-6789" 2. Reservar otra hora con "+54 9 11 2345 6789" 3. Correr C2 | Un solo cliente con `+5491123456789` y 2 turnos confirmados | Se guardó un solo teléfono con dos turnos confirmados | Paso | 2026/11/12 |
+| CP-HU10-05 | Doble toque y recarga (CA6, CA7) | L1 | 1. Llegar al paso 5 con todo completo 2. Tocar "Confirmar" dos veces rápido 3. En la confirmación, recargar (F5) 4. Correr C2 | Un solo turno confirmado; al recargar se ve el mismo turno | Un solo turno confirmado; al recargar se ve el mismo turno | Paso | 2026/11/12 |
+| CP-HU10-06 | Datos recordados y "Mis turnos" (CA9) | Después de CP-HU10-05 | 1. "Volver al inicio" → "Mis turnos" → abrir el turno 2. Empezar otra reserva hasta el paso 5 | El turno se abre desde la lista; en el paso 5 nombre y celular ya están completos | El turno se abre desde la lista y en el paso 5 nombre y celular ya están completos | Paso | 2026/11/12 |
+| CP-HU11-01 | El apartado saca la hora a los demás (CA1) | L1 | 1. Pestaña A: "Barba" → martes que viene → 11:00 → Siguiente 2. Pestaña B: lo mismo hasta ver las horas | En la pestaña B no aparece 11:00 | En la pestaña B no aparece 11:00 | Paso | 2026/11/12 |
+| CP-HU11-02 | Cuenta regresiva y vencimiento (CA2, CA4) | L1 y después S8 (apartado de 1 minuto) | 1. Llegar al paso 5 2. Esperar 1 minuto sin tocar nada 3. Al terminar, correr **S9** | Se ve el tiempo que queda bajando; al llegar a 0 aparece "Se venció el tiempo para confirmar" con "Elegir otra hora" y "Confirmar" deshabilitado | Se ve el tiempo bajando; al llegar a 0 aparece "Se venció el tiempo para confirmar" y "Confirmar" queda deshabilitado | Paso | 2026/11/12 |
+| CP-HU11-03 | Volver y elegir otra hora libera la anterior (CA3) | L1 | 1. Pestaña A: apartar 11:00 2. "Atrás" → 11:30 → Siguiente 3. Pestaña B: ver las horas del martes que viene | En la pestaña B aparece 11:00 de nuevo y no aparece 11:30 | Aparece 11:00 de nuevo y no aparece 11:30 | Paso | 2026/11/12 |
+| CP-HU12-01 | La hora se ocupa al avanzar (HU-12 CA1, HU-11 CA5) | L1 | 1. Pestaña B: dejar abiertas las horas del martes que viene 2. Pestaña A: apartar 11:00 3. Pestaña B, antes de 15 s: elegir 11:00 → Siguiente | 11:00 desaparece de la pestaña B al volver a ella (HU-09 CA2), así que no se puede elegir. El aviso "Ese horario se acaba de ocupar, elegí otro." lo cubre `PasoHora.test` "HU-12 CA1" y el 409 de la API, CP-HU12-02 | Al volver a la pestaña B, 11:00 ya no estaba y no se pudo elegir | Paso | 2026/11/12 |
+| CP-HU12-02 | La API responde 409 con su código (CA3) | L1 | 1. Correr C4 2. Correr C4 otra vez | La primera `HTTP/1.1 201`; la segunda `HTTP/1.1 409` con `"codigo":"HORARIO_OCUPADO"` | La primera `HTTP/1.1 201`; la segunda `HTTP/1.1 409` con `"codigo":"HORARIO_OCUPADO"` | Paso | 2026/11/12 |
+| CP-HU14-01 | Máximo 2 turnos futuros (CA1) | L1 | 1. Reservar 2 turnos con el mismo celular 2. Intentar un tercero 3. Correr C2 | "Ya tenés 2 turnos reservados…" con "Ver mis turnos"; C2 sigue mostrando 2 confirmados | No deja reservar un tercer turno con el mismo celular: sale "Ya tenés 2 turnos reservados…" con "Ver mis turnos" y C2 sigue mostrando 2 confirmados | Paso | 2026/11/12 |
+| CP-HU14-02 | Un turno cancelado no cuenta (CA3) | Después de CP-HU14-01, S10 | 1. Volver a intentar el tercero | Se confirma | Después de S10 deja confirmar el turno | Paso | 2026/11/12 |
+| CP-HU15-01 | Límite de pedidos por IP (CA1, CA2) | L1 | 1. Correr C5 2. Esperar 1 minuto 3. Correr C4 | C5 muestra diez `409` y al final un `429`; después del minuto, C4 vuelve a responder (`201`) | C5 responde diez `409` y al final un `429`; después del minuto, C4 vuelve a dar `201` | Paso | 2026/11/12 |
+| CP-HU15-02 | Campos que no existen en el contrato (CA3) | API levantada | 1. Correr C6 | `400` con `"codigo":"VALIDACION"` | `HTTP 400` con `"codigo":"VALIDACION"` | Paso | 2026/11/12 |
+
+### Comandos de la Etapa 4 (desde `C:\dev\slotly-java`)
+
+Los SQL se corren con `docker compose exec`; los pedidos a la API (C4 a C6) escriben el cuerpo en un archivo temporal, porque en PowerShell `curl.exe` pierde las comillas de un JSON escrito en la línea.
+
+**S7** · Carga alias, CBU y titular de prueba en el local demo:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE local SET alias = 'barberia.demo', cbu = '0000003100000000000001', titular_cuenta = 'Juan Perez' WHERE subdominio = 'demo';"
+```
+
+**S8** · Apartado de 1 minuto en el local demo (para no esperar 5):
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE local SET apartado_min = 1 WHERE subdominio = 'demo';"
+```
+
+**S9** · Vuelve el apartado a 5 minutos:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE local SET apartado_min = 5 WHERE subdominio = 'demo';"
+```
+
+**S10** · Cancela el turno confirmado más próximo:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE turno SET estado = 'cancelado' WHERE id = (SELECT id FROM turno WHERE estado = 'confirmado' ORDER BY inicio LIMIT 1);"
+```
+
+**C2** · Clientes guardados y cuántos turnos confirmados tiene cada uno:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "SELECT c.telefono, count(t.id) FILTER (WHERE t.estado = 'confirmado') AS turnos_confirmados FROM cliente c LEFT JOIN turno t ON t.cliente_id = c.id GROUP BY c.telefono ORDER BY c.telefono;"
+```
+
+**C4** · Aparta Barba con Bruno el martes que viene a las 11:00, directo a la API:
+
+```bash
+$hoy = (Get-Date).Date; $martes = $hoy.AddDays(8 - (([int]$hoy.DayOfWeek + 6) % 7)).ToString('yyyy-MM-dd'); Set-Content -Path $env:TEMP\pedido.json -Value ('{"servicios":["20000000-0000-0000-0000-000000000002"],"profesional":"30000000-0000-0000-0000-000000000002","fecha":"' + $martes + '","hora":"11:00"}'); curl.exe -s -i -H "Host: demo.localhost" -H "Content-Type: application/json" --data-binary "@$env:TEMP\pedido.json" http://localhost:8080/api/publico/apartados
+```
+
+**C5** · 11 pedidos seguidos de apartado (a las 14:00, que no se atiende: no crea nada) y muestra el código de cada uno:
+
+```bash
+$hoy = (Get-Date).Date; $martes = $hoy.AddDays(8 - (([int]$hoy.DayOfWeek + 6) % 7)).ToString('yyyy-MM-dd'); Set-Content -Path $env:TEMP\pedido.json -Value ('{"servicios":["20000000-0000-0000-0000-000000000002"],"profesional":"30000000-0000-0000-0000-000000000002","fecha":"' + $martes + '","hora":"14:00"}'); 1..11 | ForEach-Object { curl.exe -s -o NUL -w "%{http_code} " -H "Host: demo.localhost" -H "Content-Type: application/json" --data-binary "@$env:TEMP\pedido.json" http://localhost:8080/api/publico/apartados }
+```
+
+**C6** · Un apartado con un campo que no existe (`"estado"`):
+
+```bash
+$hoy = (Get-Date).Date; $martes = $hoy.AddDays(8 - (([int]$hoy.DayOfWeek + 6) % 7)).ToString('yyyy-MM-dd'); Set-Content -Path $env:TEMP\pedido.json -Value ('{"servicios":["20000000-0000-0000-0000-000000000002"],"profesional":"30000000-0000-0000-0000-000000000002","fecha":"' + $martes + '","hora":"11:00","estado":"confirmado"}'); curl.exe -s -i -H "Host: demo.localhost" -H "Content-Type: application/json" --data-binary "@$env:TEMP\pedido.json" http://localhost:8080/api/publico/apartados
+```
+
+## Smoke test (versión Etapa 4, ~8 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
 2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
 3. `http://noexiste.localhost:5173` muestra "Este local no existe en Slotly".
 4. "Reservar turno" → marcar "Corte de pelo" → "Siguiente" muestra "Cualquiera disponible", Ana y Bruno.
 5. Volver, marcar solo "Barba" → "Siguiente" muestra el calendario con un día elegido → "Siguiente" muestra horas.
-6. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
-7. El último commit tiene el ✅ del CI en GitHub.
+6. Elegir una hora → completar los datos → "Confirmar" muestra "¡Listo! Tu turno quedó reservado"; recargar muestra el mismo turno.
+7. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+8. El último commit tiene el ✅ del CI en GitHub.
 
 Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 
