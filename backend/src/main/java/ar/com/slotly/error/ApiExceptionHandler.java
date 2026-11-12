@@ -24,10 +24,15 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(SlotlyException.class)
-    public ProblemDetail manejarSlotly(SlotlyException e) {
+    public ResponseEntity<ProblemDetail> manejarSlotly(SlotlyException e) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(e.getEstado(), e.getMessage());
         problema.setProperty("codigo", e.getCodigo());
-        return problema;
+        ResponseEntity.BodyBuilder respuesta = ResponseEntity.status(e.getEstado());
+        // Un 429 dice cuándo se puede volver a probar (HU-16 CA3).
+        if (e instanceof DemasiadosIntentosException demasiados) {
+            respuesta.header(HttpHeaders.RETRY_AFTER, String.valueOf(demasiados.getSegundosParaReintentar()));
+        }
+        return respuesta.body(problema);
     }
 
     // Lo que nadie más maneja: el detalle completo va al log y al cliente solo un texto genérico.
