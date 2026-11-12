@@ -67,10 +67,13 @@ public final class MotorDisponibilidad {
     // y no se cruza con nada (contando la limpieza del turno nuevo, que no puede pisar el siguiente).
     public static boolean estaLibre(Reglas reglas, Agenda agenda, LocalDate fecha, LocalTime hora,
             Duration duracion, Duration limpieza, Instant ahora) {
+        if (minutosDelDia(hora) % reglas.intervaloMin() != 0) {
+            return false; // solo horas en punto del intervalo (:00, :15…), como las que se ofrecen
+        }
         if (!dentroDelTope(reglas, fecha, ahora) || !entraEnUnaFranja(agenda, fecha, hora, duracion)) {
             return false;
         }
-        Optional<Instant> inicio = instanteLocal(reglas.zona(), fecha, hora);
+        Optional<Instant> inicio = instante(reglas.zona(), fecha, hora);
         if (inicio.isEmpty()) {
             return false; // esa hora no existe ese día (salto del horario de verano)
         }
@@ -130,7 +133,7 @@ public final class MotorDisponibilidad {
 
     // La hora local como instante. Vacío si no existe ese día (cuando el reloj salta por el horario de verano).
     // Si existe dos veces (cuando el reloj vuelve atrás), Java toma la primera: la hora se ofrece una sola vez.
-    private static Optional<Instant> instanteLocal(ZoneId zona, LocalDate fecha, LocalTime hora) {
+    public static Optional<Instant> instante(ZoneId zona, LocalDate fecha, LocalTime hora) {
         LocalDateTime local = LocalDateTime.of(fecha, hora);
         ZonedDateTime conZona = local.atZone(zona);
         if (!conZona.toLocalDateTime().equals(local)) {

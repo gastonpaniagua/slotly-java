@@ -8,6 +8,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ar.com.slotly.disponibilidad.MotorDisponibilidad.Agenda;
+import ar.com.slotly.disponibilidad.MotorDisponibilidad.Candidato;
 import ar.com.slotly.disponibilidad.MotorDisponibilidad.Franja;
 import ar.com.slotly.disponibilidad.MotorDisponibilidad.Ocupacion;
 import ar.com.slotly.disponibilidad.MotorDisponibilidad.Reglas;
@@ -56,7 +58,38 @@ public class DisponibilidadService {
     }
 
     // Lo pedido ya validado: con esto se calcula cualquier día.
-    record Pedido(Reglas reglas, List<Agenda> agendas, Duration duracion, Duration limpieza, Instant ahora) {
+    // turnos: cuántos turnos (no bloqueos) tiene cada profesional en el rango, para repartir "Cualquiera" (HU-07 CA9).
+    record Pedido(Reglas reglas, List<Agenda> agendas, Duration duracion, Duration limpieza, Instant ahora,
+            List<Servicio> servicios, List<Profesional> profesionales, Map<UUID, Integer> turnos) {
+    }
+
+    // Una hora que se puede reservar: con quién, de cuándo a cuándo (en UTC) y qué servicios.
+    public record HorarioReservable(Profesional profesional, Instant inicio, Instant fin, Instant ocupadoHasta,
+            List<Servicio> servicios) {
+    }
+
+    // ¿Esa hora exacta se puede reservar? Usa la misma regla que decide qué horas se muestran (el motor).
+    // Con "cualquiera" elige entre los libres al que tenga menos turnos ese día; si empatan, el primero por orden
+    // (HU-07 CA9). Vacío si la hora no existe, no es del intervalo o ya no está libre.
+    public Optional<HorarioReservable> reservable(Local local, Set<UUID> servicios, String profesional,
+            LocalDate fecha, LocalTime hora) {
+        Pedido pedido = armarPedido(local, servicios, profesional, fecha, fecha);
+        Optional<Instant> inicio = MotorDisponibilidad.instante(pedido.reglas().zona(), fecha, hora);
+        if (inicio.isEmpty()) {
+            return Optional.empty();
+        }
+        Map<UUID, Profesional> porId = pedido.profesionales().stream()
+                .collect(Collectors.toMap(Profesional::getId, p -> p));
+        List<Candidato> libres = pedido.agendas().stream()
+                .filter(a -> MotorDisponibilidad.estaLibre(pedido.reglas(), a, fecha, hora, pedido.duracion(),
+                        pedido.limpieza(), pedido.ahora()))
+                .map(a -> new Candidato(a.profesionalId(), porId.get(a.profesionalId()).getOrden(),
+                        pedido.turnos().getOrDefault(a.profesionalId(), 0)))
+                .toList();
+        Instant fin = inicio.get().plus(pedido.duracion());
+        return MotorDisponibilidad.elegirParaCualquiera(libres)
+                .map(id -> new HorarioReservable(porId.get(id), inicio.get(), fin, fin.plus(pedido.limpieza()),
+                        pedido.servicios()));
     }
 
     // Las horas libres de un día (HU-07).
@@ -109,16 +142,20 @@ public class DisponibilidadService {
         // Las ocupaciones de todo el rango, de 00:00 del primer día a 00:00 del día siguiente al último, en hora del local.
         Instant inicioRango = desde.atStartOfDay(zona).toInstant();
         Instant finRango = hasta.plusDays(1).atStartOfDay(zona).toInstant();
-        Map<UUID, List<Ocupacion>> ocupaciones = turnoRepository
-                .buscarOcupaciones(local.getId(), ids, inicioRango, finRango, ahora).stream()
+        List<Turno> ocupados = turnoRepository.buscarOcupaciones(local.getId(), ids, inicioRango, finRango, ahora);
+        Map<UUID, List<Ocupacion>> ocupaciones = ocupados.stream()
                 .collect(Collectors.groupingBy(Turno::getProfesionalId,
                         Collectors.mapping(t -> new Ocupacion(t.getInicio(), t.getOcupadoHasta()), Collectors.toList())));
+        Map<UUID, Integer> turnos = ocupados.stream()
+                .filter(t -> !"bloqueo".equals(t.getTipo()))
+                .collect(Collectors.groupingBy(Turno::getProfesionalId, Collectors.summingInt(t -> 1)));
 
         List<Agenda> agendas = profesionales.stream()
                 .map(p -> new Agenda(p.getId(), franjas.getOrDefault(p.getId(), List.of()),
                         ocupaciones.getOrDefault(p.getId(), List.of())))
                 .toList();
-        return new Pedido(reglas, agendas, duracionTotal(servicios), limpieza(local, servicios), ahora);
+        return new Pedido(reglas, agendas, duracionTotal(servicios), limpieza(local, servicios), ahora,
+                servicios, profesionales, turnos);
     }
 
     // "cualquiera" → todos los activos que hacen todos los servicios (CA9). Un id → ese, si es activo, del local

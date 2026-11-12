@@ -119,6 +119,23 @@ class ReglasDeTurnoEnLaBaseTest {
             .hasMessageContaining("turno_servicio_local_id_servicio_id_fkey");
     }
 
+    @Test
+    @DisplayName("HU-11 CA2: un apartado que vence sin confirmar queda 'vencido' sin cliente; una reserva confirmada sin cliente no")
+    void apartadoVencidoSinCliente() {
+        UUID apartado = jdbc.queryForObject("""
+                INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta, vence_en)
+                VALUES (?, ?, 'reserva', 'apartado', '2026-11-03T13:00:00Z', '2026-11-03T13:30:00Z',
+                        '2026-11-03T13:30:00Z', '2026-11-03T12:05:00Z')
+                RETURNING id
+                """, UUID.class, localId, anaId);
+
+        jdbc.update("UPDATE turno SET estado = 'vencido' WHERE id = ?", apartado);
+
+        assertThatThrownBy(() -> jdbc.update("UPDATE turno SET estado = 'confirmado' WHERE id = ?", apartado))
+            .isInstanceOf(DataIntegrityViolationException.class)
+            .hasMessageContaining("turno_reserva_con_cliente");
+    }
+
     // Inserta un bloqueo confirmado (sin cliente) del profesional, de inicio a fin.
     private void insertarBloqueo(UUID profesionalId, String inicio, String fin) {
         jdbc.update("""
