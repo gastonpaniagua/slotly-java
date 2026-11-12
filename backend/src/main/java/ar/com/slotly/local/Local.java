@@ -46,6 +46,12 @@ public class Local {
     private int anticipacionMin;
     private int topeDias;
     private int apartadoMin;
+    private int maxTurnosFuturos;
+
+    // Pago por transferencia (se muestra solo en la reserva que elige transferencia, HU-10 CA5)
+    private String alias;
+    private String titularCuenta;
+    private String cbu;
 
     // JPA necesita un constructor sin argumentos. Protected: solo lo usa Hibernate.
     protected Local() {
@@ -138,5 +144,22 @@ public class Local {
     // Cuánto dura el apartado del horario mientras el cliente completa sus datos.
     public int getApartadoMin() {
         return apartadoMin;
+    }
+
+    // Cuántos turnos futuros puede tener un mismo teléfono en este local (HU-14).
+    public int getMaxTurnosFuturos() {
+        return maxTurnosFuturos;
+    }
+
+    public String getAlias() {
+        return alias;
+    }
+
+    public String getTitularCuenta() {
+        return titularCuenta;
+    }
+
+    public String getCbu() {
+        return cbu;
     }
 }
