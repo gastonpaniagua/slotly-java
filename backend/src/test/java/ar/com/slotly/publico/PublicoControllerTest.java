@@ -17,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
+import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
 
 // GET /api/publico/local de punta a punta: header Host → local en Postgres real → JSON.
@@ -33,7 +34,7 @@ class PublicoControllerTest {
 
     @BeforeEach
     void prepararBase() {
-        jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
+        BaseDeTest.vaciar(jdbc);
         demoId = jdbc.queryForObject("""
                 INSERT INTO local (nombre, subdominio, color_acento, descripcion, cbu)
                 VALUES ('Barbería Demo', 'demo', '#2e7d32', 'Cortes clásicos y modernos', '0000003100000000000001')

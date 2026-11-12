@@ -31,6 +31,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
 import ar.com.slotly.RelojDeTest;
 import ar.com.slotly.error.SlotlyException;
@@ -80,7 +81,7 @@ class ConfirmacionTest {
     void prepararBase() {
         reloj.fijar(LUNES_9);
         limite.reiniciar();   // cada test arranca sin pedidos contados (HU-15)
-        jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
+        BaseDeTest.vaciar(jdbc);
         demo = crearLocal("demo");
         jdbc.update("UPDATE local SET alias = 'barberia.demo', cbu = '0000003100000000000001', titular_cuenta = 'Juan Pérez'");
     }

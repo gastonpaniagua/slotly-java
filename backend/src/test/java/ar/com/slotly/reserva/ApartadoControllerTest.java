@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.jayway.jsonpath.JsonPath;
 
+import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
 import ar.com.slotly.RelojDeTest;
 import ar.com.slotly.error.SlotlyException;
@@ -79,7 +80,7 @@ class ApartadoControllerTest {
     void prepararBase() {
         reloj.fijar(LUNES_9);
         limite.reiniciar();   // cada test arranca sin pedidos contados (HU-15)
-        jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
+        BaseDeTest.vaciar(jdbc);
         demoId = jdbc.queryForObject("INSERT INTO local (nombre, subdominio) VALUES ('Demo', 'demo') RETURNING id", UUID.class);
         corteId = crearServicio("Corte", 8000);
         barbaId = crearServicio("Barba", 5000);

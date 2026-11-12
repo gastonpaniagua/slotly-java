@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
 
 // Qué cuenta como "ocupado" para el cálculo de horas libres, contra Postgres real (doc 03).
@@ -33,7 +34,7 @@ class TurnoRepositoryTest {
 
     @BeforeEach
     void prepararBase() {
-        jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
+        BaseDeTest.vaciar(jdbc);
         localId = crearLocal("demo");
         anaId = crearProfesional(localId, "Ana");
     }

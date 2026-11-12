@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
 import ar.com.slotly.RelojDeTest;
 
@@ -51,7 +52,7 @@ class DisponibilidadControllerTest {
     @BeforeEach
     void prepararBase() {
         reloj.fijar(LUNES_9);
-        jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
+        BaseDeTest.vaciar(jdbc);
         demoId = jdbc.queryForObject("INSERT INTO local (nombre, subdominio) VALUES ('Demo', 'demo') RETURNING id", UUID.class);
         corteId = crearServicio("Corte", null);
         barbaId = crearServicio("Barba", null);

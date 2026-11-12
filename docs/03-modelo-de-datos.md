@@ -17,6 +17,8 @@ erDiagram
     SERVICIO ||--o{ PROFESIONAL_SERVICIO : "lo hacen"
     PROFESIONAL ||--o{ HORARIO : trabaja
     TURNO |o--o{ TURNO : "reprogramado de"
+    LOCAL ||--o{ USUARIO : tiene
+    PROFESIONAL |o--o| USUARIO : "entra como"
     LOCAL {
         uuid id PK
         string nombre
@@ -97,6 +99,15 @@ erDiagram
         time hora_inicio "hora del local"
         time hora_fin "hora del local"
     }
+    USUARIO {
+        uuid id PK
+        uuid local_id FK
+        string email "en minúsculas, único por local"
+        string password_hash "argon2id"
+        enum rol "admin, profesional"
+        uuid profesional_id FK "obligatorio para profesional; opcional para el admin que también atiende"
+        boolean activo
+    }
 ```
 
 ## Valores por defecto de las reglas del local (doc 01 §3.3)
@@ -126,6 +137,7 @@ erDiagram
 - **Máximo de turnos futuros por teléfono:** lo chequea la API dentro de la transacción de reserva, bloqueando la fila del cliente (`SELECT … FOR UPDATE`) antes de contar, para que dos reservas simultáneas del mismo teléfono no pasen las dos.
 - **Precio y duración copiados:** `turno_servicio` guarda la duración y el precio del momento de la reserva. Cambiar un servicio solo afecta a turnos nuevos.
 - **Token del turno:** se guarda solo el hash (nunca el token en texto plano) y tiene vencimiento. Si se filtra la base, no se filtran los links.
+- **Usuarios del panel (V8, 2026-11-12):** el mail es único por local y se guarda en minúsculas, porque el login es en el subdominio de cada local (la misma persona puede tener cuenta en dos). La contraseña se guarda solo como hash argon2id (un CHECK rechaza cualquier otra cosa). Un usuario `profesional` siempre tiene `profesional_id`, del mismo local (clave foránea compuesta), y cada profesional tiene a lo sumo un usuario. Las sesiones viven en las tablas de Spring Session (`spring_session` y `spring_session_attributes`), creadas por la misma migración.
 - **Fechas:** los turnos se guardan en UTC (`timestamptz`, `Instant` en Java) y los horarios de trabajo en hora del local. Todo se muestra en hora del local, con la zona fija del local (`America/Argentina/Buenos_Aires`).
 
 ## Tablas que se agregan en su etapa
@@ -134,7 +146,7 @@ Para no crear tablas que nadie usa todavía, cada una entra con su migración en
 
 | Tabla                             | Para qué                                                           | Etapa |
 | --------------------------------- | ------------------------------------------------------------------ | ----- |
-| `usuario` y tablas de sesión      | Login del panel (argon2id, sesiones guardadas en Postgres)          | 5     |
+| `usuario` y tablas de sesión      | Login del panel (argon2id, sesiones guardadas en Postgres). Creadas en la V8 | 5     |
 | `codigo_verificacion`             | Código por teléfono para volver a entrar (hasheado, con intentos)  | 6     |
 | `mensaje`                         | Mensajes al cliente con estado de entrega y clave única (no duplicar) | 8     |
 | `notificacion`                    | Avisos al profesional en el panel                                  | 8     |

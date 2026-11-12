@@ -42,6 +42,13 @@ Algunas piezas se incorporan por etapas (ver [`docs/05-historias-de-usuario.md`]
 
 > El orden importa: si la base no está arriba, la API no arranca.
 
+**Usuarios de la demo** (panel en http://demo.localhost:5173/ingresar; contraseña de juguete, solo existe en los datos de demo):
+
+| Mail | Contraseña | Rol |
+| --- | --- | --- |
+| `admin@demo.com` | `demo1234` | admin (y profesional: Ana) |
+| `bruno@demo.com` | `demo1234` | profesional (Bruno) |
+
 Para apagar: `Ctrl+C` en las terminales del front y de la API, y `docker compose stop` en la raíz (no borra los datos).
 
 ## Tests

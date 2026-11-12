@@ -50,6 +50,17 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- Sesión del panel guardada en Postgres (D1): se puede invalidar desde el servidor (HU-16 CA7). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-session-jdbc</artifactId>
+		</dependency>
+		<!-- El Argon2PasswordEncoder de Spring Security calcula argon2id con BouncyCastle (Java no lo trae). HU-16 CA8. -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>1.86</version>
+		</dependency>
 		<!-- Normaliza teléfonos (11 2345-6789 y +54 9 11 2345 6789 son el mismo cliente, HU-10 CA3). La librería de Google. -->
 		<dependency>
 			<groupId>com.googlecode.libphonenumber</groupId>

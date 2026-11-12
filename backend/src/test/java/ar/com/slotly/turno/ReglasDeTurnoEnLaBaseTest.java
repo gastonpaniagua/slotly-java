@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
 
 // Las reglas de turno viven en la base (doc 03). Se prueban con SQL directo contra Postgres real.
@@ -26,7 +27,7 @@ class ReglasDeTurnoEnLaBaseTest {
 
     @BeforeEach
     void prepararBase() {
-        jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
+        BaseDeTest.vaciar(jdbc);
         localId = crearLocal("test");
         anaId = crearProfesional(localId, "Ana");
     }

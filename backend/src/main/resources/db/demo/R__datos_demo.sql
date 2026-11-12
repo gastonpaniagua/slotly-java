@@ -80,3 +80,15 @@ VALUES
     ('40000000-0000-0000-0000-000000000019', '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 6, '10:00', '13:00'),
     ('40000000-0000-0000-0000-000000000020', '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 6, '16:00', '20:00')
 ON CONFLICT (id) DO NOTHING;
+
+-- Usuarios del panel (ids con 5): el dueño, que además es Ana, y Bruno como profesional.
+-- La contraseña de los dos es demo1234 (de juguete, está en el README). Acá va solo su hash argon2id.
+INSERT INTO usuario (id, local_id, email, password_hash, rol, profesional_id)
+VALUES
+    ('50000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin@demo.com',
+     '$argon2id$v=19$m=16384,t=2,p=1$XJA/6EPgtbxqEoYXtQynbA$p7n3Ar1ozGsUa3bUCGZgTk+v40VGUiaYx4jCW3VjV20',
+     'admin', '30000000-0000-0000-0000-000000000001'),
+    ('50000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'bruno@demo.com',
+     '$argon2id$v=19$m=16384,t=2,p=1$M7kcQyS+yLB9UMLTs+rBtA$VUxiEO5vRvpNR0Oez3NmLPdtTLRpJT6YhF0/Id6HOX4',
+     'profesional', '30000000-0000-0000-0000-000000000002')
+ON CONFLICT (id) DO NOTHING;

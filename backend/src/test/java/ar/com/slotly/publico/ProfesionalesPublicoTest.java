@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
 
 // GET /api/publico/profesionales: quién puede hacer los servicios elegidos (paso 2 de la reserva), contra Postgres real.
@@ -34,7 +35,7 @@ class ProfesionalesPublicoTest {
 
     @BeforeEach
     void prepararBase() {
-        jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
+        BaseDeTest.vaciar(jdbc);
         demoId = crearLocal("demo");
         corteId = crearServicio(demoId, "Corte", true);
         barbaId = crearServicio(demoId, "Barba", true);
