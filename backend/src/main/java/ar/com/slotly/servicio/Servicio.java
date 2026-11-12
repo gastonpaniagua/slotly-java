@@ -24,6 +24,8 @@ public class Servicio {
     private String descripcion;
     private int duracionMin;
     private int precio;
+    // Limpieza propia del servicio; null = usa la del local.
+    private Integer limpiezaMin;
     private int orden;
     private boolean activo;
 
@@ -52,6 +54,10 @@ public class Servicio {
 
     public int getPrecio() {
         return precio;
+    }
+
+    public Integer getLimpiezaMin() {
+        return limpiezaMin;
     }
 
     public int getOrden() {

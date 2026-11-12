@@ -40,6 +40,13 @@ public class Local {
     private BigDecimal latitud;
     private BigDecimal longitud;
 
+    // Reglas de turnos (doc 03, valores por defecto en la base)
+    private int intervaloMin;
+    private int limpiezaMin;
+    private int anticipacionMin;
+    private int topeDias;
+    private int apartadoMin;
+
     // JPA necesita un constructor sin argumentos. Protected: solo lo usa Hibernate.
     protected Local() {
     }
@@ -106,5 +113,30 @@ public class Local {
 
     public BigDecimal getLongitud() {
         return longitud;
+    }
+
+    // Cada cuántos minutos se ofrece un horario de inicio.
+    public int getIntervaloMin() {
+        return intervaloMin;
+    }
+
+    // Minutos libres después de cada turno (un servicio puede tener la suya).
+    public int getLimpiezaMin() {
+        return limpiezaMin;
+    }
+
+    // No se puede reservar para dentro de menos de estos minutos.
+    public int getAnticipacionMin() {
+        return anticipacionMin;
+    }
+
+    // Hasta cuántos días hacia adelante se reserva.
+    public int getTopeDias() {
+        return topeDias;
+    }
+
+    // Cuánto dura el apartado del horario mientras el cliente completa sus datos.
+    public int getApartadoMin() {
+        return apartadoMin;
     }
 }
