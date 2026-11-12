@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 
-import { obtenerTurno, type ResultadoTurno } from '../api/reserva'
+import { cancelarTurno, obtenerTurno, type ResultadoTurno } from '../api/reserva'
 import type { LocalPublico, TurnoPublico } from '../api/tipos'
 import { fechaLarga } from '../fechas'
 import { formatearDuracion, formatearPrecio, linkDeWhatsApp } from '../formato'
@@ -24,6 +24,8 @@ function PaginaTurno({ local }: Props) {
   const [intento, setIntento] = useState(0)
   const clave = `${id}|${token}|${intento}`
   const [respuesta, setRespuesta] = useState<{ clave: string; resultado: ResultadoTurno } | null>(null)
+  // Lo que pasó con la última acción del cliente (cancelar), para contárselo arriba del turno.
+  const [aviso, setAviso] = useState<string | null>(null)
 
   useEffect(() => {
     let vigente = true
@@ -76,11 +78,37 @@ function PaginaTurno({ local }: Props) {
   }
 
   const { turno } = resultado
+
+  // HU-20: cancelar. Si salió bien se muestra el turno como quedó; si justo pasó el plazo, se vuelve a pedir el
+  // turno para que aparezca la opción de escribirle al local.
+  async function cancelar() {
+    const resultadoCancelar = await cancelarTurno(id, token)
+    switch (resultadoCancelar.estado) {
+      case 'ok':
+        setRespuesta({ clave, resultado: { estado: 'ok', turno: resultadoCancelar.turno } })
+        setAviso('Cancelaste tu turno. El horario quedó libre para otra persona.')
+        break
+      case 'fuera-de-plazo':
+        setAviso('Ya falta poco para tu turno y no se puede cancelar desde acá. Escribile al local.')
+        setIntento((n) => n + 1)
+        break
+      case 'invalido':
+      case 'vencido':
+        setRespuesta({ clave, resultado: { estado: resultadoCancelar.estado } })
+        break
+      default:
+        setAviso('No pudimos cancelar el turno. Probá de nuevo.')
+    }
+  }
+
   return (
     <main className="reserva">
       {recienConfirmado && <BarraProgreso paso={6} />}
       <h1 className="reserva__titulo">{recienConfirmado ? '¡Listo! Tu turno quedó reservado' : 'Tu turno'}</h1>
-      {turno.estado === 'cancelado' && <p className="reserva__aviso" role="alert">Este turno está cancelado.</p>}
+      {aviso && <p className="reserva__aviso" role="status">{aviso}</p>}
+      {turno.estado === 'cancelado' && !aviso && (
+        <p className="reserva__aviso" role="alert">Este turno está cancelado.</p>
+      )}
 
       <section className="resumen" aria-label="Tu turno">
         <p className="resumen__cuando">{fechaLarga(turno.fecha)}, {turno.hora}</p>
@@ -103,7 +131,7 @@ function PaginaTurno({ local }: Props) {
       {/* HU-10 CA5: los datos para transferir, también en la confirmación. */}
       {turno.transferencia && turno.estado === 'confirmado' && <DatosTransferencia datos={turno.transferencia} />}
 
-      <Cambios turno={turno} local={local} />
+      <Cambios turno={turno} local={local} alCancelar={cancelar} />
 
       {recienConfirmado && (
         <p className="reserva__ayuda">
@@ -116,9 +144,18 @@ function PaginaTurno({ local }: Props) {
   )
 }
 
-// Qué puede hacer el cliente con su turno. Cancelar y reprogramar llegan en los pasos 42 y 44 de la Etapa 6;
-// fuera de plazo, el local decide (HU-20 CA2).
-function Cambios({ turno, local }: { turno: TurnoPublico; local: LocalPublico }) {
+type CambiosProps = {
+  turno: TurnoPublico
+  local: LocalPublico
+  alCancelar: () => Promise<void>
+}
+
+// Qué puede hacer el cliente con su turno: cancelarlo (HU-20; reprogramar llega en el paso 44). Fuera de plazo,
+// el local decide (CA2).
+function Cambios({ turno, local, alCancelar }: CambiosProps) {
+  const [confirmando, setConfirmando] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+
   if (turno.estado !== 'confirmado') {
     return null
   }
@@ -137,7 +174,35 @@ function Cambios({ turno, local }: { turno: TurnoPublico; local: LocalPublico })
       </div>
     )
   }
-  return null
+
+  async function confirmar() {
+    setEnviando(true)
+    await alCancelar()
+    setEnviando(false)
+    setConfirmando(false)
+  }
+
+  // HU-20 CA1: cancelar pide una confirmación antes, para que no se cancele por un toque sin querer.
+  if (confirmando) {
+    return (
+      <div className="turno__aviso" role="group" aria-label="Confirmar cancelación">
+        <p>¿Seguro que querés cancelar tu turno? El horario queda libre para otra persona.</p>
+        <div className="turno__acciones">
+          <button type="button" className="btn btn-primary" onClick={confirmar} disabled={enviando}>
+            {enviando ? 'Cancelando…' : 'Sí, cancelar'}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => setConfirmando(false)} disabled={enviando}>
+            No, mantener el turno
+          </button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="turno__acciones">
+      <button type="button" className="btn btn-secondary" onClick={() => setConfirmando(true)}>Cancelar turno</button>
+    </div>
+  )
 }
 
 export default PaginaTurno

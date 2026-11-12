@@ -33,7 +33,7 @@ import ar.com.slotly.local.Local;
 public class ConfirmacionService {
 
     // Cuánto dura el link de "Mi turno" después de que termina el turno.
-    private static final Duration TOKEN_DESPUES_DEL_TURNO = Duration.ofDays(30);
+    static final Duration TOKEN_DESPUES_DEL_TURNO = Duration.ofDays(30);
 
     private final JdbcTemplate jdbc;
     private final Clock reloj;
@@ -150,7 +150,8 @@ public class ConfirmacionService {
         return clienteId;
     }
 
-    private TurnoPublico ver(Local local, UUID id) {
+    // El turno tal como lo ve el cliente. Lo usa también MiTurnoService después de cancelar o reprogramar.
+    TurnoPublico ver(Local local, UUID id) {
         Map<String, Object> turno = jdbc.queryForMap("""
                 SELECT t.estado, t.inicio, t.forma_pago, p.nombre AS profesional
                 FROM turno t JOIN profesional p ON p.local_id = t.local_id AND p.id = t.profesional_id
@@ -182,7 +183,7 @@ public class ConfirmacionService {
                 yaPaso, puedeCambiar);
     }
 
-    private static SlotlyException turnoNoEncontrado() {
+    static SlotlyException turnoNoEncontrado() {
         return new SlotlyException(HttpStatus.NOT_FOUND, "TURNO_NO_ENCONTRADO", "No encontramos ese turno.");
     }
 }

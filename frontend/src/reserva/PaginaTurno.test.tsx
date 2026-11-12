@@ -2,12 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { obtenerTurno } from '../api/reserva'
+import { cancelarTurno, obtenerTurno } from '../api/reserva'
 import type { LocalPublico, TurnoPublico } from '../api/tipos'
 import { unLocal } from '../test/datos'
 import PaginaTurno from './PaginaTurno'
 
-vi.mock('../api/reserva', () => ({ obtenerTurno: vi.fn() }))
+vi.mock('../api/reserva', () => ({ obtenerTurno: vi.fn(), cancelarTurno: vi.fn() }))
 
 const TURNO: TurnoPublico = {
   id: 'abc', estado: 'confirmado', fecha: '2026-11-17', hora: '10:30', profesionalNombre: 'Bruno',
@@ -21,6 +21,7 @@ const LOCAL = unLocal({ direccion: 'San Martín 1200', ciudad: 'Villa María', w
 
 beforeEach(() => {
   vi.mocked(obtenerTurno).mockReset()
+  vi.mocked(cancelarTurno).mockReset()
 })
 
 function conTurno(datos: Partial<TurnoPublico> = {}) {
@@ -135,5 +136,55 @@ describe('Mi turno', () => {
 
     expect(await screen.findByText('Este turno ya pasó.')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Escribir por WhatsApp' })).not.toBeInTheDocument()
+  })
+
+  it('HU-20 CA1: "Cancelar turno" pide confirmación y, al confirmar, muestra el turno cancelado', async () => {
+    conTurno()
+    vi.mocked(cancelarTurno).mockResolvedValue({ estado: 'ok', turno: { ...TURNO, estado: 'cancelado', puedeCambiar: false } })
+    abrir('/turno/abc#t=secreto')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar turno' }))
+    expect(screen.getByText('¿Seguro que querés cancelar tu turno? El horario queda libre para otra persona.'))
+      .toBeInTheDocument()
+    expect(cancelarTurno).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, cancelar' }))
+
+    expect(await screen.findByText('Cancelaste tu turno. El horario quedó libre para otra persona.')).toBeInTheDocument()
+    expect(cancelarTurno).toHaveBeenCalledWith('abc', 'secreto')
+    expect(screen.queryByRole('button', { name: 'Cancelar turno' })).not.toBeInTheDocument()
+  })
+
+  it('HU-20: "No, mantener el turno" vuelve atrás sin cancelar', async () => {
+    conTurno()
+    abrir('/turno/abc#t=secreto')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar turno' }))
+    fireEvent.click(screen.getByRole('button', { name: 'No, mantener el turno' }))
+
+    expect(screen.getByRole('button', { name: 'Cancelar turno' })).toBeInTheDocument()
+    expect(cancelarTurno).not.toHaveBeenCalled()
+  })
+
+  it('HU-20 CA2: si justo se pasó el plazo, lo avisa y muestra la opción de escribirle al local', async () => {
+    conTurno()
+    vi.mocked(cancelarTurno).mockResolvedValue({ estado: 'fuera-de-plazo' })
+    abrir('/turno/abc#t=secreto')
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar turno' }))
+    conTurno({ puedeCambiar: false })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, cancelar' }))
+
+    expect(await screen.findByRole('link', { name: 'Escribir por WhatsApp' })).toBeInTheDocument()
+    expect(screen.getByText('Ya falta poco para tu turno y no se puede cancelar desde acá. Escribile al local.'))
+      .toBeInTheDocument()
+  })
+
+  it('HU-20 CA2: fuera de plazo no aparece "Cancelar turno"', async () => {
+    conTurno({ puedeCambiar: false })
+
+    abrir('/turno/abc#t=secreto')
+
+    await screen.findByRole('link', { name: 'Escribir por WhatsApp' })
+    expect(screen.queryByRole('button', { name: 'Cancelar turno' })).not.toBeInTheDocument()
   })
 })

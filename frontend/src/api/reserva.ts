@@ -97,3 +97,36 @@ export async function obtenerTurno(id: string, token: string): Promise<Resultado
     return { estado: 'error' }
   }
 }
+
+export type ResultadoCancelar =
+  | { estado: 'ok'; turno: TurnoPublico }
+  | { estado: 'fuera-de-plazo' }
+  | { estado: 'invalido' }
+  | { estado: 'vencido' }
+  | { estado: 'error' }
+
+// HU-20: cancela el turno con el token de su link. Fuera de plazo (menos de 3 horas) decide el local (CA2).
+export async function cancelarTurno(id: string, token: string): Promise<ResultadoCancelar> {
+  try {
+    const respuesta = await fetch(`/api/publico/turnos/${id}/cancelar`, {
+      method: 'POST',
+      headers: { 'X-Token-Turno': token },
+    })
+    if (respuesta.ok) {
+      return { estado: 'ok', turno: (await respuesta.json()) as TurnoPublico }
+    }
+    const problema = (await respuesta.json().catch(() => null)) as Problema | null
+    switch (problema?.codigo) {
+      case 'FUERA_DE_PLAZO':
+        return { estado: 'fuera-de-plazo' }
+      case 'TURNO_NO_ENCONTRADO':
+        return { estado: 'invalido' }
+      case 'LINK_VENCIDO':
+        return { estado: 'vencido' }
+      default:
+        return { estado: 'error' }
+    }
+  } catch {
+    return { estado: 'error' }
+  }
+}
