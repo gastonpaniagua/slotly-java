@@ -50,14 +50,90 @@ Casos de prueba manuales, smoke test, sesiones exploratorias y registro de bugs.
 | CP-HU06-03 | Un solo profesional salta el paso 2 (CA3) | Todo levantado | 1. Marcar solo "Barba" 2. "Siguiente" 3. "Atrás" | Va directo a "Elegí el día" (paso 3 de 6) con "Con Bruno."; "Atrás" vuelve al paso 1 | Sí: si elegís "Barba" y tocás "Siguiente" va directo a "Elegí el día" con "Con Bruno.", y "Atrás" vuelve al paso 1 | Pasó | 2026-11-11 |
 | CP-HU06-04 | Un servicio de otro local da 404 (CA4, HU-04 CA3) | API levantada | 1. En una terminal: `curl.exe -s -i -H "Host: demo.localhost" "http://localhost:8080/api/publico/profesionales?servicios=20000000-0000-0000-0000-000000000006"` | `HTTP/1.1 404` y en el cuerpo `"codigo":"SERVICIO_NO_ENCONTRADO"` (ese id es el "Corte clásico" de otra) | Sí, responde HTTP 404 y en el código aparece "SERVICIO_NO_ENCONTRADO" | Pasó | 2026-11-11 |
 
-## Smoke test (versión Etapa 2, ~6 minutos)
+## Etapa 3 · Disponibilidad
+
+**Precondiciones comunes:** base, API y front levantados según el README. "El martes que viene" es el martes de la semana siguiente a la actual: los comandos de preparación lo calculan solos, así funcionan cualquier día que se ejecuten. Antes de cada caso con preparación, correr **L1** para empezar sin turnos de prueba.
+
+CA8 (limpieza) y CA10 (horario de verano) se cubren solo con tests automáticos (`MotorDisponibilidadTest` y `DisponibilidadControllerTest`): la demo tiene limpieza 0 y Argentina no tiene horario de verano.
+
+| ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CP-HU07-01 | Cierre y pausa (CA1, CA2) | Todo levantado | 1. "Reservar turno" → "Corte y barba" (75 min) → Ana 2. Elegir el martes que viene | Mañana: la última es 11:45. Tarde: arranca 16:00 y la última es 18:45. Nada entre 11:45 y 16:00 | Con "Corte y barba" y el martes que viene, los horarios de Ana son los correctos: a la mañana la última es 11:45; a la tarde arranca 16:00 y la última es 18:45; nada entre 11:45 y 16:00 | Pasó | 2026-11-12 |
+| CP-HU07-02 | Un turno existente (CA3) | L1 y después S1 | 1. "Barba" (pasa directo a Bruno) 2. Elegir el martes que viene | No aparecen 10:00, 10:15 ni 10:30; sí 10:45 | Al elegir "Barba" pasa directo a Bruno; el martes que viene no aparecen 10:00, 10:15 ni 10:30, y sí 10:45 | Pasó | 2026-11-12 |
+| CP-HU07-03 | Un bloqueo (CA4) | L1 y después S2 | 1. "Barba" 2. Elegir el martes que viene | No aparece nada entre 10:45 y 11:45; sí 12:00 | Con "Barba" y el martes que viene no aparece nada entre 10:45 y 11:45; sí 12:00 | Pasó | 2026-11-12 |
+| CP-HU07-04 | Apartado vigente y vencido (CA5) | L1 y después S3 | 1. "Barba" 2. Elegir el martes que viene 3. Correr S4 y volver a entrar a las horas | Con S3 no aparece 16:00; después de S4 vuelve a aparecer | Con "Barba" y el martes que viene, con S3 no aparece 16:00; después de S4 vuelve a aparecer | Pasó | 2026-11-12 |
+| CP-HU07-05 | Anticipación (CA6) | Hoy el local atiende (martes a sábado) y estamos dentro del horario | 1. "Barba" 2. Elegir hoy | La primera hora es la primera "en punto" de 15 min que queda a más de 1 h de ahora | Con "Barba" y el día de hoy: probado a las 10:49, la primera hora es 12:00 (10:49 + 1 h = 11:49 → la siguiente en punto es 12:00) | Pasó | 2026-11-12 |
+| CP-HU07-06 | Cualquiera disponible (CA9) | L1 y después S5 | 1. "Corte de pelo" → "Cualquiera disponible" 2. Elegir el martes que viene | Aparece 10:00 aunque Ana esté bloqueada toda la mañana (Bruno está libre) | Con "Corte de pelo", "Cualquiera disponible" y el martes que viene aparece 10:00 aunque Ana esté bloqueada toda la mañana | Pasó | 2026-11-12 |
+| CP-HU07-07 | Profesional que no hace el servicio (CA11) | API levantada | 1. Correr C1 | `HTTP/1.1 404` con `"codigo":"PROFESIONAL_NO_ENCONTRADO"` | `HTTP/1.1 404`, `Content-Type: application/problem+json` y `"codigo":"PROFESIONAL_NO_ENCONTRADO"` con el detalle "Ese profesional no está disponible para los servicios elegidos." | Pasó | 2026-11-12 |
+| CP-HU08-01 | Días en gris y primer día elegido (CA1, CA2, CA4) | L1 | 1. "Barba" 2. Mirar el calendario | Domingo, lunes y los días que ya pasaron en gris y sin poder tocarlos; queda elegido el primer día con lugar | Con "Barba", en el calendario domingo, lunes y los días que ya pasaron están en gris y no se pueden tocar; queda elegido el primer día con lugar | Pasó | 2026-11-12 |
+| CP-HU08-02 | Día completo en gris (CA1) | L1 y después S6 | 1. "Corte de pelo" → "Cualquiera disponible" 2. Ir a la semana que viene | El martes aparece en gris | Con "Corte de pelo" y "Cualquiera disponible", en la semana que viene el martes aparece en gris | Pasó | 2026-11-12 |
+| CP-HU08-03 | Límites de semanas (CA3) | Todo levantado | 1. En el calendario, tocar ‹ y › hasta el final | ‹ deshabilitada en la semana actual; › se deshabilita en la semana que tiene el día "hoy + 30" | En el calendario, tocando ‹ y › hasta el final: ‹ está deshabilitada en la semana actual y › se deshabilita en la semana que tiene el día "hoy + 30" | Pasó | 2026-11-12 |
+| CP-HU09-01 | Refresco cada 15 s (CA1) | L1 | 1. "Barba" → el martes que viene 2. Mirar las horas 3. En otra terminal correr S1 4. Esperar sin tocar nada | En 15 s como mucho desaparecen 10:00, 10:15 y 10:30 | Con "Barba" aparecen 10:00, 10:15 y 10:30; al correr S1 en otra terminal desaparecen las tres automáticamente, sin tocar nada | Pasó | 2026-11-12 |
+| CP-HU09-02 | Refresco al volver a la pestaña (CA2) | L1 | 1. Con las horas del martes que viene abiertas, cambiar a otra pestaña 2. Correr S2 3. Volver a la pestaña | Al volver se actualiza en ese momento (desaparecen 10:45 a 11:45) | Después de ejecutar S2 desaparecen 10:45 a 11:45 (que se actualice justo al volver a la pestaña lo cubre el test automático de HU-09 CA2) | Pasó | 2026-11-12 |
+| CP-HU09-03 | Falla un refresco (CA3) | Todo levantado | 1. Con las horas abiertas, frenar la API (Ctrl+C) 2. Esperar 15 s 3. Levantar la API 4. Esperar 15 s | Con la API caída se sigue viendo la lista con el aviso gris "No pudimos actualizar las horas…"; al volver la API, el aviso desaparece | Con las horas a la vista, al frenar la API aparece el aviso "No pudimos actualizar las horas…" y la lista se sigue viendo; al levantar de nuevo la API, esperando sin tocar nada, el aviso se va solo | Pasó | 2026-11-12 |
+| CP-HU09-04 | La hora elegida se ocupa (CA4) | L1 | 1. "Barba" → el martes que viene → elegir 10:00 2. En otra terminal correr S1 3. Esperar sin tocar nada | "Esa hora se acaba de ocupar", 10:00 desaparece y "Siguiente" se deshabilita | Con "Barba", el martes que viene y 10:00 elegida, al ejecutar S1 aparece "Esa hora se acaba de ocupar. Elegí otra.", 10:00 desaparece y "Siguiente" se deshabilita | Pasó | 2026-11-12 |
+
+### Comandos de preparación (desde `C:\dev\slotly-java`)
+
+Todos usan el local demo (`10000000-…-001`), Ana (`30000000-…-001`) y Bruno (`30000000-…-002`). Las horas son de Buenos Aires.
+
+**L1** · Borra todos los turnos de la demo (son solo de prueba):
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "DELETE FROM turno;"
+```
+
+**S1** · Bruno con un turno el martes que viene de 10:00 a 10:45:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "WITH m AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') + interval '8 days' AS d) INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta) SELECT '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'bloqueo', 'confirmado', (d + time '10:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '10:45') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '10:45') AT TIME ZONE 'America/Argentina/Buenos_Aires' FROM m;"
+```
+
+**S2** · Bruno bloqueado el martes que viene de 11:00 a 12:00:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "WITH m AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') + interval '8 days' AS d) INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta) SELECT '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'bloqueo', 'confirmado', (d + time '11:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '12:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '12:00') AT TIME ZONE 'America/Argentina/Buenos_Aires' FROM m;"
+```
+
+**S3** · Un apartado de Bruno el martes que viene a las 16:00 (20 min) que vence en 10 minutos:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "WITH m AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') + interval '8 days' AS d) INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta, vence_en) SELECT '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'reserva', 'apartado', (d + time '16:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '16:20') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '16:20') AT TIME ZONE 'America/Argentina/Buenos_Aires', now() + interval '10 minutes' FROM m;"
+```
+
+**S4** · Hace vencer el apartado (como si hubieran pasado los minutos):
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE turno SET vence_en = now() - interval '1 minute' WHERE estado = 'apartado';"
+```
+
+**S5** · Ana bloqueada el martes que viene de 10:00 a 13:00:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "WITH m AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') + interval '8 days' AS d) INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta) SELECT '10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'bloqueo', 'confirmado', (d + time '10:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '13:00') AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + time '13:00') AT TIME ZONE 'America/Argentina/Buenos_Aires' FROM m;"
+```
+
+**S6** · Ana y Bruno bloqueados todo el martes que viene (de 10 a 13 y de 16 a 20):
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "WITH m AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') + interval '8 days' AS d) INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta) SELECT '10000000-0000-0000-0000-000000000001', p.id, 'bloqueo', 'confirmado', (d + f.desde) AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + f.hasta) AT TIME ZONE 'America/Argentina/Buenos_Aires', (d + f.hasta) AT TIME ZONE 'America/Argentina/Buenos_Aires' FROM m, (VALUES ('30000000-0000-0000-0000-000000000001'::uuid), ('30000000-0000-0000-0000-000000000002'::uuid)) AS p(id), (VALUES (time '10:00', time '13:00'), (time '16:00', time '20:00')) AS f(desde, hasta);"
+```
+
+**C1** · Pide horas de Bruno para "Corte infantil", que no hace:
+
+```bash
+curl.exe -s -i -H "Host: demo.localhost" "http://localhost:8080/api/publico/disponibilidad/horas?servicios=20000000-0000-0000-0000-000000000004&profesional=30000000-0000-0000-0000-000000000002&fecha=2026-12-01"
+```
+
+## Smoke test (versión Etapa 3, ~7 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
 2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
 3. `http://noexiste.localhost:5173` muestra "Este local no existe en Slotly".
 4. "Reservar turno" → marcar "Corte de pelo" → "Siguiente" muestra "Cualquiera disponible", Ana y Bruno.
-5. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
-6. El último commit tiene el ✅ del CI en GitHub.
+5. Volver, marcar solo "Barba" → "Siguiente" muestra el calendario con un día elegido → "Siguiente" muestra horas.
+6. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+7. El último commit tiene el ✅ del CI en GitHub.
 
 Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 

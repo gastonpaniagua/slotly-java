@@ -21,9 +21,9 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 | HU-04 | Que los datos de mi local no se mezclen con otro  | admin               | Debe      | M      | 1     | Hecha     |
 | HU-05 | Elegir uno o varios servicios y ver el total      | cliente             | Debe      | S      | 2     | Hecha     |
 | HU-06 | Elegir profesional o "cualquiera"                 | cliente             | Debe      | S      | 2     | Hecha     |
-| HU-07 | Ver solo las horas en las que entra lo que elegí  | cliente             | Debe      | L      | 3     | Pendiente |
-| HU-08 | Ver en gris los días sin lugar                    | cliente             | Debe      | M      | 3     | Pendiente |
-| HU-09 | Que la lista de horas se actualice sola           | cliente             | Debería   | S      | 3     | Pendiente |
+| HU-07 | Ver solo las horas en las que entra lo que elegí  | cliente             | Debe      | L      | 3     | En curso  |
+| HU-08 | Ver en gris los días sin lugar                    | cliente             | Debe      | M      | 3     | Hecha     |
+| HU-09 | Que la lista de horas se actualice sola           | cliente             | Debería   | S      | 3     | Hecha     |
 | HU-10 | Reservar sin crear cuenta                         | cliente             | Debe      | M      | 4     | Pendiente |
 | HU-11 | Que nadie me saque el horario mientras completo   | cliente             | Debe      | M      | 4     | Pendiente |
 | HU-12 | Elegir otra hora si la mía se ocupó               | cliente             | Debe      | S      | 4     | Pendiente |
@@ -139,7 +139,7 @@ Prioridad: Debe · Tamaño: S · Etapa: 2 · Estado: Hecha
 ### HU-07 · Ver solo las horas en las que entra lo que elegí
 
 Como **cliente** quiero ver solo las horas en las que entra completo lo que elegí para no reservar algo que después no se puede cumplir.
-Prioridad: Debe · Tamaño: L · Etapa: 3 · Estado: Pendiente
+Prioridad: Debe · Tamaño: L · Etapa: 3 · Estado: En curso
 
 - **CA1.** Dado un servicio de 1 h y cierre a las 20:00, cuando veo las horas del día, entonces la última opción es 19:00 (no 19:15, 19:30 ni 19:45).
 - **CA2.** Dado un servicio de 45 min y pausa de 13:00 a 16:00, cuando veo las horas, entonces 12:15 aparece y 12:30 no (no se ofrece nada que cruce la pausa).
@@ -153,10 +153,12 @@ Prioridad: Debe · Tamaño: L · Etapa: 3 · Estado: Pendiente
 - **CA10.** Dado un local en una zona con cambio de horario de verano, cuando pido el día del cambio, entonces las horas se calculan en hora local sin duplicar ni perder opciones.
 - **CA11.** Dado un pedido con servicios de otro local o un profesional que no hace el servicio, cuando lo hago, entonces la API responde 400 o 404 con un mensaje claro.
 
+Pendiente: la segunda mitad de CA9 (al reservar con "Cualquiera disponible" se asigna al que tenga menos turnos ese día) se verifica en la Etapa 4 con HU-10, cuando exista la reserva; la regla ya está programada y probada (`MotorDisponibilidad.elegirParaCualquiera`). El resto quedó cubierto el 2026-11-12: CA1 a CA7, CA9 (ver las horas) y CA11 con tests y casos manuales (CP-HU07-01 a 07); CA8 y CA10 solo con tests automáticos (la demo no tiene limpieza y Argentina no tiene horario de verano).
+
 ### HU-08 · Días sin lugar en gris
 
 Como **cliente** quiero ver en gris los días sin lugar para no tocar día por día buscando un hueco.
-Prioridad: Debe · Tamaño: M · Etapa: 3 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 3 · Estado: Hecha
 
 - **CA1.** Dada una semana del calendario, cuando la veo, entonces los días cerrados, bloqueados, completos o fuera del tope aparecen en gris y no se pueden tocar.
 - **CA2.** Dado un día con al menos una hora libre para lo que elegí, cuando veo la semana, entonces el día aparece habilitado.
@@ -166,7 +168,7 @@ Prioridad: Debe · Tamaño: M · Etapa: 3 · Estado: Pendiente
 ### HU-09 · La lista de horas se actualiza sola
 
 Como **cliente** quiero que la lista de horas se actualice sola para no elegir una hora que alguien ya tomó.
-Prioridad: Debería · Tamaño: S · Etapa: 3 · Estado: Pendiente
+Prioridad: Debería · Tamaño: S · Etapa: 3 · Estado: Hecha
 
 - **CA1.** Dado que estoy mirando las horas de un día, cuando otra persona reserva una de ellas, entonces desaparece de mi lista en el próximo refresco (cada 15 s) sin recargar la página.
 - **CA2.** Dado que cambié de pestaña y vuelvo, cuando la pestaña recupera el foco, entonces la lista se refresca en ese momento.
