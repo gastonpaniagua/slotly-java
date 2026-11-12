@@ -1,4 +1,4 @@
-import type { UsuarioPanel } from './tipos'
+import type { Agenda, UsuarioPanel } from './tipos'
 
 // Pedidos del panel. La sesión viaja sola en la cookie httpOnly SLOTLY_SESION (el front no la ve ni la toca).
 // Lo que sí hace el front es el CSRF (D1): la API deja el token en la cookie XSRF-TOKEN y cada POST lo devuelve
@@ -81,4 +81,14 @@ export async function pedirDelPanel<T>(url: string): Promise<ResultadoPanel<T>> 
 // ¿Quién soy? Al entrar a una página del panel: sin sesión, al login (CA6).
 export function obtenerUsuario(): Promise<ResultadoPanel<UsuarioPanel>> {
   return pedirDelPanel<UsuarioPanel>('/api/panel/yo')
+}
+
+// HU-17 y HU-18: la agenda de 1 o 7 días desde esa fecha (sin fecha, desde hoy en la zona del local).
+// Un profesional recibe la suya; el admin, la de todos (el filtro por profesional lo hace la pantalla).
+export function obtenerAgenda(desde: string | null, dias: 1 | 7): Promise<ResultadoPanel<Agenda>> {
+  const parametros = new URLSearchParams({ dias: String(dias) })
+  if (desde !== null) {
+    parametros.set('desde', desde)
+  }
+  return pedirDelPanel<Agenda>(`/api/panel/agenda?${parametros}`)
 }

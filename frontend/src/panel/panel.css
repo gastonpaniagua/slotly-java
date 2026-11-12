@@ -88,3 +88,203 @@
   text-align: center;
   color: var(--color-text-muted);
 }
+
+/* Agenda (HU-17 y HU-18) */
+
+.agenda__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.agenda__vistas {
+  display: inline-flex;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.agenda__vista {
+  min-height: var(--control-h);
+  padding: 0 var(--space-4);
+  border: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.agenda__vista[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.agenda__vista:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.agenda__navegacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0;
+}
+
+.agenda__flecha {
+  padding: 0 var(--space-3);
+  font-size: var(--fs-h2);
+}
+
+.agenda__periodo {
+  flex: 1 1 200px;
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: var(--fw-semibold);
+  text-align: center;
+}
+
+.agenda__filtro {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-small);
+}
+
+.agenda__filtro select {
+  min-height: var(--control-h);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.agenda__dias {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.agenda__fecha {
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-semibold);
+}
+
+/* "martes 17 de noviembre" → "Martes 17 de noviembre" (capitalize pondría mayúscula en cada palabra). */
+.agenda__fecha::first-letter {
+  text-transform: uppercase;
+}
+
+.agenda__profesional + .agenda__profesional {
+  margin-top: var(--space-5);
+}
+
+.agenda__nombre {
+  font-weight: var(--fw-semibold);
+}
+
+.agenda__horario {
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--color-text-muted);
+}
+
+.agenda__vacio {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-soft);
+  text-align: center;
+}
+
+.agenda__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agenda__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.agenda__item--turno {
+  border-left: 4px solid var(--accent);
+}
+
+/* Los bloqueos con rayas y las pausas punteadas: se distinguen de un turno sin depender solo del color. */
+.agenda__item--bloqueo {
+  background: repeating-linear-gradient(135deg, var(--color-surface-muted) 0 8px, var(--color-surface) 8px 16px);
+  color: var(--color-text-soft);
+}
+
+.agenda__item--pausa {
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.agenda__horas {
+  flex: 0 0 auto;
+  min-width: 110px;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-medium);
+}
+
+.agenda__detalle {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.agenda__titulo-item {
+  font-weight: var(--fw-medium);
+}
+
+.agenda__servicios,
+.agenda__telefono {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--color-text-soft);
+}
+
+.agenda__estado {
+  flex: 0 0 auto;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+  font-size: var(--fs-badge);
+  line-height: var(--lh-badge);
+  font-weight: var(--fw-medium);
+}
+
+.agenda__estado--ausente {
+  color: var(--color-danger);
+}
+
+@media (max-width: 480px) {
+  .agenda__item {
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .agenda__horas {
+    min-width: 0;
+  }
+}

@@ -32,7 +32,7 @@ class AgendaController {
     @Operation(summary = "Turnos, bloqueos y horario de trabajo de 1 o 7 días (HU-17 y HU-18)")
     Agenda ver(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
             @AuthenticationPrincipal UsuarioSesion usuario,
-            @Parameter(description = "Primer día, en hora del local") @RequestParam LocalDate desde,
+            @Parameter(description = "Primer día, en hora del local. Si falta, hoy") @RequestParam(required = false) LocalDate desde,
             @Parameter(description = "1 (día) o 7 (semana)") @RequestParam int dias,
             @Parameter(description = "Id del profesional o \"todos\" (solo el admin). Si falta: un profesional ve la suya y el admin, la de todos")
             @RequestParam(required = false) String profesional) {

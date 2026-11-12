@@ -355,6 +355,8 @@ export interface components {
         };
         Agenda: {
             /** Format: date */
+            hoy: string;
+            /** Format: date */
             desde: string;
             /** Format: date */
             hasta: string;
@@ -638,8 +640,8 @@ export interface operations {
     ver_1: {
         parameters: {
             query: {
-                /** @description Primer día, en hora del local */
-                desde: string;
+                /** @description Primer día, en hora del local. Si falta, hoy */
+                desde?: string;
                 /** @description 1 (día) o 7 (semana) */
                 dias: number;
                 /** @description Id del profesional o "todos" (solo el admin). Si falta: un profesional ve la suya y el admin, la de todos */

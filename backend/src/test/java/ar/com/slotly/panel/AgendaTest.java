@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,7 @@ import jakarta.servlet.http.Cookie;
 
 import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
+import ar.com.slotly.RelojDeTest;
 import ar.com.slotly.seguridad.IntentosDeIngreso;
 
 // HU-17 y HU-18: la agenda del panel, contra la app completa.
@@ -46,6 +48,9 @@ class AgendaTest {
     @Autowired
     IntentosDeIngreso intentos;
 
+    @Autowired
+    RelojDeTest reloj;
+
     UUID demoId;
     UUID anaId;
     UUID brunoId;
@@ -59,6 +64,8 @@ class AgendaTest {
     @BeforeEach
     void preparar() throws Exception {
         intentos.reiniciar();
+        // Miércoles 18/11 a las 0:30 en UTC: en Buenos Aires todavía es martes 17 a las 21:30.
+        reloj.fijar(Instant.parse("2026-11-18T00:30:00Z"));
         BaseDeTest.vaciar(jdbc);
         demoId = crear("INSERT INTO local (nombre, subdominio) VALUES ('Demo', 'demo') RETURNING id");
         UUID otraId = crear("INSERT INTO local (nombre, subdominio) VALUES ('Otra', 'otra') RETURNING id");
@@ -197,6 +204,20 @@ class AgendaTest {
                 .andExpect(jsonPath("$.codigo").value("PROFESIONAL_NO_ENCONTRADO"));
         agenda(sesionDuenio, MARTES, 1, UUID.randomUUID().toString()).andExpect(status().isNotFound());
         agenda(sesionDuenio, MARTES, 1, "cualquier-cosa").andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("sin desde, la agenda es la de hoy en la zona del local (no la de UTC) y dice qué día es hoy")
+    void sinDesdeEsHoy() throws Exception {
+        UUID deHoy = turno(anaId, "reserva", "confirmado", MARTES, "10:00", "10:30", luciaId, corteId);
+
+        mockMvc.perform(get("/api/panel/agenda").header(HttpHeaders.HOST, "demo.localhost").cookie(sesionAna)
+                        .param("dias", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hoy").value(MARTES))
+                .andExpect(jsonPath("$.desde").value(MARTES))
+                .andExpect(jsonPath("$.turnos[*].id", contains(deHoy.toString())));
+        agenda(sesionAna, "2026-11-23", 7, null).andExpect(jsonPath("$.hoy").value(MARTES));
     }
 
     @Test

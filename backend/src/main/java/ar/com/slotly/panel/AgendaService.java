@@ -4,6 +4,7 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,11 +42,13 @@ class AgendaService {
     private final JdbcTemplate jdbc;
     private final ProfesionalRepository profesionales;
     private final HorarioRepository horarios;
+    private final Clock reloj;
 
-    AgendaService(JdbcTemplate jdbc, ProfesionalRepository profesionales, HorarioRepository horarios) {
+    AgendaService(JdbcTemplate jdbc, ProfesionalRepository profesionales, HorarioRepository horarios, Clock reloj) {
         this.jdbc = jdbc;
         this.profesionales = profesionales;
         this.horarios = horarios;
+        this.reloj = reloj;
     }
 
     record ProfesionalDeAgenda(UUID id, String nombre) {
@@ -69,8 +72,9 @@ class AgendaService {
             @Schema(types = {"string", "null"}) String motivo) {
     }
 
+    // hoy: el día de hoy en la zona del local (el front no lo calcula con el reloj del navegador).
     // desde y hasta: el primer y el último día pedidos.
-    record Agenda(LocalDate desde, LocalDate hasta, List<ProfesionalDeAgenda> profesionales,
+    record Agenda(LocalDate hoy, LocalDate desde, LocalDate hasta, List<ProfesionalDeAgenda> profesionales,
             List<FranjaDeAgenda> franjas, List<TurnoDeAgenda> turnos) {
     }
 
@@ -81,9 +85,13 @@ class AgendaService {
         List<Profesional> quienes = deQuien(local, usuario, profesionalPedido);
         List<UUID> ids = quienes.stream().map(Profesional::getId).toList();
         ZoneId zona = ZoneId.of(local.getZonaHoraria());
+        LocalDate hoy = LocalDate.ofInstant(reloj.instant(), zona);
+        if (desde == null) {
+            desde = hoy;
+        }
         LocalDate hasta = desde.plusDays(dias - 1);
 
-        return new Agenda(desde, hasta,
+        return new Agenda(hoy, desde, hasta,
                 quienes.stream().map(p -> new ProfesionalDeAgenda(p.getId(), p.getNombre())).toList(),
                 franjas(local, ids, desde, dias),
                 turnos(local, ids, zona, desde.atStartOfDay(zona).toInstant(), hasta.plusDays(1).atStartOfDay(zona).toInstant()));
