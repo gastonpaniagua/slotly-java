@@ -5,7 +5,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 
-import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
 import ar.com.slotly.profesional.Horario;
@@ -23,6 +21,7 @@ import ar.com.slotly.profesional.HorarioRepository;
 import ar.com.slotly.profesional.ProfesionalRepository;
 import ar.com.slotly.servicio.Servicio;
 import ar.com.slotly.servicio.ServicioRepository;
+import ar.com.slotly.servicio.ServiciosElegidos;
 
 // Endpoints públicos de la home y de la reserva. El local sale del Host (demo.localhost:5173 → demo).
 // El Host lo pone el navegador (no se puede elegir a mano), por eso se oculta en la documentación.
@@ -34,13 +33,16 @@ class PublicoController {
     private final ServicioRepository servicioRepository;
     private final HorarioRepository horarioRepository;
     private final ProfesionalRepository profesionalRepository;
+    private final ServiciosElegidos serviciosElegidos;
 
     PublicoController(LocalResolver localResolver, ServicioRepository servicioRepository,
-            HorarioRepository horarioRepository, ProfesionalRepository profesionalRepository) {
+            HorarioRepository horarioRepository, ProfesionalRepository profesionalRepository,
+            ServiciosElegidos serviciosElegidos) {
         this.localResolver = localResolver;
         this.servicioRepository = servicioRepository;
         this.horarioRepository = horarioRepository;
         this.profesionalRepository = profesionalRepository;
+        this.serviciosElegidos = serviciosElegidos;
     }
 
     @GetMapping("/local")
@@ -57,15 +59,7 @@ class PublicoController {
     List<ProfesionalPublicoResponse> profesionales(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
             @RequestParam Set<UUID> servicios) {
         Local local = localResolver.resolver(host);
-        if (servicios.isEmpty()) {
-            throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "Elegí al menos un servicio.");
-        }
-        // Todos los servicios tienen que ser activos y de este local. Si alguno es de otro local, está oculto
-        // o no existe, la respuesta es la misma: 404, sin confirmar que existe en otro lado (HU-06 CA4, HU-04 CA3).
-        if (servicioRepository.countByLocalIdAndActivoTrueAndIdIn(local.getId(), servicios) != servicios.size()) {
-            throw new SlotlyException(HttpStatus.NOT_FOUND, "SERVICIO_NO_ENCONTRADO",
-                    "Alguno de los servicios elegidos no existe en este local.");
-        }
+        serviciosElegidos.validar(local.getId(), servicios);
         return profesionalRepository.buscarActivosQueHacenTodos(local.getId(), servicios, servicios.size()).stream()
                 .map(ProfesionalPublicoResponse::desde)
                 .toList();

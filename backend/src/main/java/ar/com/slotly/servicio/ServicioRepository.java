@@ -12,6 +12,6 @@ public interface ServicioRepository extends JpaRepository<Servicio, UUID> {
     // Los que se muestran en la home: activos, en el orden que eligió el local (y por nombre si empatan).
     List<Servicio> findByLocalIdAndActivoTrueOrderByOrdenAscNombreAsc(UUID localId);
 
-    // Cuántos de esos ids son servicios activos de este local: si no son todos, alguno es ajeno, oculto o no existe.
-    long countByLocalIdAndActivoTrueAndIdIn(UUID localId, Collection<UUID> ids);
+    // Los servicios activos de este local que estén entre esos ids: si faltan, alguno es ajeno, oculto o no existe.
+    List<Servicio> findByLocalIdAndActivoTrueAndIdIn(UUID localId, Collection<UUID> ids);
 }

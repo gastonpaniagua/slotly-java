@@ -1,5 +1,6 @@
 package ar.com.slotly.profesional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,4 +19,7 @@ public interface HorarioRepository extends JpaRepository<Horario, UUID> {
               AND h.profesionalId IN (SELECT p.id FROM Profesional p WHERE p.localId = :localId AND p.activo = true)
             """)
     List<Horario> buscarDeProfesionalesActivos(@Param("localId") UUID localId);
+
+    // Las franjas de esos profesionales del local (para calcular sus horas libres).
+    List<Horario> findByLocalIdAndProfesionalIdIn(UUID localId, Collection<UUID> profesionales);
 }
