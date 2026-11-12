@@ -1,7 +1,9 @@
 package ar.com.slotly.reserva;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,9 +22,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+
+import com.jayway.jsonpath.JsonPath;
 
 import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
@@ -33,7 +39,7 @@ import ar.com.slotly.reserva.ApartadoService.Apartado;
 import ar.com.slotly.reserva.ConfirmacionService.DatosDelCliente;
 import ar.com.slotly.seguridad.LimiteDePedidos;
 
-// HU-20 (y en el paso 43, HU-21): lo que el cliente hace con su turno desde el link, contra la app completa.
+// HU-20 y HU-21: lo que el cliente hace con su turno desde el link, contra la app completa.
 // Reloj: lunes 16/11/2026 a las 9:00 en Buenos Aires. El turno: martes 17 a las 10:00 (13:00 UTC), con Ana.
 @IntegrationTest
 class MiTurnoTest {
@@ -159,6 +165,124 @@ class MiTurnoTest {
         cancelar("demo", turno.token())
                 .andExpect(status().isGone())
                 .andExpect(jsonPath("$.codigo").value("LINK_VENCIDO"));
+    }
+
+    @Test
+    @DisplayName("HU-21 CA1: para reprogramar, las horas no cuentan el turno actual como ocupado (para los demás sí)")
+    void horasSinElTurnoPropio() throws Exception {
+        horas().andExpect(jsonPath("$.horas", not(hasItem("10:00"))));
+
+        reprogramarHoras()
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.horas", hasItems("10:00", "10:15", "11:00")));
+        mockMvc.perform(get("/api/publico/turnos/" + turno.id() + "/reprogramar/dias")
+                        .header(HttpHeaders.HOST, "demo.localhost")
+                        .header(ConfirmacionController.HEADER_TOKEN, turno.token())
+                        .param("desde", "2026-11-16").param("hasta", "2026-11-22"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dias[?(@.fecha == '2026-11-17')].hayLugar", contains(true)));
+    }
+
+    @Test
+    @DisplayName("HU-21 CA2: reprogramar cancela el viejo y confirma el nuevo, del mismo cliente, con su propio link")
+    void reprogramar() throws Exception {
+        MvcResult resultado = reprogramar(turno.token(), "11:00")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turno.estado").value("confirmado"))
+                .andExpect(jsonPath("$.turno.fecha").value("2026-11-17"))
+                .andExpect(jsonPath("$.turno.hora").value("11:00"))
+                .andExpect(jsonPath("$.turno.profesionalNombre").value("Ana"))
+                .andReturn();
+        UUID nuevo = UUID.fromString(JsonPath.read(resultado.getResponse().getContentAsString(), "$.id"));
+        String tokenNuevo = JsonPath.read(resultado.getResponse().getContentAsString(), "$.token");
+
+        assertThat(estado()).isEqualTo("cancelado");
+        assertThat(jdbc.queryForObject("SELECT estado FROM turno WHERE id = ?", String.class, nuevo)).isEqualTo("confirmado");
+        assertThat(jdbc.queryForObject("SELECT reprogramado_de_id FROM turno WHERE id = ?", UUID.class, nuevo)).isEqualTo(turno.id());
+        assertThat(jdbc.queryForObject("SELECT count(DISTINCT cliente_id) FROM turno", Integer.class)).isEqualTo(1);
+        // El link nuevo muestra el turno nuevo; el viejo, el turno cancelado.
+        mockMvc.perform(get("/api/publico/turnos/" + nuevo).header(HttpHeaders.HOST, "demo.localhost")
+                        .header(ConfirmacionController.HEADER_TOKEN, tokenNuevo))
+                .andExpect(jsonPath("$.hora").value("11:00"));
+        mockMvc.perform(get("/api/publico/turnos/" + turno.id()).header(HttpHeaders.HOST, "demo.localhost")
+                        .header(ConfirmacionController.HEADER_TOKEN, turno.token()))
+                .andExpect(jsonPath("$.estado").value("cancelado"));
+        // Y para los demás, las 10:00 vuelven a estar libres y las 11:00 no.
+        horas().andExpect(jsonPath("$.horas", hasItem("10:00"))).andExpect(jsonPath("$.horas", not(hasItem("11:00"))));
+    }
+
+    @Test
+    @DisplayName("HU-21 CA1: se puede mover a un horario que se pisa con el actual (correrlo 15 minutos)")
+    void correrloUnPoco() throws Exception {
+        reprogramar(turno.token(), "10:15")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turno.hora").value("10:15"));
+    }
+
+    @Test
+    @DisplayName("HU-21 CA3: si el horario nuevo está ocupado, HORARIO_OCUPADO y el turno viejo sigue intacto")
+    void horarioNuevoOcupado() throws Exception {
+        jdbc.update("""
+                INSERT INTO turno (local_id, profesional_id, tipo, estado, inicio, fin, ocupado_hasta)
+                SELECT local_id, ?, 'bloqueo', 'confirmado', '2026-11-17T11:00-03:00', '2026-11-17T12:00-03:00', '2026-11-17T12:00-03:00'
+                FROM profesional WHERE id = ?
+                """, anaId, anaId);
+
+        reprogramar(turno.token(), "11:00")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.codigo").value("HORARIO_OCUPADO"));
+        reprogramar(turno.token(), "10:07").andExpect(status().isConflict());   // fuera del intervalo de 15 min
+
+        assertThat(estado()).isEqualTo("confirmado");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM turno WHERE tipo = 'reserva'", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("HU-21 CA4: con 3 horas o menos no se puede reprogramar (ni ver horas para hacerlo): FUERA_DE_PLAZO")
+    void reprogramarFueraDePlazo() throws Exception {
+        reloj.fijar(Instant.parse("2026-11-17T10:00:00Z"));   // martes 7:00
+
+        reprogramarHoras().andExpect(status().isConflict()).andExpect(jsonPath("$.codigo").value("FUERA_DE_PLAZO"));
+        reprogramar(turno.token(), "11:00")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.codigo").value("FUERA_DE_PLAZO"));
+        assertThat(estado()).isEqualTo("confirmado");
+    }
+
+    @Test
+    @DisplayName("HU-21 CA5: el turno nuevo conserva los precios del original aunque el servicio haya aumentado")
+    void conservaLosPrecios() throws Exception {
+        jdbc.update("UPDATE servicio SET precio = 12000 WHERE id = ?", corteId);
+
+        reprogramar(turno.token(), "11:00")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turno.precioTotal").value(8000));
+    }
+
+    @Test
+    @DisplayName("HU-21: un link ya reprogramado (turno cancelado) no se puede volver a reprogramar")
+    void noDosVeces() throws Exception {
+        reprogramar(turno.token(), "11:00").andExpect(status().isOk());
+
+        reprogramar(turno.token(), "12:00")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.codigo").value("FUERA_DE_PLAZO"));
+        reprogramar("inventado", "12:00").andExpect(status().isNotFound());
+    }
+
+    private ResultActions reprogramar(String token, String hora) throws Exception {
+        return mockMvc.perform(post("/api/publico/turnos/" + turno.id() + "/reprogramar")
+                .header(HttpHeaders.HOST, "demo.localhost")
+                .header(ConfirmacionController.HEADER_TOKEN, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"fecha\": \"2026-11-17\", \"hora\": \"" + hora + "\"}"));
+    }
+
+    private ResultActions reprogramarHoras() throws Exception {
+        return mockMvc.perform(get("/api/publico/turnos/" + turno.id() + "/reprogramar/horas")
+                .header(HttpHeaders.HOST, "demo.localhost")
+                .header(ConfirmacionController.HEADER_TOKEN, turno.token())
+                .param("fecha", MARTES.toString()));
     }
 
     private Apartado reservar(String hora) {

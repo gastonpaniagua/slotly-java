@@ -73,7 +73,7 @@ public class DisponibilidadService {
     // (HU-07 CA9). Vacío si la hora no existe, no es del intervalo o ya no está libre.
     public Optional<HorarioReservable> reservable(Local local, Set<UUID> servicios, String profesional,
             LocalDate fecha, LocalTime hora) {
-        Pedido pedido = armarPedido(local, servicios, profesional, fecha, fecha);
+        Pedido pedido = armarPedido(local, servicios, profesional, fecha, fecha, null);
         Optional<Instant> inicio = MotorDisponibilidad.instante(pedido.reglas().zona(), fecha, hora);
         if (inicio.isEmpty()) {
             return Optional.empty();
@@ -94,7 +94,13 @@ public class DisponibilidadService {
 
     // Las horas libres de un día (HU-07).
     public List<LocalTime> horas(Local local, Set<UUID> servicios, String profesional, LocalDate fecha) {
-        Pedido pedido = armarPedido(local, servicios, profesional, fecha, fecha);
+        return horas(local, servicios, profesional, fecha, null);
+    }
+
+    // Igual, pero sin contar el turno ignorar como ocupado: al reprogramar, el horario actual del cliente no le
+    // bloquea elegir uno que se pise con él (HU-21 CA1).
+    public List<LocalTime> horas(Local local, Set<UUID> servicios, String profesional, LocalDate fecha, UUID ignorar) {
+        Pedido pedido = armarPedido(local, servicios, profesional, fecha, fecha, ignorar);
         return MotorDisponibilidad.horasLibres(pedido.reglas(), pedido.agendas(), fecha,
                 pedido.duracion(), pedido.limpieza(), pedido.ahora());
     }
@@ -103,6 +109,12 @@ public class DisponibilidadService {
     // Sin desde, arranca el lunes de esta semana en el local; sin hasta, trae 6 semanas. Así el front nunca
     // necesita saber qué día es hoy (el reloj del celular puede estar en otra zona o mal puesto).
     public DiasConLugar dias(Local local, Set<UUID> servicios, String profesional, LocalDate desde, LocalDate hasta) {
+        return dias(local, servicios, profesional, desde, hasta, null);
+    }
+
+    // Igual, ignorando ese turno (reprogramar, HU-21 CA1).
+    public DiasConLugar dias(Local local, Set<UUID> servicios, String profesional, LocalDate desde, LocalDate hasta,
+            UUID ignorar) {
         if (desde == null) {
             LocalDate hoy = MotorDisponibilidad.hoy(reglasDe(local), reloj.instant());
             desde = hoy.minusDays(hoy.getDayOfWeek().getValue() - 1);
@@ -113,7 +125,7 @@ public class DisponibilidadService {
         if (hasta.isBefore(desde) || desde.plusDays(41).isBefore(hasta)) {
             throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "El rango de días no es válido (hasta 6 semanas).");
         }
-        Pedido pedido = armarPedido(local, servicios, profesional, desde, hasta);
+        Pedido pedido = armarPedido(local, servicios, profesional, desde, hasta, ignorar);
         List<DiasConLugar.Dia> dias = desde.datesUntil(hasta.plusDays(1))
                 .map(fecha -> new DiasConLugar.Dia(fecha, !MotorDisponibilidad.horasLibres(pedido.reglas(),
                         pedido.agendas(), fecha, pedido.duracion(), pedido.limpieza(), pedido.ahora()).isEmpty()))
@@ -127,7 +139,9 @@ public class DisponibilidadService {
         }
     }
 
-    private Pedido armarPedido(Local local, Set<UUID> servicioIds, String profesional, LocalDate desde, LocalDate hasta) {
+    // ignorar: un turno que no cuenta como ocupado (null: ninguno).
+    private Pedido armarPedido(Local local, Set<UUID> servicioIds, String profesional, LocalDate desde, LocalDate hasta,
+            UUID ignorar) {
         List<Servicio> servicios = serviciosElegidos.validar(local.getId(), servicioIds);
         List<Profesional> profesionales = profesionalesPara(local, servicioIds, profesional);
         Reglas reglas = reglasDe(local);
@@ -142,7 +156,9 @@ public class DisponibilidadService {
         // Las ocupaciones de todo el rango, de 00:00 del primer día a 00:00 del día siguiente al último, en hora del local.
         Instant inicioRango = desde.atStartOfDay(zona).toInstant();
         Instant finRango = hasta.plusDays(1).atStartOfDay(zona).toInstant();
-        List<Turno> ocupados = turnoRepository.buscarOcupaciones(local.getId(), ids, inicioRango, finRango, ahora);
+        List<Turno> ocupados = turnoRepository.buscarOcupaciones(local.getId(), ids, inicioRango, finRango, ahora).stream()
+                .filter(t -> !t.getId().equals(ignorar))
+                .toList();
         Map<UUID, List<Ocupacion>> ocupaciones = ocupados.stream()
                 .collect(Collectors.groupingBy(Turno::getProfesionalId,
                         Collectors.mapping(t -> new Ocupacion(t.getInicio(), t.getOcupadoHasta()), Collectors.toList())));

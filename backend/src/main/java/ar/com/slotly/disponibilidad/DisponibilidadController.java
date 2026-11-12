@@ -36,10 +36,6 @@ class DisponibilidadController {
         this.disponibilidad = disponibilidad;
     }
 
-    // Las horas van como texto "10:15" en hora del local, ya ordenadas.
-    record HorasResponse(LocalDate fecha, List<String> horas) {
-    }
-
     @GetMapping("/horas")
     @Operation(summary = "Horas de inicio libres de un día para los servicios y el profesional elegidos (HU-07)")
     HorasResponse horas(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
