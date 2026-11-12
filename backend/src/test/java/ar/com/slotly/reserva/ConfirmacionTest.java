@@ -36,6 +36,7 @@ import ar.com.slotly.RelojDeTest;
 import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
+import ar.com.slotly.seguridad.LimiteDePedidos;
 import ar.com.slotly.reserva.ApartadoService.Apartado;
 import ar.com.slotly.reserva.ConfirmacionService.DatosDelCliente;
 
@@ -72,9 +73,13 @@ class ConfirmacionTest {
     record LocalDePrueba(UUID id, String host, UUID corte, UUID barba, UUID ana) {
     }
 
+    @Autowired
+    LimiteDePedidos limite;
+
     @BeforeEach
     void prepararBase() {
         reloj.fijar(LUNES_9);
+        limite.reiniciar();   // cada test arranca sin pedidos contados (HU-15)
         jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
         demo = crearLocal("demo");
         jdbc.update("UPDATE local SET alias = 'barberia.demo', cbu = '0000003100000000000001', titular_cuenta = 'Juan Pérez'");

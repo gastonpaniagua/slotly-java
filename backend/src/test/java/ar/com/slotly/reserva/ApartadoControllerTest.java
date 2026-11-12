@@ -40,6 +40,7 @@ import ar.com.slotly.RelojDeTest;
 import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
+import ar.com.slotly.seguridad.LimiteDePedidos;
 
 // POST /api/publico/apartados contra Postgres real, con el reloj fijo (lunes 16/11/2026 9:00 en Buenos Aires).
 // Local demo con apartado de 5 min. Ana (orden 1) y Bruno (orden 2) trabajan los martes de 10 a 13;
@@ -71,9 +72,13 @@ class ApartadoControllerTest {
     UUID anaId;
     UUID brunoId;
 
+    @Autowired
+    LimiteDePedidos limite;
+
     @BeforeEach
     void prepararBase() {
         reloj.fijar(LUNES_9);
+        limite.reiniciar();   // cada test arranca sin pedidos contados (HU-15)
         jdbc.execute("TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario");
         demoId = jdbc.queryForObject("INSERT INTO local (nombre, subdominio) VALUES ('Demo', 'demo') RETURNING id", UUID.class);
         corteId = crearServicio("Corte", 8000);
