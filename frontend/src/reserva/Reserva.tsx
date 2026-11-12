@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router'
 
 import { obtenerProfesionales } from '../api/publico'
 import type { LocalPublico, ProfesionalPublico } from '../api/tipos'
 import { CUALQUIERA } from './constantes'
+import PasoDatos from './PasoDatos'
 import PasoDia from './PasoDia'
 import PasoHora from './PasoHora'
 import PasoProfesional from './PasoProfesional'
@@ -27,6 +28,12 @@ function Reserva({ local }: Props) {
   const [pasoProfesionalSalteado, setPasoProfesionalSalteado] = useState(false)
   // El día elegido en el paso 3 ("2026-11-17"), o null.
   const [fechaElegida, setFechaElegida] = useState<string | null>(null)
+  // La hora elegida en el paso 4, junto con su día: si después se elige otro día, esa hora ya no vale.
+  const [horaElegida, setHoraElegida] = useState<{ fecha: string; hora: string } | null>(null)
+  const horaDelDia = horaElegida !== null && horaElegida.fecha === fechaElegida ? horaElegida.hora : null
+  const elegirHora = useCallback((hora: string | null) => {
+    setHoraElegida(hora === null || fechaElegida === null ? null : { fecha: fechaElegida, hora })
+  }, [fechaElegida])
   const [buscando, setBuscando] = useState(false)
   const [errorAlBuscar, setErrorAlBuscar] = useState(false)
 
@@ -126,9 +133,26 @@ function Reserva({ local }: Props) {
       <Route
         path="hora"
         element={
-          nombreElegido === null || fechaElegida === null
+          nombreElegido === null || profesionalElegido === null || fechaElegida === null
             ? <Navigate to="/reservar/servicios" replace />
-            : <PasoHora fecha={fechaElegida} nombreProfesional={nombreElegido} />
+            : (
+              <PasoHora
+                servicios={serviciosElegidos}
+                profesional={profesionalElegido}
+                nombreProfesional={nombreElegido}
+                fecha={fechaElegida}
+                horaElegida={horaDelDia}
+                alElegirHora={elegirHora}
+              />
+            )
+        }
+      />
+      <Route
+        path="datos"
+        element={
+          nombreElegido === null || fechaElegida === null || horaDelDia === null
+            ? <Navigate to="/reservar/servicios" replace />
+            : <PasoDatos fecha={fechaElegida} hora={horaDelDia} nombreProfesional={nombreElegido} />
         }
       />
       <Route path="*" element={<Navigate to="/reservar/servicios" replace />} />

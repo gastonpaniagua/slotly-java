@@ -8,7 +8,12 @@ import { unLocal, unServicio } from '../test/datos'
 import { renderConRouter } from '../test/router'
 
 // Se simula la API: el cálculo real de días lo prueba el back. Acá: qué muestra y qué deja hacer el calendario.
-vi.mock('../api/publico', () => ({ obtenerProfesionales: vi.fn(), obtenerDias: vi.fn() }))
+vi.mock('../api/publico', () => ({
+  obtenerProfesionales: vi.fn(),
+  obtenerDias: vi.fn(),
+  // El paso 4 pide las horas; acá no importan.
+  obtenerHoras: vi.fn().mockResolvedValue({ estado: 'ok', datos: { fecha: '2026-11-19', horas: [] } }),
+}))
 
 // Hoy es el lunes 16/11/2026 y el último día permitido, el domingo 29/11 (dos semanas).
 const HOY = '2026-11-16'
