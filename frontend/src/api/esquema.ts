@@ -38,6 +38,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/panel/salir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra la sesión del panel (HU-16 CA7) */
+        post: operations["salir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/panel/ingresar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inicia sesión en el panel del local del subdominio (HU-16) */
+        post: operations["ingresar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publico/turnos/{id}": {
         parameters: {
             query?: never;
@@ -115,6 +149,40 @@ export interface paths {
         };
         /** Qué días de un rango (hasta 6 semanas) tienen al menos una hora libre (HU-08). Sin desde: el lunes de esta semana en el local; sin hasta: 6 semanas */
         get: operations["dias"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/panel/yo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** El usuario de la sesión actual, o 401 si no hay sesión (HU-16 CA6) */
+        get: operations["yo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/panel/agenda": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Turnos, bloqueos y horario de trabajo de 1 o 7 días (HU-17 y HU-18) */
+        get: operations["ver_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -215,6 +283,16 @@ export interface components {
             formaPago: string | null;
             transferencia: components["schemas"]["DatosTransferencia"];
         };
+        IngresarRequest: {
+            email: string;
+            password: string;
+        };
+        UsuarioActual: {
+            email: string;
+            rol: string;
+            /** Format: uuid */
+            profesionalId: string | null;
+        };
         ProfesionalPublicoResponse: {
             /** Format: uuid */
             id: string;
@@ -275,6 +353,48 @@ export interface components {
             ultimoDia: string;
             dias: components["schemas"]["Dia"][];
         };
+        Agenda: {
+            /** Format: date */
+            desde: string;
+            /** Format: date */
+            hasta: string;
+            profesionales: components["schemas"]["ProfesionalDeAgenda"][];
+            franjas: components["schemas"]["FranjaDeAgenda"][];
+            turnos: components["schemas"]["TurnoDeAgenda"][];
+        };
+        FranjaDeAgenda: {
+            /** Format: uuid */
+            profesionalId: string;
+            /** Format: date */
+            fecha: string;
+            /** @example 10:00 */
+            desde: string;
+            /** @example 13:00 */
+            hasta: string;
+        };
+        ProfesionalDeAgenda: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+        };
+        TurnoDeAgenda: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            profesionalId: string;
+            tipo: string;
+            estado: string;
+            /** @example 2026-11-17T10:00 */
+            inicio: string;
+            /** @example 2026-11-17T10:45 */
+            fin: string;
+            clienteNombre: string | null;
+            clienteTelefono: string | null;
+            servicios: string[];
+            formaPago: string | null;
+            nota: string | null;
+            motivo: string | null;
+        };
         HealthResponse: {
             estado: string;
             baseDeDatos: string;
@@ -334,6 +454,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TurnoPublico"];
+                };
+            };
+        };
+    };
+    salir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ingresar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IngresarRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UsuarioActual"];
                 };
             };
         };
@@ -449,6 +611,53 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DiasConLugar"];
+                };
+            };
+        };
+    };
+    yo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UsuarioActual"];
+                };
+            };
+        };
+    };
+    ver_1: {
+        parameters: {
+            query: {
+                /** @description Primer día, en hora del local */
+                desde: string;
+                /** @description 1 (día) o 7 (semana) */
+                dias: number;
+                /** @description Id del profesional o "todos" (solo el admin). Si falta: un profesional ve la suya y el admin, la de todos */
+                profesional?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Agenda"];
                 };
             };
         };

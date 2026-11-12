@@ -4,6 +4,9 @@ import { Navigate, Route, Routes } from 'react-router'
 import type { LocalPublico } from '../api/tipos'
 import { variablesDeAcento } from '../acento'
 import Home from '../home/Home'
+import PaginaAgenda from '../panel/PaginaAgenda'
+import PaginaIngresar from '../panel/PaginaIngresar'
+import PanelConSesion from '../panel/PanelConSesion'
 import PaginaPrivacidad from '../PaginaPrivacidad'
 import PaginaMisTurnos from '../reserva/PaginaMisTurnos'
 import PaginaTurno from '../reserva/PaginaTurno'
@@ -13,7 +16,7 @@ type Props = {
   local: LocalPublico
 }
 
-// Todo lo que se ve en el subdominio de un local: la home y la reserva.
+// Todo lo que se ve en el subdominio de un local: la home, la reserva y el panel.
 // Acá se aplican una sola vez el color del local y el título de la pestaña, para todas las pantallas.
 function SitioDelLocal({ local }: Props) {
   // Título de la pestaña y descripción con los datos del local (HU-03 CA1 y CA4).
@@ -35,6 +38,11 @@ function SitioDelLocal({ local }: Props) {
         <Route path="privacidad" element={<PaginaPrivacidad />} />
         <Route path="turno/:id" element={<PaginaTurno />} />
         <Route path="mis-turnos" element={<PaginaMisTurnos />} />
+        {/* Panel (Etapa 5): el login y, con sesión, la agenda. */}
+        <Route path="ingresar" element={<PaginaIngresar local={local} />} />
+        <Route element={<PanelConSesion local={local} />}>
+          <Route path="agenda" element={<PaginaAgenda />} />
+        </Route>
         {/* Cualquier otra dirección vuelve a la home del local. */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

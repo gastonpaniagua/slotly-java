@@ -371,7 +371,8 @@
 
 .campo input[type="text"],
 .campo input[type="tel"],
-.campo input[type="email"] {
+.campo input[type="email"],
+.campo input[type="password"] {
   min-height: var(--control-h);
   padding: 0 var(--space-4);
   border: 1px solid var(--color-border-strong);

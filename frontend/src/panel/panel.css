@@ -1,0 +1,90 @@
+/* Panel del local (Etapa 5): login y agenda. Mismos tokens que el sitio público (index.css). */
+
+.ingresar {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--gutter);
+  background: var(--color-bg);
+}
+
+.ingresar__tarjeta {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-8) var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.ingresar__local {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--color-text-soft);
+}
+
+.ingresar__titulo {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: var(--fw-semibold);
+}
+
+.panel {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.panel__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--gutter);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.panel__local {
+  font-weight: var(--fw-semibold);
+}
+
+.panel__usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.panel__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+  color: var(--color-text-soft);
+}
+
+.panel__contenido {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--gutter);
+}
+
+.panel__titulo {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: var(--fw-semibold);
+}
+
+.panel__texto {
+  margin-top: var(--space-2);
+  color: var(--color-text-soft);
+}
+
+.panel__cargando {
+  padding: var(--space-10) var(--gutter);
+  text-align: center;
+  color: var(--color-text-muted);
+}
