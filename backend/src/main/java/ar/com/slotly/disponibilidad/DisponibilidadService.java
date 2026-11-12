@@ -67,7 +67,16 @@ public class DisponibilidadService {
     }
 
     // Qué días entre desde y hasta tienen al menos una hora libre (HU-08), más hoy y el último día permitido.
+    // Sin desde, arranca el lunes de esta semana en el local; sin hasta, trae 6 semanas. Así el front nunca
+    // necesita saber qué día es hoy (el reloj del celular puede estar en otra zona o mal puesto).
     public DiasConLugar dias(Local local, Set<UUID> servicios, String profesional, LocalDate desde, LocalDate hasta) {
+        if (desde == null) {
+            LocalDate hoy = MotorDisponibilidad.hoy(reglasDe(local), reloj.instant());
+            desde = hoy.minusDays(hoy.getDayOfWeek().getValue() - 1);
+        }
+        if (hasta == null) {
+            hasta = desde.plusDays(41);
+        }
         if (hasta.isBefore(desde) || desde.plusDays(41).isBefore(hasta)) {
             throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "El rango de días no es válido (hasta 6 semanas).");
         }
@@ -88,8 +97,8 @@ public class DisponibilidadService {
     private Pedido armarPedido(Local local, Set<UUID> servicioIds, String profesional, LocalDate desde, LocalDate hasta) {
         List<Servicio> servicios = serviciosElegidos.validar(local.getId(), servicioIds);
         List<Profesional> profesionales = profesionalesPara(local, servicioIds, profesional);
-        ZoneId zona = ZoneId.of(local.getZonaHoraria());
-        Reglas reglas = new Reglas(zona, local.getIntervaloMin(), local.getAnticipacionMin(), local.getTopeDias());
+        Reglas reglas = reglasDe(local);
+        ZoneId zona = reglas.zona();
         Instant ahora = reloj.instant();
 
         Set<UUID> ids = profesionales.stream().map(Profesional::getId).collect(Collectors.toSet());
@@ -131,6 +140,11 @@ public class DisponibilidadService {
                 .map(List::of)
                 .orElseThrow(() -> new SlotlyException(HttpStatus.NOT_FOUND, "PROFESIONAL_NO_ENCONTRADO",
                         "Ese profesional no está disponible para los servicios elegidos."));
+    }
+
+    private static Reglas reglasDe(Local local) {
+        return new Reglas(ZoneId.of(local.getZonaHoraria()), local.getIntervaloMin(), local.getAnticipacionMin(),
+                local.getTopeDias());
     }
 
     // La duración del turno es la suma de los servicios.

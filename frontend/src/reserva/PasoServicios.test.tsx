@@ -7,7 +7,7 @@ import { unLocal, unServicio } from '../test/datos'
 import { renderConRouter } from '../test/router'
 
 // "Siguiente" pide los profesionales: se simula una respuesta con dos, así siempre se pasa al paso 2.
-vi.mock('../api/publico', () => ({ obtenerProfesionales: vi.fn() }))
+vi.mock('../api/publico', () => ({ obtenerProfesionales: vi.fn(), obtenerDias: vi.fn() }))
 
 beforeEach(() => {
   vi.mocked(obtenerProfesionales).mockReset().mockResolvedValue({

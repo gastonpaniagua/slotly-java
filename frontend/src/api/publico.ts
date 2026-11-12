@@ -1,4 +1,4 @@
-﻿import type { LocalPublico, ProfesionalPublico } from './tipos'
+﻿import type { DiasConLugar, HorasLibres, LocalPublico, ProfesionalPublico } from './tipos'
 
 // Lo que puede pasar al pedir la home. Las pantallas eligen qué mostrar según el estado.
 export type ResultadoLocal =
@@ -45,4 +45,35 @@ export async function obtenerProfesionales(servicioIds: string[]): Promise<Resul
   } catch {
     return { estado: 'error' }
   }
+}
+
+// Resultado genérico de un pedido de la reserva: los datos, o un error que la pantalla muestra con "Probar de nuevo".
+export type Resultado<T> = { estado: 'ok'; datos: T } | { estado: 'error' }
+
+async function pedir<T>(url: string): Promise<Resultado<T>> {
+  try {
+    const respuesta = await fetch(url)
+    if (!respuesta.ok) {
+      return { estado: 'error' }
+    }
+    const datos: T = await respuesta.json()
+    return { estado: 'ok', datos }
+  } catch {
+    return { estado: 'error' }
+  }
+}
+
+// Qué días tienen lugar (paso 3, HU-08). Sin desde, el back arranca el lunes de esta semana del local y trae 6 semanas.
+export function obtenerDias(servicioIds: string[], profesional: string, desde?: string): Promise<Resultado<DiasConLugar>> {
+  const parametros = new URLSearchParams({ servicios: servicioIds.join(','), profesional })
+  if (desde) {
+    parametros.set('desde', desde)
+  }
+  return pedir(`/api/publico/disponibilidad/dias?${parametros}`)
+}
+
+// Las horas libres de un día (paso 4, HU-07).
+export function obtenerHoras(servicioIds: string[], profesional: string, fecha: string): Promise<Resultado<HorasLibres>> {
+  const parametros = new URLSearchParams({ servicios: servicioIds.join(','), profesional, fecha })
+  return pedir(`/api/publico/disponibilidad/horas?${parametros}`)
 }

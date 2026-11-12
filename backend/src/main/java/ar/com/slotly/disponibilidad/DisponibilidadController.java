@@ -52,10 +52,11 @@ class DisponibilidadController {
     }
 
     @GetMapping("/dias")
-    @Operation(summary = "Qué días de un rango (hasta 6 semanas) tienen al menos una hora libre (HU-08)")
+    @Operation(summary = "Qué días de un rango (hasta 6 semanas) tienen al menos una hora libre (HU-08). "
+            + "Sin desde: el lunes de esta semana en el local; sin hasta: 6 semanas")
     DiasConLugar dias(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
             @RequestParam Set<UUID> servicios, @RequestParam String profesional,
-            @RequestParam LocalDate desde, @RequestParam LocalDate hasta) {
+            @RequestParam(required = false) LocalDate desde, @RequestParam(required = false) LocalDate hasta) {
         Local local = localResolver.resolver(host);
         return disponibilidad.dias(local, servicios, profesional, desde, hasta);
     }

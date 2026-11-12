@@ -5,6 +5,7 @@ import { obtenerProfesionales } from '../api/publico'
 import type { LocalPublico, ProfesionalPublico } from '../api/tipos'
 import { CUALQUIERA } from './constantes'
 import PasoDia from './PasoDia'
+import PasoHora from './PasoHora'
 import PasoProfesional from './PasoProfesional'
 import PasoServicios from './PasoServicios'
 import './reserva.css'
@@ -24,6 +25,8 @@ function Reserva({ local }: Props) {
   const [profesionalElegido, setProfesionalElegido] = useState<string | null>(null)
   // true si había un solo profesional y el paso 2 se salteó (HU-06 CA3).
   const [pasoProfesionalSalteado, setPasoProfesionalSalteado] = useState(false)
+  // El día elegido en el paso 3 ("2026-11-17"), o null.
+  const [fechaElegida, setFechaElegida] = useState<string | null>(null)
   const [buscando, setBuscando] = useState(false)
   const [errorAlBuscar, setErrorAlBuscar] = useState(false)
 
@@ -33,6 +36,15 @@ function Reserva({ local }: Props) {
     setProfesionales(null)
     setProfesionalElegido(null)
     setPasoProfesionalSalteado(false)
+    setFechaElegida(null)
+  }
+
+  // Con otro profesional cambian los días con lugar: el día se vuelve a elegir.
+  function elegirProfesional(id: string) {
+    if (id !== profesionalElegido) {
+      setProfesionalElegido(id)
+      setFechaElegida(null)
+    }
   }
 
   // "Siguiente" en el paso 1: se piden los profesionales antes de avanzar, para saber si hay que saltar el paso 2.
@@ -86,7 +98,7 @@ function Reserva({ local }: Props) {
               <PasoProfesional
                 profesionales={profesionales}
                 elegido={profesionalElegido}
-                alElegir={setProfesionalElegido}
+                alElegir={elegirProfesional}
               />
             )
         }
@@ -94,15 +106,29 @@ function Reserva({ local }: Props) {
       <Route
         path="dia"
         element={
-          nombreElegido === null
+          nombreElegido === null || profesionalElegido === null
             ? <Navigate to="/reservar/servicios" replace />
             : (
               <PasoDia
-                profesional={nombreElegido}
+                // Si cambian los servicios o el profesional, el calendario arranca de cero.
+                key={`${profesionalElegido}|${serviciosElegidos.join(',')}`}
+                servicios={serviciosElegidos}
+                profesional={profesionalElegido}
+                nombreProfesional={nombreElegido}
                 // HU-06 CA3: si el paso 2 se salteó, "Atrás" vuelve al paso 1.
                 atras={pasoProfesionalSalteado ? '/reservar/servicios' : '/reservar/profesional'}
+                fechaElegida={fechaElegida}
+                alElegirFecha={setFechaElegida}
               />
             )
+        }
+      />
+      <Route
+        path="hora"
+        element={
+          nombreElegido === null || fechaElegida === null
+            ? <Navigate to="/reservar/servicios" replace />
+            : <PasoHora fecha={fechaElegida} nombreProfesional={nombreElegido} />
         }
       />
       <Route path="*" element={<Navigate to="/reservar/servicios" replace />} />

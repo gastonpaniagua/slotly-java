@@ -187,6 +187,21 @@ class DisponibilidadControllerTest {
     }
 
     @Test
+    @DisplayName("HU-08: sin fechas, arranca el lunes de esta semana en el local y trae 6 semanas")
+    void diasSinFechas() throws Exception {
+        reloj.fijar(Instant.parse("2026-11-19T02:00:00Z"));   // jueves 19 en UTC, pero miércoles 18 23:00 en Buenos Aires
+
+        mockMvc.perform(get("/api/publico/disponibilidad/dias")
+                        .header(HttpHeaders.HOST, "demo.localhost")
+                        .param("servicios", corteId.toString())
+                        .param("profesional", DisponibilidadService.CUALQUIERA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hoy").value("2026-11-18"))
+                .andExpect(jsonPath("$.dias[0].fecha").value("2026-11-16"))
+                .andExpect(jsonPath("$.dias.length()").value(42));
+    }
+
+    @Test
     @DisplayName("HU-08 CA1: un martes completo (los dos bloqueados todo el día) aparece sin lugar")
     void diaCompleto() throws Exception {
         ocupar(anaId, "confirmado", "10:00", "13:00", null);

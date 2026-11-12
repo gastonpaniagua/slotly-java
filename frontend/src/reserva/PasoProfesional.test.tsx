@@ -8,7 +8,11 @@ import { unLocal, unServicio } from '../test/datos'
 import { renderConRouter } from '../test/router'
 
 // Se simula la API: acá se prueba qué hace el paso 2 con cada respuesta (el filtro real lo prueba el back).
-vi.mock('../api/publico', () => ({ obtenerProfesionales: vi.fn() }))
+vi.mock('../api/publico', () => ({
+  obtenerProfesionales: vi.fn(),
+  // El paso 3 pide los días; acá alcanza con una semana sin lugar.
+  obtenerDias: vi.fn().mockResolvedValue({ estado: 'ok', datos: { hoy: '2026-11-16', ultimoDia: '2026-12-16', dias: [] } }),
+}))
 
 beforeEach(() => {
   vi.mocked(obtenerProfesionales).mockReset()
