@@ -24,4 +24,7 @@ public interface ProfesionalRepository extends JpaRepository<Profesional, UUID> 
             """)
     List<Profesional> buscarActivosQueHacenTodos(@Param("localId") UUID localId,
             @Param("servicios") Collection<UUID> servicios, @Param("cantidad") int cantidad);
+
+    // Los profesionales activos del local, en el orden en que los muestra el local (agenda del admin, HU-18).
+    List<Profesional> findByLocalIdAndActivoTrueOrderByOrdenAscNombreAsc(UUID localId);
 }

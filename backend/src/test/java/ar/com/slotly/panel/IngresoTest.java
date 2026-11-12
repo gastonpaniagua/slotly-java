@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import jakarta.servlet.http.Cookie;
 
@@ -36,7 +34,6 @@ import ar.com.slotly.seguridad.IntentosDeIngreso;
 class IngresoTest {
 
     private static final Instant AHORA = Instant.parse("2026-11-16T12:00:00Z");
-    private static final String COOKIE_SESION = "SLOTLY_SESION";
     private static final String CLAVE = "clave-de-ana";
 
     @Autowired
@@ -82,8 +79,8 @@ class IngresoTest {
                 .andReturn();
 
         String setCookie = resultado.getResponse().getHeader(HttpHeaders.SET_COOKIE);
-        assertThat(setCookie).startsWith(COOKIE_SESION + "=").contains("HttpOnly").contains("SameSite=Lax");
-        yo("demo", sesionDe(resultado))
+        assertThat(setCookie).startsWith(PanelDeTest.COOKIE_SESION + "=").contains("HttpOnly").contains("SameSite=Lax");
+        yo("demo", PanelDeTest.sesionDe(resultado))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("ana@demo.com"));
     }
@@ -161,7 +158,7 @@ class IngresoTest {
     @Test
     @DisplayName("HU-16 CA5: una sesión del local demo usada contra la API de otra recibe 401")
     void sesionDeOtroLocal() throws Exception {
-        Cookie sesion = sesionDe(ingresar("demo", "ana@demo.com", CLAVE).andReturn());
+        Cookie sesion = PanelDeTest.sesionDe(ingresar("demo", "ana@demo.com", CLAVE).andReturn());
 
         yo("otra", sesion)
                 .andExpect(status().isUnauthorized())
@@ -185,9 +182,9 @@ class IngresoTest {
     @Test
     @DisplayName("HU-16 CA7: al salir, la sesión se borra en el servidor y su cookie ya no sirve en ninguna pestaña")
     void salir() throws Exception {
-        Cookie sesion = sesionDe(ingresar("demo", "ana@demo.com", CLAVE).andReturn());
+        Cookie sesion = PanelDeTest.sesionDe(ingresar("demo", "ana@demo.com", CLAVE).andReturn());
 
-        mockMvc.perform(post("/api/panel/salir").header(HttpHeaders.HOST, "demo.localhost").cookie(sesion).with(conCsrf()))
+        mockMvc.perform(post("/api/panel/salir").header(HttpHeaders.HOST, "demo.localhost").cookie(sesion).with(PanelDeTest.conCsrf()))
                 .andExpect(status().isNoContent());
 
         yo("demo", sesion).andExpect(status().isUnauthorized());
@@ -230,8 +227,8 @@ class IngresoTest {
     @Test
     @DisplayName("HU-18 CA3: un profesional que usa un endpoint de admin recibe 403; el admin pasa")
     void endpointsDeAdmin() throws Exception {
-        Cookie profesional = sesionDe(ingresar("demo", "ana@demo.com", CLAVE).andReturn());
-        Cookie admin = sesionDe(ingresar("demo", "duenio@demo.com", "clave-del-duenio").andReturn());
+        Cookie profesional = PanelDeTest.sesionDe(ingresar("demo", "ana@demo.com", CLAVE).andReturn());
+        Cookie admin = PanelDeTest.sesionDe(ingresar("demo", "duenio@demo.com", "clave-del-duenio").andReturn());
 
         mockMvc.perform(get("/api/admin/algo").header(HttpHeaders.HOST, "demo.localhost").cookie(profesional))
                 .andExpect(status().isForbidden())
@@ -246,30 +243,11 @@ class IngresoTest {
                 .header(HttpHeaders.HOST, subdominio + ".localhost")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\": \"" + email + "\", \"password\": \"" + password + "\"}")
-                .with(conCsrf()));
+                .with(PanelDeTest.conCsrf()));
     }
 
     private ResultActions yo(String subdominio, Cookie sesion) throws Exception {
         return mockMvc.perform(get("/api/panel/yo").header(HttpHeaders.HOST, subdominio + ".localhost").cookie(sesion));
-    }
-
-    // El token CSRF como lo manda el front: en la cookie XSRF-TOKEN y repetido en el header X-XSRF-TOKEN.
-    // (No se usa el csrf() de spring-security-test: guarda el token en una sesión que la app real no crea.)
-    private static RequestPostProcessor conCsrf() {
-        return pedido -> {
-            Cookie[] actuales = pedido.getCookies() == null ? new Cookie[0] : pedido.getCookies();
-            Cookie[] todas = Arrays.copyOf(actuales, actuales.length + 1);
-            todas[actuales.length] = new Cookie("XSRF-TOKEN", "token-de-prueba");
-            pedido.setCookies(todas);
-            pedido.addHeader("X-XSRF-TOKEN", "token-de-prueba");
-            return pedido;
-        };
-    }
-
-    private static Cookie sesionDe(MvcResult resultado) {
-        Cookie cookie = resultado.getResponse().getCookie(COOKIE_SESION);
-        assertThat(cookie).as("cookie de sesión").isNotNull();
-        return cookie;
     }
 
     private UUID crearLocal(String subdominio) {
