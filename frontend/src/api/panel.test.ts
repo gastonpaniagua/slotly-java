@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ingresar, pedirDelPanel } from './panel'
+import { ingresar, pedirDelPanel, subirArchivo } from './panel'
 
 function json(status: number, cuerpo: unknown) {
   return new Response(JSON.stringify(cuerpo), { status, headers: { 'Content-Type': 'application/json' } })
@@ -80,5 +80,32 @@ describe('pedirDelPanel', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(500, { codigo: 'ERROR_INTERNO' })))
 
     expect(await pedirDelPanel('/api/panel/agenda')).toEqual({ estado: 'error' })
+  })
+})
+
+describe('subirArchivo', () => {
+  it('D10: manda el archivo como multipart, con el token CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=token-123; path=/'
+    const fetchSimulado = vi.fn().mockResolvedValue(json(201, { id: 'img', url: '/api/publico/imagenes/img' }))
+    vi.stubGlobal('fetch', fetchSimulado)
+    const archivo = new File(['png'], 'foto.png', { type: 'image/png' })
+
+    expect(await subirArchivo('/api/admin/imagenes', archivo))
+      .toEqual({ estado: 'ok', datos: { id: 'img', url: '/api/publico/imagenes/img' } })
+    const [url, opciones] = fetchSimulado.mock.calls[0]
+    expect(url).toBe('/api/admin/imagenes')
+    expect(opciones.headers['X-XSRF-TOKEN']).toBe('token-123')
+    expect((opciones.body as FormData).get('archivo')).toBe(archivo)
+  })
+
+  it('D10: un archivo enorme (413) o inválido (400) vuelve como error de validación con su mensaje', async () => {
+    document.cookie = 'XSRF-TOKEN=t; path=/'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 413 })))
+    expect(await subirArchivo('/api/admin/imagenes', new File(['x'], 'x.png')))
+      .toEqual({ estado: 'validacion', errores: {}, mensaje: 'La imagen puede pesar hasta 500 KB.' })
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(400, { codigo: 'VALIDACION', detail: 'La imagen tiene que ser PNG, JPG o WebP.' })))
+    expect(await subirArchivo('/api/admin/imagenes', new File(['x'], 'x.gif')))
+      .toEqual({ estado: 'validacion', errores: {}, mensaje: 'La imagen tiene que ser PNG, JPG o WebP.' })
   })
 })

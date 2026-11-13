@@ -127,3 +127,36 @@ export async function guardarEnElPanel<T>(url: string, metodo: 'POST' | 'PUT' | 
   }
   return { estado: 'error', mensaje: problema?.detail }
 }
+
+// Sube un archivo (multipart) con el token CSRF, para las imágenes del local (D10). Un 413 es un archivo enorme
+// que el servidor cortó antes de mirarlo.
+export async function subirArchivo<T>(url: string, archivo: File): Promise<ResultadoGuardar<T>> {
+  try {
+    const token = await asegurarTokenCsrf()
+    const formulario = new FormData()
+    formulario.append('archivo', archivo)
+    const respuesta = await fetch(url, {
+      method: 'POST',
+      headers: token ? { 'X-XSRF-TOKEN': token } : {},
+      body: formulario,
+    })
+    if (respuesta.ok) {
+      return { estado: 'ok', datos: (await respuesta.json()) as T }
+    }
+    if (respuesta.status === 401) {
+      return { estado: 'sin-sesion' }
+    }
+    if (respuesta.status === 403) {
+      return { estado: 'sin-permiso' }
+    }
+    if (respuesta.status === 413) {
+      return { estado: 'validacion', errores: {}, mensaje: 'La imagen puede pesar hasta 500 KB.' }
+    }
+    const problema = (await respuesta.json().catch(() => null)) as { codigo?: string; detail?: string } | null
+    return problema?.codigo === 'VALIDACION'
+      ? { estado: 'validacion', errores: {}, mensaje: problema.detail ?? 'La imagen no es válida.' }
+      : { estado: 'error' }
+  } catch {
+    return { estado: 'error' }
+  }
+}

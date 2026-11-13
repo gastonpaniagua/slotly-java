@@ -36,3 +36,7 @@ export type MisTurnos = { proximos: TurnoDelCliente[]; historial: TurnoDelClient
 // Gestión del local (Etapa 7)
 export type ServicioAdmin = Esquemas['ServicioAdmin']
 export type ServicioPedido = Esquemas['ServicioRequest']
+export type ProfesionalAdmin = Esquemas['ProfesionalAdmin']
+export type ProfesionalPedido = Esquemas['ProfesionalRequest']
+export type TurnoFuturo = Esquemas['TurnoFuturo']
+export type ImagenSubida = Esquemas['ImagenSubida']

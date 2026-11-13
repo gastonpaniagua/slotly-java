@@ -15,6 +15,7 @@ type Props = {
 const SECCIONES_ADMIN = [
   { ruta: '/agenda', nombre: 'Agenda' },
   { ruta: '/admin/servicios', nombre: 'Servicios' },
+  { ruta: '/admin/profesionales', nombre: 'Profesionales' },
 ]
 
 type Estado = { tipo: 'cargando' } | { tipo: 'error' } | { tipo: 'ok'; usuario: UsuarioPanel }
