@@ -33,11 +33,11 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 | HU-16 | Iniciar y cerrar sesión en el panel               | profesional y admin | Debe      | M      | 5     | Hecha     |
 | HU-17 | Ver mi agenda del día y de la semana              | profesional         | Debe      | M      | 5     | Hecha     |
 | HU-18 | Ver la agenda de todos los profesionales          | admin               | Debe      | S      | 5     | Hecha     |
-| HU-19 | Ver mi turno desde el link                        | cliente             | Debe      | M      | 6     | Pendiente |
-| HU-20 | Cancelar mi turno                                 | cliente             | Debe      | S      | 6     | Pendiente |
-| HU-21 | Reprogramar mi turno                              | cliente             | Debe      | M      | 6     | Pendiente |
-| HU-22 | Volver a entrar con mi teléfono y un código       | cliente             | Debería   | M      | 6     | Pendiente |
-| HU-23 | Ver mi historial y reservar lo mismo de nuevo     | cliente             | Podría    | S      | 6     | Pendiente |
+| HU-19 | Ver mi turno desde el link                        | cliente             | Debe      | M      | 6     | Hecha     |
+| HU-20 | Cancelar mi turno                                 | cliente             | Debe      | S      | 6     | Hecha     |
+| HU-21 | Reprogramar mi turno                              | cliente             | Debe      | M      | 6     | Hecha     |
+| HU-22 | Volver a entrar con mi teléfono y un código       | cliente             | Debería   | M      | 6     | Hecha     |
+| HU-23 | Ver mi historial y reservar lo mismo de nuevo     | cliente             | Podría    | S      | 6     | Hecha     |
 | HU-24 | Administrar servicios                             | admin               | Debe      | M      | 7     | Pendiente |
 | HU-25 | Administrar profesionales y sus usuarios          | admin               | Debe      | M      | 7     | Pendiente |
 | HU-26 | Cargar el horario semanal con pausas              | admin               | Debe      | M      | 7     | Pendiente |
@@ -297,7 +297,7 @@ Cubierta el 2026-11-12 con tests y casos manuales (CP-HU18-01 a 03). CA2 se prob
 ### HU-19 · Ver mi turno desde el link
 
 Como **cliente** quiero abrir mi turno desde el link personal para consultarlo sin llamar al local.
-Prioridad: Debe · Tamaño: M · Etapa: 6 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 6 · Estado: Hecha
 
 - **CA1.** Dado un link válido, cuando lo abro, entonces veo día, hora, profesional, servicios, total, dirección y las acciones permitidas.
 - **CA2.** Dado un link con un token inexistente o adulterado, cuando lo abro, entonces veo "Este link no es válido" con acceso a entrar con mi teléfono, y la API responde 404.
@@ -305,19 +305,23 @@ Prioridad: Debe · Tamaño: M · Etapa: 6 · Estado: Pendiente
 - **CA4.** Dado un token, cuando miro la base, entonces solo está guardado su hash.
 - **CA5.** Dado un link del local A, cuando lo abro en el subdominio del local B, entonces se comporta como un link inválido.
 
+Cubierta el 2026-11-13 con tests y casos manuales (CP-HU19-01 a 05).
+
 ### HU-20 · Cancelar mi turno
 
 Como **cliente** quiero cancelar mi turno desde el link para liberar el horario si no puedo ir.
-Prioridad: Debe · Tamaño: S · Etapa: 6 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 6 · Estado: Hecha
 
 - **CA1.** Dado un turno a más de 3 horas (regla del local), cuando toco "Cancelar" y confirmo, entonces queda cancelado y el horario vuelve a ofrecerse.
 - **CA2.** Dado un turno a menos de 3 horas, cuando lo abro, entonces no veo "Cancelar" sino "Para cancelar, escribile al local" con su WhatsApp, y la API responde 409 si se intenta igual.
 - **CA3.** Dado un turno ya cancelado, cuando intento cancelarlo otra vez, entonces veo que ya está cancelado y no cambia nada.
 
+Cubierta el 2026-11-13 con tests y casos manuales (CP-HU20-01 a 03). El 409 de la API al cancelar fuera de plazo (CA2) queda solo en `MiTurnoTest`; a mano se ve que el botón no aparece.
+
 ### HU-21 · Reprogramar mi turno
 
 Como **cliente** quiero cambiar mi turno a otro día u hora para no perderlo si me surge algo.
-Prioridad: Debe · Tamaño: M · Etapa: 6 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 6 · Estado: Hecha
 
 - **CA1.** Dado un turno reprogramable, cuando toco "Reprogramar", entonces paso al calendario con los mismos servicios y profesional, y el horario actual no cuenta como ocupado para mí.
 - **CA2.** Dado que elijo un horario libre y confirmo, cuando se guarda, entonces el turno nuevo queda confirmado y el viejo cancelado en la misma transacción.
@@ -325,10 +329,12 @@ Prioridad: Debe · Tamaño: M · Etapa: 6 · Estado: Pendiente
 - **CA4.** Dado un turno a menos de 3 horas, cuando lo abro, entonces no puedo reprogramar (mismo criterio que HU-20 CA2).
 - **CA5.** Dado que reprogramo, cuando miro el turno nuevo, entonces los precios copiados son los del turno original (no cambia lo que el cliente vio).
 
+Cubierta el 2026-11-13 con tests y casos manuales (CP-HU21-01 a 03). CA3 (el horario nuevo se ocupó mientras elegía) queda solo con tests automáticos (`MiTurnoTest` y `Reprogramar.test`): al volver a la pestaña la lista se actualiza y la hora ya no se puede elegir a mano.
+
 ### HU-22 · Volver a entrar con mi teléfono y un código
 
 Como **cliente** quiero entrar con mi teléfono y un código para ver mis turnos desde otro dispositivo sin crear una contraseña.
-Prioridad: Debería · Tamaño: M · Etapa: 6 · Estado: Pendiente
+Prioridad: Debería · Tamaño: M · Etapa: 6 · Estado: Hecha
 
 - **CA1.** Dado un teléfono con turnos en el local, cuando lo ingreso, entonces se genera un código de 6 dígitos que vence en 10 minutos y se envía por el canal de notificaciones (simulado en desarrollo).
 - **CA2.** Dado un teléfono sin turnos en el local, cuando lo ingreso, entonces veo exactamente la misma respuesta que en CA1 (no se revela si el teléfono existe).
@@ -338,14 +344,18 @@ Prioridad: Debería · Tamaño: M · Etapa: 6 · Estado: Pendiente
 - **CA6.** Dados más de 3 pedidos de código por teléfono en una hora, cuando pido otro, entonces recibo 429.
 - **CA7.** Dado un código, cuando miro la base, entonces solo está guardado su hash.
 
+Cubierta el 2026-11-13 con tests y casos manuales (CP-HU22-01 a 06). El código vencido a los 10 minutos (CA5) queda solo en `CodigoTest`; a mano se probó el código ya usado. En la v1 el código sale por un envío simulado (se escribe en la terminal de la API); el envío real llega en la Etapa 8.
+
 ### HU-23 · Historial y reservar lo mismo de nuevo
 
 Como **cliente** quiero ver mis turnos anteriores y repetir uno para reservar mi corte de siempre en dos toques.
-Prioridad: Podría · Tamaño: S · Etapa: 6 · Estado: Pendiente
+Prioridad: Podría · Tamaño: S · Etapa: 6 · Estado: Hecha
 
 - **CA1.** Dado que entré a "Mi turno", cuando miro el historial, entonces veo mis turnos pasados y cancelados del local, del más nuevo al más viejo.
 - **CA2.** Dado un turno pasado, cuando toco "Reservar lo mismo", entonces el flujo de reserva arranca en el paso 3 con los mismos servicios y profesional (si siguen activos).
 - **CA3.** Dado que un servicio de ese turno ya no está activo, cuando toco "Reservar lo mismo", entonces arranco en el paso 1 con los servicios activos preseleccionados y un aviso.
+
+Cubierta el 2026-11-13 con tests y casos manuales (CP-HU23-01 a 03).
 
 ---
 

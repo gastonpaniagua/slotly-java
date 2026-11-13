@@ -259,7 +259,92 @@ fetch('/api/panel/agenda?dias=1&profesional=00000000-0000-0000-0000-000000000000
 fetch('/api/admin/algo').then(r => r.status)
 ```
 
-## Smoke test (versión Etapa 5, ~9 minutos)
+## Etapa 6 · Cliente: Mi turno
+
+**Precondiciones comunes:** base, API y front levantados, con la API reiniciada después del paso 46. "Reservar" es hacer la reserva como cliente en `demo.localhost:5173`: "Barba" con Bruno el martes que viene, celular `11 2345-6789`, pago en efectivo. Los códigos de "entrar con mi teléfono" aparecen en la terminal de la API como `[SIMULADO] Código para +549…: 123456`. Para "otro dispositivo" se usa una ventana de incógnito.
+
+Quedan cubiertos solo con tests automáticos: HU-21 CA3 (el horario nuevo se ocupó mientras elegía; `MiTurnoTest` y `Reprogramar.test`), por lo mismo que CP-HU12-01: al volver a la pestaña la lista se actualiza y la hora ya no se puede elegir; HU-22 CA5 con el código vencido (pasan 10 minutos; `CodigoTest`), a mano se prueba el código ya usado; y el 409 de la API al cancelar fuera de plazo (HU-20 CA2, `MiTurnoTest`), a mano se ve que el botón no aparece.
+
+| ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CP-HU19-01 | Mi turno completo (CA1) | L1 | 1. Reservar a las 10:00 | La confirmación muestra el día, "Con Bruno", Barba, el total, "Dónde: San Martín 1200, Villa María" y los botones "Reprogramar" y "Cancelar turno" | Al confirmar aparecen "Con Bruno", Barba, el total, "Dónde: San Martín 1200, Villa María" y los botones "Reprogramar" y "Cancelar turno" | Paso | 2026/11/13 |
+| CP-HU19-02 | Link inválido (CA2) | Después de CP-HU19-01 | 1. En la dirección, cambiar una letra después de `#t=` y apretar Enter | "Este link no es válido" con "Entrar con mi teléfono" | Al cambiar una letra del link aparece "Este link no es válido" con "Entrar con mi teléfono" | Paso | 2026/11/13 |
+| CP-HU19-03 | Link vencido (CA3) | Después de CP-HU19-01 | 1. Correr S13 2. Recargar el link original | "Este link venció" con "Entrar con mi teléfono" | Después de S13, al volver al link original aparece "Este link venció" con "Entrar con mi teléfono" | Paso | 2026/11/13 |
+| CP-HU19-04 | En la base solo el hash (CA4) | Después de CP-HU19-01 | 1. Correr C12 2. Comparar con lo que va después de `#t=` en el link | El `token_hash` de C12 no se parece al token del link | En la base no está el token del link, solo su hash: el token empieza con `1c6BgU1bCq6Y` y el token_hash con `9d7d7ab4b99c` | Paso | 2026/11/13 |
+| CP-HU19-05 | Link en otro local (CA5) | Un link de Mi turno | 1. Abrir el mismo link cambiando `demo.` por `otra.` | "Este link no es válido" | Al cambiar `demo.` por `otra.` aparece "Este link no es válido" | Paso | 2026/11/13 |
+| CP-HU20-01 | Cancelar libera el horario (CA1) | L1 | 1. Reservar a las 10:00 2. "Cancelar turno" → "Sí, cancelar" 3. Empezar otra reserva igual hasta las horas | "Cancelaste tu turno. El horario quedó libre para otra persona." y las 10:00 aparecen libres | Al cancelar aparece "Cancelaste tu turno. El horario quedó libre para otra persona." y las 10:00 aparecen libres | Paso | 2026/11/13 |
+| CP-HU20-02 | Menos de 3 horas (CA2) | L1 | 1. Reservar a las 10:00 2. Correr S12 3. Recargar Mi turno | No aparecen "Cancelar turno" ni "Reprogramar"; aparece "Falta poco para tu turno…" con "Escribir por WhatsApp", que abre `wa.me/5493534000000` | Después de S12 aparece "Falta poco para tu turno…" con "Escribir por WhatsApp", que abre `wa.me/5493534000000` | Paso | 2026/11/13 |
+| CP-HU20-03 | Cancelar dos veces (CA3) | L1 | 1. Reservar y abrir el link en dos pestañas 2. Cancelar en la A 3. En la B, "Cancelar turno" → "Sí, cancelar" | En la B se ve el turno cancelado, sin error | Al cancelar en la segunda pestaña se ve el turno cancelado, sin error | Paso | 2026/11/13 |
+| CP-HU21-01 | Reprogramar (CA1, CA2) | L1 | 1. Reservar a las 10:00 2. "Reprogramar" 3. Elegir ese martes 4. Mirar las horas 5. Elegir 11:00 → "Confirmar cambio" 6. Correr C12 | Arriba dice "Estás cambiando tu turno del…" y el calendario "Con Bruno."; entre las horas están 10:00 y 10:15 (tu turno no te bloquea); al final "Listo, cambiaste tu turno" a las 11:00; en C12 el de las 10:00 está cancelado y el de las 11:00 confirmado con `reprogramado` en t | Se cumplió todo lo esperado | Paso | 2026/11/13 |
+| CP-HU21-02 | Fuera de plazo (CA4) | Después de CP-HU20-02 | 1. Ver Mi turno | No aparece "Reprogramar" | No aparece "Reprogramar" (ni "Cancelar turno"): solo el aviso para escribirle al local | Paso | 2026/11/13 |
+| CP-HU21-03 | Conserva el precio (CA5) | L1 | 1. Reservar a las 10:00 2. Correr S15 3. Reprogramar a las 11:00 4. Correr S16 | El turno nuevo sigue diciendo $ 8.000 | El turno nuevo sigue diciendo $ 8.000 | Paso | 2026/11/13 |
+| CP-HU22-01 | Entrar con el código (CA1, CA3) | L1, reservar | 1. En incógnito, abrir `demo.localhost:5173/mis-turnos` → "Entrar con mi teléfono" 2. Celular `11 2345-6789` → "Pedir código" 3. Copiar el código de la terminal de la API → "Entrar" | "Si tenés turnos en este local, te mandamos un código de 6 números… Vence en 10 minutos."; después entra a Mis turnos con el turno en "Próximos" | Se cumplió todo lo esperado | Paso | 2026/11/13 |
+| CP-HU22-02 | Teléfono sin turnos (CA2) | — | 1. En `/entrar`, pedir código con `11 5555-4444` | El mismo mensaje que en CP-HU22-01; en la terminal de la API no aparece ningún código | El mismo mensaje; en la terminal de la API no apareció ningún código | Paso | 2026/11/13 |
+| CP-HU22-03 | 5 intentos (CA4) | — | 1. Pedir código con `11 2345-6789` 2. Ingresar 5 veces `000000` 3. Ingresar el código correcto | Las 6 veces: "El código no es válido o venció. Revisalo o pedí uno nuevo." | Las 5 veces dijo "El código no es válido o venció. Revisalo o pedí uno nuevo." y con el correcto también | Paso | 2026/11/13 |
+| CP-HU22-04 | Código usado (CA5) | Después de CP-HU22-01 | 1. "Salir en este navegador" 2. Entrar con el mismo código de CP-HU22-01 | "El código no es válido o venció…" | Dice "El código no es válido o venció…" | Paso | 2026/11/13 |
+| CP-HU22-05 | Límite por hora (CA6) | Después de CP-HU22-02 | 1. Pedir código con `11 5555-4444` hasta que aparezca un aviso | Al cuarto pedido de la hora (contando el de CP-HU22-02): "Pediste muchos códigos. Probá de nuevo en una hora." | Al cuarto pedido aparece "Pediste muchos códigos. Probá de nuevo en una hora." | Paso | 2026/11/13 |
+| CP-HU22-06 | En la base solo el hash (CA7) | Después de CP-HU22-01 | 1. Correr C11 | Ninguna fila muestra el código de 6 números, solo el comienzo del hash | Ninguna fila muestra el código de 6 números, solo el comienzo del hash | Paso | 2026/11/13 |
+| CP-HU23-01 | Historial (CA1) | L1 | 1. Reservar a las 10:00 y a las 11:00 2. Cancelar el de las 11:00 3. Correr S14 4. Entrar con el teléfono | "Próximos" vacío; en "Historial", primero el de las 11:00 ("Cancelado") y después el de las 10:00 de hace dos semanas ("Fuiste") | Se cumplió todo lo esperado | Paso | 2026/11/13 |
+| CP-HU23-02 | Reservar lo mismo (CA2) | Después de CP-HU23-01 | 1. En el turno "Fuiste", "Reservar lo mismo" | Abre "Elegí el día" con "Con Bruno." | "Reservar lo mismo" abre "Elegí el día" con "Con Bruno." | Paso | 2026/11/13 |
+| CP-HU23-03 | Servicio ya no activo (CA3) | Después de CP-HU23-01, S17 | 1. "Reservar lo mismo" 2. Al terminar, correr S18 | Queda en "Elegí los servicios" con el aviso "Algún servicio de ese turno ya no está disponible…" | Queda en "Elegí los servicios" con el aviso "Algún servicio de ese turno ya no está disponible…"; después se corrió S18 | Paso | 2026/11/13 |
+
+### Comandos de la Etapa 6 (desde `C:\dev\slotly-java`)
+
+**S12** · Mueve el turno confirmado más próximo para que empiece en 2 horas:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE turno SET inicio = now() + interval '2 hours', fin = now() + interval '2 hours 20 minutes', ocupado_hasta = now() + interval '2 hours 20 minutes' WHERE id = (SELECT id FROM turno WHERE estado = 'confirmado' ORDER BY inicio LIMIT 1);"
+```
+
+**S13** · Vence el link del turno confirmado más próximo:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE turno SET token_vence_en = now() - interval '1 minute' WHERE id = (SELECT id FROM turno WHERE estado = 'confirmado' ORDER BY inicio LIMIT 1);"
+```
+
+**S14** · Pasa el turno confirmado más próximo a hace dos semanas, como atendido:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE turno SET inicio = inicio - interval '14 days', fin = fin - interval '14 days', ocupado_hasta = ocupado_hasta - interval '14 days', estado = 'completado' WHERE id = (SELECT id FROM turno WHERE estado = 'confirmado' ORDER BY inicio LIMIT 1);"
+```
+
+**S15** · Barba sube a $ 9.000:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE servicio SET precio = 9000 WHERE nombre = 'Barba';"
+```
+
+**S16** · Barba vuelve a $ 8.000:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE servicio SET precio = 8000 WHERE nombre = 'Barba';"
+```
+
+**S17** · Barba deja de estar activa:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE servicio SET activo = false WHERE nombre = 'Barba';"
+```
+
+**S18** · Barba vuelve a estar activa:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE servicio SET activo = true WHERE nombre = 'Barba';"
+```
+
+**C11** · Códigos pedidos y accesos, sin el código:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "SELECT telefono, intentos, usado_en IS NOT NULL AS usado, left(codigo_hash, 12) AS hash FROM codigo_verificacion ORDER BY creado_en; SELECT left(token_hash, 12) AS acceso, vence_en FROM acceso_cliente;"
+```
+
+**C12** · Turnos de reserva con su estado y si vienen de una reprogramación:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "SELECT estado, inicio AT TIME ZONE 'America/Argentina/Buenos_Aires' AS inicio, reprogramado_de_id IS NOT NULL AS reprogramado, left(token_hash, 12) AS token_hash FROM turno WHERE tipo = 'reserva' AND estado <> 'vencido' ORDER BY inicio;"
+```
+
+## Smoke test (versión Etapa 6, ~10 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
 2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
@@ -267,9 +352,10 @@ fetch('/api/admin/algo').then(r => r.status)
 4. "Reservar turno" → marcar "Corte de pelo" → "Siguiente" muestra "Cualquiera disponible", Ana y Bruno.
 5. Volver, marcar solo "Barba" → "Siguiente" muestra el calendario con un día elegido → "Siguiente" muestra horas.
 6. Elegir una hora → completar los datos → "Confirmar" muestra "¡Listo! Tu turno quedó reservado"; recargar muestra el mismo turno.
-7. `demo.localhost:5173/agenda` lleva al login; con `admin@demo.com` / `demo1234` muestra la agenda con el filtro "Profesional".
-8. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
-9. El último commit tiene el ✅ del CI en GitHub.
+7. En Mi turno, "Reprogramar" → otro horario → "Confirmar cambio" muestra "Listo, cambiaste tu turno".
+8. `demo.localhost:5173/agenda` lleva al login; con `admin@demo.com` / `demo1234` muestra la agenda con el filtro "Profesional".
+9. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+10. El último commit tiene el ✅ del CI en GitHub.
 
 Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 
