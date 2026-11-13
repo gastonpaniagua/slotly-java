@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitForElementToBeRemoved } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -172,8 +172,9 @@ describe('Paso 4: hora', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Ese horario se acaba de ocupar, elegí otro.')
-    // Se espera a la lista nueva: 10:15 ya estaba en la vieja, así que lo que cambia es que 10:00 desaparece.
-    await waitForElementToBeRemoved(() => hora('10:00'))
+    // Se espera a la lista nueva: 10:15 ya estaba en la vieja, así que lo que cambia es que 10:00 no está.
+    // (waitFor y no waitForElementToBeRemoved: en una máquina rápida la lista nueva puede haber llegado ya.)
+    await waitFor(() => expect(hora('10:00')).not.toBeInTheDocument())
     expect(hora('10:15')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
   })
