@@ -14,16 +14,16 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import jakarta.servlet.http.Cookie;
 
 // Ayudas para los tests del panel: entrar como lo hace el front y mandar el token CSRF.
-final class PanelDeTest {
+public final class PanelDeTest {
 
-    static final String COOKIE_SESION = "SLOTLY_SESION";
+    public static final String COOKIE_SESION = "SLOTLY_SESION";
 
     private PanelDeTest() {
     }
 
     // El token CSRF como lo manda el front: en la cookie XSRF-TOKEN y repetido en el header X-XSRF-TOKEN.
     // (No se usa el csrf() de spring-security-test: guarda el token en una sesión que la app real no crea.)
-    static RequestPostProcessor conCsrf() {
+    public static RequestPostProcessor conCsrf() {
         return pedido -> {
             Cookie[] actuales = pedido.getCookies() == null ? new Cookie[0] : pedido.getCookies();
             Cookie[] todas = Arrays.copyOf(actuales, actuales.length + 1);
@@ -35,7 +35,7 @@ final class PanelDeTest {
     }
 
     // Inicia sesión en el subdominio y devuelve la cookie de la sesión.
-    static Cookie ingresar(MockMvc mockMvc, String subdominio, String email, String password) throws Exception {
+    public static Cookie ingresar(MockMvc mockMvc, String subdominio, String email, String password) throws Exception {
         MvcResult resultado = mockMvc.perform(post("/api/panel/ingresar")
                         .header(HttpHeaders.HOST, subdominio + ".localhost")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -45,7 +45,7 @@ final class PanelDeTest {
         return sesionDe(resultado);
     }
 
-    static Cookie sesionDe(MvcResult resultado) {
+    public static Cookie sesionDe(MvcResult resultado) {
         Cookie cookie = resultado.getResponse().getCookie(COOKIE_SESION);
         assertThat(cookie).as("cookie de sesión").isNotNull();
         return cookie;

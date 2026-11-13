@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 
 import { obtenerUsuario, salir } from '../api/panel'
 import type { LocalPublico, UsuarioPanel } from '../api/tipos'
@@ -10,6 +10,12 @@ import './panel.css'
 type Props = {
   local: LocalPublico
 }
+
+// Las secciones del admin. Se suman a medida que se hacen (Etapa 7).
+const SECCIONES_ADMIN = [
+  { ruta: '/agenda', nombre: 'Agenda' },
+  { ruta: '/admin/servicios', nombre: 'Servicios' },
+]
 
 type Estado = { tipo: 'cargando' } | { tipo: 'error' } | { tipo: 'ok'; usuario: UsuarioPanel }
 
@@ -74,6 +80,14 @@ function PanelConSesion({ local }: Props) {
             <button type="button" className="btn btn-secondary" onClick={cerrarSesion}>Salir</button>
           </div>
         </header>
+        {/* El menú: el admin ve todas las secciones; el profesional, solo su agenda (doc 00). */}
+        {estado.usuario.rol === 'admin' && (
+          <nav className="panel__menu" aria-label="Secciones del panel">
+            {SECCIONES_ADMIN.map((seccion) => (
+              <NavLink key={seccion.ruta} to={seccion.ruta} className="panel__seccion">{seccion.nombre}</NavLink>
+            ))}
+          </nav>
+        )}
         <main className="panel__contenido">
           <Outlet />
         </main>

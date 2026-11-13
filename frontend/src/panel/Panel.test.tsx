@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -182,5 +182,23 @@ describe('destinoDespuesDeIngresar', () => {
     expect(destinoDespuesDeIngresar('https://otro-sitio.com')).toBe('/agenda')
     expect(destinoDespuesDeIngresar('//otro-sitio.com')).toBe('/agenda')
     expect(destinoDespuesDeIngresar('/ingresar')).toBe('/agenda')
+  })
+})
+
+describe('Menú del panel (Etapa 7)', () => {
+  it('el admin ve el menú de secciones', async () => {
+    vi.mocked(obtenerUsuario).mockResolvedValue({ estado: 'ok', datos: { email: 'duenio@demo.com', rol: 'admin', profesionalId: null } })
+    abrir('/agenda')
+
+    const menu = await screen.findByRole('navigation', { name: 'Secciones del panel' })
+    expect(within(menu).getByRole('link', { name: 'Servicios' })).toHaveAttribute('href', '/admin/servicios')
+  })
+
+  it('el profesional no tiene menú de secciones', async () => {
+    vi.mocked(obtenerUsuario).mockResolvedValue({ estado: 'ok', datos: ANA })
+    abrir('/agenda')
+
+    await screen.findByRole('heading', { name: 'Página de ana@demo.com' })
+    expect(screen.queryByRole('navigation', { name: 'Secciones del panel' })).not.toBeInTheDocument()
   })
 })

@@ -6,7 +6,9 @@ import { variablesDeAcento } from '../acento'
 import Home from '../home/Home'
 import PaginaAgenda from '../panel/PaginaAgenda'
 import PaginaIngresar from '../panel/PaginaIngresar'
+import PaginaServicios from '../panel/PaginaServicios'
 import PanelConSesion from '../panel/PanelConSesion'
+import SoloAdmin from '../panel/SoloAdmin'
 import PaginaPrivacidad from '../PaginaPrivacidad'
 import PaginaEntrar from '../reserva/PaginaEntrar'
 import PaginaMisTurnos from '../reserva/PaginaMisTurnos'
@@ -46,6 +48,8 @@ function SitioDelLocal({ local }: Props) {
         <Route path="ingresar" element={<PaginaIngresar local={local} />} />
         <Route element={<PanelConSesion local={local} />}>
           <Route path="agenda" element={<PaginaAgenda />} />
+          {/* Gestión del local (Etapa 7): solo el admin. */}
+          <Route path="admin/servicios" element={<SoloAdmin><PaginaServicios /></SoloAdmin>} />
         </Route>
         {/* Cualquier otra dirección vuelve a la home del local. */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -18,11 +18,11 @@ async function asegurarTokenCsrf(): Promise<string | null> {
   return tokenCsrf()
 }
 
-async function enviar(url: string, cuerpo?: unknown): Promise<Response | null> {
+async function enviar(url: string, cuerpo?: unknown, metodo: 'POST' | 'PUT' | 'DELETE' = 'POST'): Promise<Response | null> {
   try {
     const token = await asegurarTokenCsrf()
     return await fetch(url, {
-      method: 'POST',
+      method: metodo,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { 'X-XSRF-TOKEN': token } : {}),
@@ -91,4 +91,39 @@ export function obtenerAgenda(desde: string | null, dias: 1 | 7): Promise<Result
     parametros.set('desde', desde)
   }
   return pedirDelPanel<Agenda>(`/api/panel/agenda?${parametros}`)
+}
+
+// Lo que puede pasar al guardar algo desde el panel: lo guardado, errores por campo (400 VALIDACION, para mostrar
+// junto a cada campo), sin sesión (al login, HU-16 CA7), sin permiso (403) o un error.
+export type ResultadoGuardar<T> =
+  | { estado: 'ok'; datos: T }
+  | { estado: 'validacion'; errores: Record<string, string>; mensaje: string }
+  | { estado: 'sin-sesion' }
+  | { estado: 'sin-permiso' }
+  | { estado: 'error'; mensaje?: string }
+
+export async function guardarEnElPanel<T>(url: string, metodo: 'POST' | 'PUT' | 'DELETE', cuerpo?: unknown): Promise<ResultadoGuardar<T>> {
+  const respuesta = await enviar(url, cuerpo, metodo)
+  if (respuesta === null) {
+    return { estado: 'error' }
+  }
+  if (respuesta.ok) {
+    return { estado: 'ok', datos: (await respuesta.json().catch(() => null)) as T }
+  }
+  const problema = (await respuesta.json().catch(() => null)) as
+    { codigo?: string; detail?: string; errores?: { campo: string; mensaje: string }[] } | null
+  if (respuesta.status === 401) {
+    return { estado: 'sin-sesion' }
+  }
+  if (respuesta.status === 403) {
+    return { estado: 'sin-permiso' }
+  }
+  if (problema?.codigo === 'VALIDACION') {
+    return {
+      estado: 'validacion',
+      errores: Object.fromEntries((problema.errores ?? []).map((e) => [e.campo, e.mensaje])),
+      mensaje: problema.detail ?? 'Revisá los datos marcados.',
+    }
+  }
+  return { estado: 'error', mensaje: problema?.detail }
 }
