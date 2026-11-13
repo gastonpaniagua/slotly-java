@@ -30,8 +30,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancela el turno desde su link, si falta más que el plazo del local (HU-20) */
+        /** Cancela el turno, si falta más que el plazo del local (HU-20) */
         post: operations["cancelar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publico/codigos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pide un código para entrar con el teléfono. Misma respuesta tenga o no turnos (HU-22) */
+        post: operations["pedir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publico/codigos/verificar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verifica el código y entrega el acceso del cliente, de 30 días (HU-22) */
+        post: operations["verificar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -113,7 +147,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Un turno con su token: la pantalla de confirmación y "Mi turno" (HU-10 CA7 y CA9) */
+        /** Un turno: la pantalla de confirmación y "Mi turno" (HU-10 CA7 y CA9, HU-19) */
         get: operations["ver"];
         put?: never;
         post?: never;
@@ -166,6 +200,23 @@ export interface paths {
         };
         /** Profesionales activos del local que hacen todos los servicios elegidos (paso 2 de la reserva) */
         get: operations["profesionales"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/publico/mis-turnos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Los turnos del cliente en el local: próximos e historial (HU-22 CA3, HU-23 CA1) */
+        get: operations["misTurnos"];
         put?: never;
         post?: never;
         delete?: never;
@@ -322,6 +373,22 @@ export interface components {
             token: string;
             turno: components["schemas"]["TurnoPublico"];
         };
+        PedirCodigoRequest: {
+            telefono: string;
+        };
+        CodigoPedido: {
+            /** Format: int32 */
+            vigenciaMinutos: number;
+        };
+        VerificarCodigoRequest: {
+            telefono: string;
+            codigo: string;
+        };
+        Acceso: {
+            token: string;
+            /** Format: date-time */
+            venceEn: string;
+        };
         AnteriorRequest: {
             /** Format: uuid */
             id: string;
@@ -397,6 +464,16 @@ export interface components {
             id: string;
             nombre: string;
             fotoUrl: string | null;
+        };
+        MisTurnos: {
+            proximos: components["schemas"]["TurnoDelCliente"][];
+            historial: components["schemas"]["TurnoDelCliente"][];
+        };
+        TurnoDelCliente: {
+            turno: components["schemas"]["TurnoPublico"];
+            /** Format: uuid */
+            profesionalId: string;
+            servicioIds: string[];
         };
         DiaPublicoResponse: {
             /** Format: int32 */
@@ -495,8 +572,9 @@ export interface operations {
     reprogramar: {
         parameters: {
             query?: never;
-            header: {
-                "X-Token-Turno": string;
+            header?: {
+                "X-Token-Turno"?: string;
+                "X-Acceso-Cliente"?: string;
             };
             path: {
                 id: string;
@@ -523,8 +601,9 @@ export interface operations {
     cancelar: {
         parameters: {
             query?: never;
-            header: {
-                "X-Token-Turno": string;
+            header?: {
+                "X-Token-Turno"?: string;
+                "X-Acceso-Cliente"?: string;
             };
             path: {
                 id: string;
@@ -540,6 +619,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TurnoPublico"];
+                };
+            };
+        };
+    };
+    pedir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PedirCodigoRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CodigoPedido"];
+                };
+            };
+        };
+    };
+    verificar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificarCodigoRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Acceso"];
                 };
             };
         };
@@ -639,8 +766,9 @@ export interface operations {
     ver: {
         parameters: {
             query?: never;
-            header: {
-                "X-Token-Turno": string;
+            header?: {
+                "X-Token-Turno"?: string;
+                "X-Acceso-Cliente"?: string;
             };
             path: {
                 id: string;
@@ -665,8 +793,9 @@ export interface operations {
             query: {
                 fecha: string;
             };
-            header: {
-                "X-Token-Turno": string;
+            header?: {
+                "X-Token-Turno"?: string;
+                "X-Acceso-Cliente"?: string;
             };
             path: {
                 id: string;
@@ -692,8 +821,9 @@ export interface operations {
                 desde?: string;
                 hasta?: string;
             };
-            header: {
-                "X-Token-Turno": string;
+            header?: {
+                "X-Token-Turno"?: string;
+                "X-Acceso-Cliente"?: string;
             };
             path: {
                 id: string;
@@ -731,6 +861,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProfesionalPublicoResponse"][];
+                };
+            };
+        };
+    };
+    misTurnos: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Acceso-Cliente": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MisTurnos"];
                 };
             };
         };

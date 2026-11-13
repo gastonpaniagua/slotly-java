@@ -3,7 +3,6 @@ package ar.com.slotly.reserva;
 import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,7 +24,7 @@ import ar.com.slotly.local.LocalResolver;
 import ar.com.slotly.reserva.ConfirmacionService.DatosDelCliente;
 import ar.com.slotly.reserva.ConfirmacionService.TurnoPublico;
 
-// Confirmar la reserva (paso 5 → 6, HU-10) y ver un turno con su token ("Mi turno").
+// Confirmar la reserva (paso 5 → 6, HU-10). Ver el turno ("Mi turno") está en MiTurnoController.
 @RestController
 class ConfirmacionController {
 
@@ -65,10 +64,4 @@ class ConfirmacionController {
                 new DatosDelCliente(pedido.nombre(), pedido.telefono(), pedido.email(), pedido.formaPago()));
     }
 
-    @GetMapping("/api/publico/turnos/{id}")
-    @Operation(summary = "Un turno con su token: la pantalla de confirmación y \"Mi turno\" (HU-10 CA7 y CA9)")
-    TurnoPublico ver(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
-            @PathVariable UUID id, @RequestHeader(HEADER_TOKEN) String token) {
-        return confirmaciones.verConToken(localResolver.resolver(host), id, token);
-    }
 }

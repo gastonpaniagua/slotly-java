@@ -100,23 +100,6 @@ public class ConfirmacionService {
         return ver(local, id);
     }
 
-    // "Mi turno": el turno con ese id y ese token (HU-10 CA7 y CA9, HU-19).
-    // Token que no corresponde, turno inexistente o de otro local: 404, lo mismo en los tres casos (HU-19 CA2 y CA5).
-    // Token correcto pero vencido (30 días después del turno): 410, para poder decir "Este link venció" (CA3).
-    @Transactional(readOnly = true)
-    public TurnoPublico verConToken(Local local, UUID id, String token) {
-        List<Timestamp> venceEn = jdbc.queryForList("""
-                SELECT token_vence_en FROM turno WHERE id = ? AND local_id = ? AND token_hash = ?
-                """, Timestamp.class, id, local.getId(), TokenSecreto.hash(token));
-        if (venceEn.isEmpty() || venceEn.get(0) == null) {
-            throw turnoNoEncontrado();
-        }
-        if (!venceEn.get(0).toInstant().isAfter(reloj.instant())) {
-            throw new SlotlyException(HttpStatus.GONE, "LINK_VENCIDO", "Este link venció.");
-        }
-        return ver(local, id);
-    }
-
     // Bloquea la fila del turno hasta el final de la transacción. Si no existe, es de otro local o el token no
     // corresponde, responde lo mismo: 404, sin confirmar que existe.
     private Map<String, Object> bloquearTurno(Local local, UUID id, String token) {

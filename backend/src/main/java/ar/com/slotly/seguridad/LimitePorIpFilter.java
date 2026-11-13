@@ -40,15 +40,19 @@ class LimitePorIpFilter extends OncePerRequestFilter {
                 @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
             FilterRegistrationBean<LimitePorIpFilter> registro =
                     new FilterRegistrationBean<>(new LimitePorIpFilter(limite, resolver));
-            registro.addUrlPatterns("/api/publico/apartados", "/api/publico/apartados/*");
+            registro.addUrlPatterns("/api/publico/apartados", "/api/publico/apartados/*",
+                    "/api/publico/codigos", "/api/publico/codigos/*");
             return registro;
         }
     }
 
-    // Solo los POST de reserva: apartar (/api/publico/apartados) y confirmar (/api/publico/apartados/{id}/confirmar).
+    // Solo los POST de reserva (apartar y confirmar) y los de pedir y verificar códigos (HU-22): así nadie prueba
+    // teléfonos o códigos en masa desde una IP.
     @Override
     protected boolean shouldNotFilter(HttpServletRequest pedido) {
-        return !"POST".equals(pedido.getMethod()) || !pedido.getRequestURI().startsWith("/api/publico/apartados");
+        String ruta = pedido.getRequestURI();
+        return !"POST".equals(pedido.getMethod())
+                || !(ruta.startsWith("/api/publico/apartados") || ruta.startsWith("/api/publico/codigos"));
     }
 
     @Override

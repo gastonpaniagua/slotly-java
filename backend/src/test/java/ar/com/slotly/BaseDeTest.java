@@ -13,7 +13,7 @@ public final class BaseDeTest {
     public static void vaciar(JdbcTemplate jdbc) {
         jdbc.execute("""
                 TRUNCATE local, servicio, profesional, cliente, turno, turno_servicio, profesional_servicio, horario,
-                         usuario, spring_session, spring_session_attributes
+                         usuario, spring_session, spring_session_attributes, codigo_verificacion, acceso_cliente
                 """);
     }
 }
