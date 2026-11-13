@@ -7,15 +7,17 @@ import {
 import type { ResultadoGuardar } from '../api/panel'
 import type { ProfesionalAdmin, ServicioAdmin, TurnoFuturo } from '../api/tipos'
 import { fechaLarga } from '../fechas'
+import EditorHorario from './EditorHorario'
 import { useSesion } from './sesion'
 
 // Lo que se está haciendo con un profesional: editarlo, darle usuario o confirmar su baja (con sus turnos).
 type Accion =
   | { tipo: 'editar'; profesional: ProfesionalAdmin | null }
   | { tipo: 'usuario'; profesional: ProfesionalAdmin }
+  | { tipo: 'horario'; profesional: ProfesionalAdmin }
   | { tipo: 'baja'; profesional: ProfesionalAdmin; turnos: TurnoFuturo[] }
 
-// Profesionales del local (HU-25): alta con foto y servicios, su usuario del panel, baja y alta.
+// Profesionales del local (HU-25): alta con foto y servicios, su horario (HU-26), su usuario del panel, baja y alta.
 function PaginaProfesionales() {
   const { sesionPerdida } = useSesion()
   const [profesionales, setProfesionales] = useState<ProfesionalAdmin[] | null>(null)
@@ -94,6 +96,9 @@ function PaginaProfesionales() {
       {accion?.tipo === 'usuario' && (
         <FormularioUsuario profesional={accion.profesional} alGuardar={terminar} alCancelar={() => setAccion(null)} />
       )}
+      {accion?.tipo === 'horario' && (
+        <EditorHorario profesional={accion.profesional} alCerrar={terminar} />
+      )}
       {accion?.tipo === 'baja' && (
         <ConfirmarBaja profesional={accion.profesional} turnos={accion.turnos}
           alTerminar={terminar} alCancelar={() => setAccion(null)} />
@@ -126,6 +131,8 @@ function PaginaProfesionales() {
                   <>
                     <button type="button" className="btn btn-secondary"
                       onClick={() => setAccion({ tipo: 'editar', profesional })}>Editar</button>
+                    <button type="button" className="btn btn-secondary"
+                      onClick={() => setAccion({ tipo: 'horario', profesional })}>Horario</button>
                     {profesional.usuarioEmail === null && (
                       <button type="button" className="btn btn-secondary"
                         onClick={() => setAccion({ tipo: 'usuario', profesional })}>Crear usuario</button>

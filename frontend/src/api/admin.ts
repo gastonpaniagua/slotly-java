@@ -1,6 +1,7 @@
 import { guardarEnElPanel, pedirDelPanel, subirArchivo, type ResultadoGuardar, type ResultadoPanel } from './panel'
 import type {
-  ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ServicioAdmin, ServicioPedido, TurnoFuturo,
+  FranjaHorario, HorarioGuardado, ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ServicioAdmin, ServicioPedido,
+  TurnoFuturo,
 } from './tipos'
 
 // Gestión del local (Etapa 7): todo bajo /api/admin, solo para el admin (un profesional recibe 403).
@@ -56,4 +57,14 @@ export function darDeBaja(id: string, confirmar: boolean): Promise<ResultadoGuar
 
 export function darDeAlta(id: string): Promise<ResultadoGuardar<ProfesionalAdmin>> {
   return guardarEnElPanel(`/api/admin/profesionales/${id}/alta`, 'POST')
+}
+
+// HU-26: el horario semanal de un profesional (franjas por día, 0 domingo a 6 sábado, en hora del local).
+export function verHorario(id: string): Promise<ResultadoPanel<FranjaHorario[]>> {
+  return pedirDelPanel<FranjaHorario[]>(`/api/admin/profesionales/${id}/horario`)
+}
+
+// Reemplaza el horario entero. La respuesta trae los turnos por delante que quedaron fuera del horario nuevo (CA3).
+export function guardarHorario(id: string, franjas: FranjaHorario[]): Promise<ResultadoGuardar<HorarioGuardado>> {
+  return guardarEnElPanel(`/api/admin/profesionales/${id}/horario`, 'PUT', { franjas })
 }

@@ -143,7 +143,8 @@ describe('Reserva completa', () => {
 
     expect(await screen.findByRole('heading', { name: 'Elegí el día' })).toBeInTheDocument()
     expect(screen.getByText('Con Bruno.')).toBeInTheDocument()
-    expect(obtenerDias).toHaveBeenCalledWith(['corte'], 'bruno', undefined)
+    // Los días los pide un efecto, que corre después de dibujar: se espera el pedido, no se da por hecho.
+    await vi.waitFor(() => expect(obtenerDias).toHaveBeenCalledWith(['corte'], 'bruno', undefined))
   })
 
   it('HU-23 CA3: si un servicio ya no está activo, arranca en el paso 1 con los que quedan elegidos y un aviso', async () => {

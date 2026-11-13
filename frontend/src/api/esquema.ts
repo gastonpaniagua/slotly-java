@@ -38,6 +38,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/profesionales/{id}/horario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** El horario semanal de un profesional (HU-26) */
+        get: operations["ver"];
+        /** Guarda el horario semanal de un profesional y avisa los turnos que quedan afuera (HU-26) */
+        put: operations["guardar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publico/turnos/{id}/reprogramar": {
         parameters: {
             query?: never;
@@ -303,7 +321,7 @@ export interface paths {
             cookie?: never;
         };
         /** Un turno: la pantalla de confirmación y "Mi turno" (HU-10 CA7 y CA9, HU-19) */
-        get: operations["ver"];
+        get: operations["ver_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -405,7 +423,7 @@ export interface paths {
             cookie?: never;
         };
         /** Una imagen del local */
-        get: operations["ver_1"];
+        get: operations["ver_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -473,7 +491,7 @@ export interface paths {
             cookie?: never;
         };
         /** Turnos, bloqueos y horario de trabajo de 1 o 7 días (HU-17 y HU-18) */
-        get: operations["ver_2"];
+        get: operations["ver_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -560,6 +578,28 @@ export interface components {
             usuarioEmail: string | null;
             /** Format: int32 */
             turnosFuturos: number;
+        };
+        Franja: {
+            /** Format: int32 */
+            diaSemana: number;
+            /** @example 10:00 */
+            desde: string;
+            /** @example 13:00 */
+            hasta: string;
+        };
+        HorarioRequest: {
+            franjas: components["schemas"]["Franja"][];
+        };
+        HorarioGuardado: {
+            franjas: components["schemas"]["Franja"][];
+            turnosAfuera: components["schemas"]["TurnoFuturo"][];
+        };
+        TurnoFuturo: {
+            /** Format: uuid */
+            id: string;
+            /** @example 2026-11-17T10:00 */
+            inicio: string;
+            clienteNombre: string | null;
         };
         ReprogramarRequest: {
             /** Format: date */
@@ -806,13 +846,6 @@ export interface components {
             estado: string;
             baseDeDatos: string;
         };
-        TurnoFuturo: {
-            /** Format: uuid */
-            id: string;
-            /** @example 2026-11-17T10:00 */
-            inicio: string;
-            clienteNombre: string | null;
-        };
     };
     responses: never;
     parameters: never;
@@ -870,6 +903,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ProfesionalAdmin"];
+                };
+            };
+        };
+    };
+    ver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Franja"][];
+                };
+            };
+        };
+    };
+    guardar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HorarioRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HorarioGuardado"];
                 };
             };
         };
@@ -1281,7 +1362,7 @@ export interface operations {
             };
         };
     };
-    ver: {
+    ver_1: {
         parameters: {
             query?: never;
             header?: {
@@ -1425,7 +1506,7 @@ export interface operations {
             };
         };
     };
-    ver_1: {
+    ver_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1516,7 +1597,7 @@ export interface operations {
             };
         };
     };
-    ver_2: {
+    ver_3: {
         parameters: {
             query: {
                 /** @description Primer día, en hora del local. Si falta, hoy */
