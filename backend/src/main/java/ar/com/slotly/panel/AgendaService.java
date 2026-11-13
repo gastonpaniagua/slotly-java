@@ -107,7 +107,7 @@ class AgendaService {
             return List.of(buscar(local, usuario.profesionalId()));
         }
         if (pedido == null || pedido.equals(TODOS)) {
-            return profesionales.findByLocalIdAndActivoTrueOrderByOrdenAscNombreAsc(local.getId());
+            return profesionales.paraLaAgenda(local.getId(), reloj.instant());
         }
         UUID id;
         try {

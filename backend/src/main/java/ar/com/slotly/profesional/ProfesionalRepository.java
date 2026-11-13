@@ -1,5 +1,6 @@
 package ar.com.slotly.profesional;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,15 @@ public interface ProfesionalRepository extends JpaRepository<Profesional, UUID> 
     List<Profesional> buscarActivosQueHacenTodos(@Param("localId") UUID localId,
             @Param("servicios") Collection<UUID> servicios, @Param("cantidad") int cantidad);
 
-    // Los profesionales activos del local, en el orden en que los muestra el local (agenda del admin, HU-18).
-    List<Profesional> findByLocalIdAndActivoTrueOrderByOrdenAscNombreAsc(UUID localId);
+    // Los de la agenda "Todos" del admin (HU-18): los activos y también los dados de baja que todavía tienen turnos
+    // confirmados por delante, para poder moverlos o cancelarlos (decidido el 2026-11-13, HU-25 CA3).
+    @Query("""
+            SELECT p FROM Profesional p
+            WHERE p.localId = :localId
+              AND (p.activo = true
+                   OR EXISTS (SELECT 1 FROM Turno t WHERE t.localId = p.localId AND t.profesionalId = p.id
+                              AND t.estado = 'confirmado' AND t.tipo <> 'bloqueo' AND t.inicio > :ahora))
+            ORDER BY p.orden, p.nombre
+            """)
+    List<Profesional> paraLaAgenda(@Param("localId") UUID localId, @Param("ahora") Instant ahora);
 }

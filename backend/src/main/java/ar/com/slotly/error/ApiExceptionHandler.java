@@ -32,6 +32,10 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         if (e instanceof DemasiadosIntentosException demasiados) {
             respuesta.header(HttpHeaders.RETRY_AFTER, String.valueOf(demasiados.getSegundosParaReintentar()));
         }
+        // Un error de un campo, como los de @Valid: el panel lo muestra junto al campo.
+        if (e instanceof ValidacionException validacion) {
+            problema.setProperty("errores", validacion.getErrores());
+        }
         return respuesta.body(problema);
     }
 

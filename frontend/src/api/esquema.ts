@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/profesionales/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edita nombre, foto y servicios de un profesional (HU-25) */
+        put: operations["editar_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publico/turnos/{id}/reprogramar": {
         parameters: {
             query?: never;
@@ -192,6 +209,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/profesionales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Todos los profesionales del local, también los dados de baja (HU-25) */
+        get: operations["listar_1"];
+        put?: never;
+        /** Da de alta un profesional con sus servicios; aparece en la reserva para esos servicios (HU-25 CA1) */
+        post: operations["crear_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/profesionales/{id}/usuario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea el usuario del panel de un profesional, con una contraseña inicial (HU-25 CA2) */
+        post: operations["crearUsuario"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/profesionales/{id}/baja": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Da de baja un profesional; con turnos futuros pide confirmar (HU-25 CA3) */
+        post: operations["darDeBaja"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/profesionales/{id}/alta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vuelve a dar de alta un profesional dado de baja, con su usuario (HU-25) */
+        post: operations["darDeAlta"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/imagenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sube una imagen PNG, JPG o WebP de hasta 500 KB y devuelve su URL pública (D10) */
+        post: operations["subir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publico/turnos/{id}": {
         parameters: {
             query?: never;
@@ -294,6 +397,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/publico/imagenes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Una imagen del local */
+        get: operations["ver_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publico/disponibilidad/horas": {
         parameters: {
             query?: never;
@@ -353,7 +473,7 @@ export interface paths {
             cookie?: never;
         };
         /** Turnos, bloqueos y horario de trabajo de 1 o 7 días (HU-17 y HU-18) */
-        get: operations["ver_1"];
+        get: operations["ver_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -370,6 +490,23 @@ export interface paths {
             cookie?: never;
         };
         get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/profesionales/{id}/turnos-futuros": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Los turnos confirmados por delante de un profesional (HU-25 CA3) */
+        get: operations["turnosFuturos"];
         put?: never;
         post?: never;
         delete?: never;
@@ -407,6 +544,22 @@ export interface components {
             /** Format: int32 */
             orden: number;
             activo: boolean;
+        };
+        ProfesionalRequest: {
+            nombre: string;
+            fotoUrl?: string | null;
+            servicioIds: string[];
+        };
+        ProfesionalAdmin: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            fotoUrl: string | null;
+            activo: boolean;
+            servicioIds: string[];
+            usuarioEmail: string | null;
+            /** Format: int32 */
+            turnosFuturos: number;
         };
         ReprogramarRequest: {
             /** Format: date */
@@ -522,6 +675,18 @@ export interface components {
         };
         OrdenRequest: {
             ids: string[];
+        };
+        UsuarioRequest: {
+            email: string;
+            password: string;
+        };
+        BajaRequest: {
+            confirmar: boolean;
+        };
+        ImagenSubida: {
+            /** Format: uuid */
+            id: string;
+            url: string;
         };
         HorasResponse: {
             /** Format: date */
@@ -641,6 +806,13 @@ export interface components {
             estado: string;
             baseDeDatos: string;
         };
+        TurnoFuturo: {
+            /** Format: uuid */
+            id: string;
+            /** @example 2026-11-17T10:00 */
+            inicio: string;
+            clienteNombre: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -672,6 +844,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ServicioAdmin"];
+                };
+            };
+        };
+    };
+    editar_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfesionalRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfesionalAdmin"];
                 };
             };
         };
@@ -938,6 +1136,151 @@ export interface operations {
             };
         };
     };
+    listar_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfesionalAdmin"][];
+                };
+            };
+        };
+    };
+    crear_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfesionalRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfesionalAdmin"];
+                };
+            };
+        };
+    };
+    crearUsuario: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsuarioRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfesionalAdmin"];
+                };
+            };
+        };
+    };
+    darDeBaja: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BajaRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfesionalAdmin"];
+                };
+            };
+        };
+    };
+    darDeAlta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProfesionalAdmin"];
+                };
+            };
+        };
+    };
+    subir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    archivo: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ImagenSubida"];
+                };
+            };
+        };
+    };
     ver: {
         parameters: {
             query?: never;
@@ -1082,6 +1425,28 @@ export interface operations {
             };
         };
     };
+    ver_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
     horas: {
         parameters: {
             query: {
@@ -1151,7 +1516,7 @@ export interface operations {
             };
         };
     };
-    ver_1: {
+    ver_2: {
         parameters: {
             query: {
                 /** @description Primer día, en hora del local. Si falta, hoy */
@@ -1194,6 +1559,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    turnosFuturos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TurnoFuturo"][];
                 };
             };
         };
