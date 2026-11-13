@@ -8,6 +8,7 @@ import PaginaAgenda from '../panel/PaginaAgenda'
 import PaginaIngresar from '../panel/PaginaIngresar'
 import PanelConSesion from '../panel/PanelConSesion'
 import PaginaPrivacidad from '../PaginaPrivacidad'
+import PaginaEntrar from '../reserva/PaginaEntrar'
 import PaginaMisTurnos from '../reserva/PaginaMisTurnos'
 import PaginaReprogramar from '../reserva/PaginaReprogramar'
 import PaginaTurno from '../reserva/PaginaTurno'
@@ -40,6 +41,7 @@ function SitioDelLocal({ local }: Props) {
         <Route path="turno/:id" element={<PaginaTurno local={local} />} />
         <Route path="turno/:id/reprogramar/*" element={<PaginaReprogramar />} />
         <Route path="mis-turnos" element={<PaginaMisTurnos />} />
+        <Route path="entrar" element={<PaginaEntrar />} />
         {/* Panel (Etapa 5): el login y, con sesión, la agenda. */}
         <Route path="ingresar" element={<PaginaIngresar local={local} />} />
         <Route element={<PanelConSesion local={local} />}>

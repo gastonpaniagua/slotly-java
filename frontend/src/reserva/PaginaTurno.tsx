@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 
 import { cancelarTurno, obtenerTurno, type ResultadoTurno } from '../api/reserva'
@@ -7,6 +7,7 @@ import { fechaLarga } from '../fechas'
 import { formatearDuracion, formatearPrecio, linkDeWhatsApp } from '../formato'
 import BarraProgreso from './BarraProgreso'
 import DatosTransferencia from './DatosTransferencia'
+import { credencialDelTurno } from './memoria'
 import './reserva.css'
 
 type Props = {
@@ -20,6 +21,8 @@ function PaginaTurno({ local }: Props) {
   const { id = '' } = useParams()
   const ubicacion = useLocation()
   const token = new URLSearchParams(ubicacion.hash.replace(/^#/, '')).get('t') ?? ''
+  // Sin token en la dirección (se entró desde "Mis turnos" con el teléfono), vale el acceso del cliente (HU-22).
+  const credencial = useMemo(() => credencialDelTurno(token), [token])
   const estadoDeLaNavegacion = ubicacion.state as { recienConfirmado?: boolean; reprogramado?: boolean } | null
   const recienConfirmado = estadoDeLaNavegacion?.recienConfirmado === true
   // HU-21: se llega acá recién reprogramado, con el link del turno nuevo.
@@ -32,7 +35,7 @@ function PaginaTurno({ local }: Props) {
 
   useEffect(() => {
     let vigente = true
-    obtenerTurno(id, token).then((resultado) => {
+    obtenerTurno(id, credencial).then((resultado) => {
       if (vigente) {
         setRespuesta({ clave, resultado })
       }
@@ -40,7 +43,7 @@ function PaginaTurno({ local }: Props) {
     return () => {
       vigente = false
     }
-  }, [id, token, clave])
+  }, [id, credencial, clave])
 
   const resultado = respuesta?.clave === clave ? respuesta.resultado : null
 
@@ -85,7 +88,7 @@ function PaginaTurno({ local }: Props) {
   // HU-20: cancelar. Si salió bien se muestra el turno como quedó; si justo pasó el plazo, se vuelve a pedir el
   // turno para que aparezca la opción de escribirle al local.
   async function cancelar() {
-    const resultadoCancelar = await cancelarTurno(id, token)
+    const resultadoCancelar = await cancelarTurno(id, credencial)
     switch (resultadoCancelar.estado) {
       case 'ok':
         setRespuesta({ clave, resultado: { estado: 'ok', turno: resultadoCancelar.turno } })
@@ -138,7 +141,7 @@ function PaginaTurno({ local }: Props) {
       {turno.transferencia && turno.estado === 'confirmado' && <DatosTransferencia datos={turno.transferencia} />}
 
       <Cambios turno={turno} local={local} alCancelar={cancelar}
-        linkReprogramar={`/turno/${id}/reprogramar/dia#t=${encodeURIComponent(token)}`} />
+        linkReprogramar={`/turno/${id}/reprogramar/dia${token ? `#t=${encodeURIComponent(token)}` : ''}`} />
 
       {recienConfirmado && (
         <p className="reserva__ayuda">

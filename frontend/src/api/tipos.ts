@@ -28,3 +28,7 @@ export type Agenda = Esquemas['Agenda']
 export type TurnoDeAgenda = Esquemas['TurnoDeAgenda']
 export type FranjaDeAgenda = Esquemas['FranjaDeAgenda']
 export type ProfesionalDeAgenda = Esquemas['ProfesionalDeAgenda']
+
+// Mis turnos (Etapa 6). Cada turno es un TurnoPublico, con la misma corrección de transferencia que arriba.
+export type TurnoDelCliente = Omit<Esquemas['TurnoDelCliente'], 'turno'> & { turno: TurnoPublico }
+export type MisTurnos = { proximos: TurnoDelCliente[]; historial: TurnoDelCliente[] }

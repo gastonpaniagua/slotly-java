@@ -4,6 +4,7 @@
 
 const CLAVE_CLIENTE = 'slotly.cliente'
 const CLAVE_TURNOS = 'slotly.turnos'
+const CLAVE_ACCESO = 'slotly.acceso'
 // Se guardan los últimos turnos; los más viejos se descartan.
 const MAXIMO_TURNOS = 10
 
@@ -56,6 +57,38 @@ export function recordarTurno(turno: TurnoRecordado) {
 export function reemplazarTurno(idViejo: string, nuevo: TurnoRecordado) {
   const otros = leerTurnos().filter((t) => t.id !== idViejo && t.id !== nuevo.id)
   guardar(CLAVE_TURNOS, [...otros, nuevo].slice(-MAXIMO_TURNOS))
+}
+
+// El acceso de entrar con el teléfono (HU-22): 30 días en este navegador. Vencido, es como no tenerlo.
+export type AccesoRecordado = { token: string; venceEn: string }
+
+export function leerAcceso(): AccesoRecordado | null {
+  const acceso = leer<AccesoRecordado>(CLAVE_ACCESO)
+  if (!acceso || typeof acceso.token !== 'string' || typeof acceso.venceEn !== 'string') {
+    return null
+  }
+  return Date.parse(acceso.venceEn) > Date.now() ? acceso : null
+}
+
+export function recordarAcceso(acceso: AccesoRecordado) {
+  guardar(CLAVE_ACCESO, acceso)
+}
+
+export function olvidarAcceso() {
+  try {
+    localStorage.removeItem(CLAVE_ACCESO)
+  } catch {
+    // Sin almacenamiento: no había nada guardado.
+  }
+}
+
+// Con qué abrir un turno: el token del link si vino en la dirección; si no, el acceso de este navegador (si hay).
+export function credencialDelTurno(tokenDelLink: string): string | { acceso: string } {
+  if (tokenDelLink !== '') {
+    return tokenDelLink
+  }
+  const acceso = leerAcceso()
+  return acceso ? { acceso: acceso.token } : ''
 }
 
 // El link de "Mi turno": el token va después del #, la parte de la URL que el navegador nunca manda al servidor.

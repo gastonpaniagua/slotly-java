@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 
 import { obtenerProfesionales } from '../api/publico'
 import { apartar, confirmar, type ResultadoApartar, type ResultadoConfirmar } from '../api/reserva'
@@ -21,11 +21,25 @@ type Props = {
 // El apartado vigente y cuándo se creó en este navegador (para la cuenta regresiva, sin depender de su reloj).
 type ApartadoVigente = { apartado: ApartadoCreado; creadoEnMs: number }
 
+// "Reservar lo mismo" (HU-23): llega en el estado de la navegación desde "Mis turnos".
+type Repetir = { servicioIds: string[]; profesionalId: string }
+
 // El asistente de reserva. Lo que el cliente va eligiendo vive acá, arriba de los pasos:
 // así, al volver con "Atrás" (o con el botón del navegador), la selección sigue marcada (HU-05 CA3).
 function Reserva({ local }: Props) {
   const navegar = useNavigate()
-  const [serviciosElegidos, setServiciosElegidos] = useState<string[]>([])
+  const ubicacion = useLocation()
+  // HU-23: si viene de "Reservar lo mismo", los servicios que siguen activos quedan elegidos (se lee una sola vez).
+  const [repetir] = useState<Repetir | null>(
+    () => (ubicacion.state as { repetir?: Repetir } | null)?.repetir ?? null)
+  const [serviciosElegidos, setServiciosElegidos] = useState<string[]>(() => (repetir === null ? []
+    : repetir.servicioIds.filter((id) => local.servicios.some((s) => s.id === id))))
+  // HU-23 CA3: si algún servicio ya no está, se arranca en el paso 1 con los que quedan y un aviso.
+  const [avisoRepetir, setAvisoRepetir] = useState<string | null>(() => (
+    repetir !== null && repetir.servicioIds.some((id) => !local.servicios.some((s) => s.id === id))
+      ? 'Algún servicio de ese turno ya no está disponible. Revisá lo que querés reservar.'
+      : null))
+  const yaSeRepitio = useRef(false)
   // Quiénes hacen todos los servicios elegidos (null = todavía no se pidieron para esta selección).
   const [profesionales, setProfesionales] = useState<ProfesionalPublico[] | null>(null)
   // El id del profesional elegido, CUALQUIERA, o null si todavía no eligió.
@@ -47,8 +61,32 @@ function Reserva({ local }: Props) {
   const [apartado, setApartado] = useState<ApartadoVigente | null>(null)
   const [datos, setDatos] = useState<DatosCliente>(() => ({ ...DATOS_VACIOS, ...leerCliente() }))
 
+  // HU-23 CA2: con todos los servicios activos, se piden los profesionales y, si el de ese turno sigue, se pasa
+  // directo al paso 3 (día). Si ya no está, se elige otro en el paso 2.
+  useEffect(() => {
+    if (repetir === null || avisoRepetir !== null || yaSeRepitio.current) {
+      return
+    }
+    yaSeRepitio.current = true
+    obtenerProfesionales(repetir.servicioIds).then((resultado) => {
+      if (resultado.estado === 'error') {
+        return // queda en el paso 1 con los servicios elegidos
+      }
+      setProfesionales(resultado.profesionales)
+      if (resultado.profesionales.some((p) => p.id === repetir.profesionalId)) {
+        setProfesionalElegido(repetir.profesionalId)
+        setPasoProfesionalSalteado(resultado.profesionales.length === 1)
+        navegar('/reservar/dia', { replace: true })
+      } else {
+        setAvisoRepetir('El profesional de ese turno ya no está disponible para esos servicios. Elegí otro.')
+        navegar('/reservar/profesional', { replace: true })
+      }
+    })
+  }, [repetir, avisoRepetir, navegar])
+
   // Si cambian los servicios, lo elegido después ya no vale: se vuelve a pedir y a elegir.
   function cambiarServicios(ids: string[]) {
+    setAvisoRepetir(null)
     setServiciosElegidos(ids)
     setProfesionales(null)
     setProfesionalElegido(null)
@@ -139,93 +177,96 @@ function Reserva({ local }: Props) {
   const horaApartada = apartado !== null && apartado.apartado.fecha === fechaElegida ? apartado.apartado.hora : null
 
   return (
-    <Routes>
-      <Route
-        path="servicios"
-        element={
-          <PasoServicios
-            servicios={local.servicios}
-            elegidos={serviciosElegidos}
-            alCambiarElegidos={cambiarServicios}
-            alAvanzar={avanzarDesdeServicios}
-            buscando={buscando}
-            error={errorAlBuscar}
-          />
-        }
-      />
-      <Route
-        path="profesional"
-        element={
-          // Si se entra directo (o se recarga) sin haber pasado por el paso 1, se vuelve ahí.
-          profesionales === null
-            ? <Navigate to="/reservar/servicios" replace />
-            : (
-              <PasoProfesional
-                profesionales={profesionales}
-                elegido={profesionalElegido}
-                alElegir={elegirProfesional}
-              />
-            )
-        }
-      />
-      <Route
-        path="dia"
-        element={
-          nombreElegido === null || profesionalElegido === null
-            ? <Navigate to="/reservar/servicios" replace />
-            : (
-              <PasoDia
-                // Si cambian los servicios o el profesional, el calendario arranca de cero.
-                key={`${profesionalElegido}|${serviciosElegidos.join(',')}`}
-                servicios={serviciosElegidos}
-                profesional={profesionalElegido}
-                nombreProfesional={nombreElegido}
-                // HU-06 CA3: si el paso 2 se salteó, "Atrás" vuelve al paso 1.
-                atras={pasoProfesionalSalteado ? '/reservar/servicios' : '/reservar/profesional'}
-                fechaElegida={fechaElegida}
-                alElegirFecha={setFechaElegida}
-              />
-            )
-        }
-      />
-      <Route
-        path="hora"
-        element={
-          nombreElegido === null || profesionalElegido === null || fechaElegida === null
-            ? <Navigate to="/reservar/servicios" replace />
-            : (
-              <PasoHora
-                servicios={serviciosElegidos}
-                profesional={profesionalElegido}
-                nombreProfesional={nombreElegido}
-                fecha={fechaElegida}
-                horaElegida={horaDelDia}
-                horaApartada={horaApartada}
-                alElegirHora={elegirHora}
-                alAvanzar={avanzarDesdeHora}
-              />
-            )
-        }
-      />
-      <Route
-        path="datos"
-        element={
-          apartado === null || fechaElegida === null || horaDelDia === null
-            ? <Navigate to="/reservar/servicios" replace />
-            : (
-              <PasoDatos
-                apartado={apartado.apartado}
-                creadoEnMs={apartado.creadoEnMs}
-                servicios={local.servicios.filter((s) => serviciosElegidos.includes(s.id))}
-                datos={datos}
-                alCambiarDatos={setDatos}
-                alConfirmar={confirmarReserva}
-              />
-            )
-        }
-      />
-      <Route path="*" element={<Navigate to="/reservar/servicios" replace />} />
-    </Routes>
+    <>
+      {avisoRepetir && <p className="reprogramar__actual" role="status">{avisoRepetir}</p>}
+      <Routes>
+        <Route
+          path="servicios"
+          element={
+            <PasoServicios
+              servicios={local.servicios}
+              elegidos={serviciosElegidos}
+              alCambiarElegidos={cambiarServicios}
+              alAvanzar={avanzarDesdeServicios}
+              buscando={buscando}
+              error={errorAlBuscar}
+            />
+          }
+        />
+        <Route
+          path="profesional"
+          element={
+            // Si se entra directo (o se recarga) sin haber pasado por el paso 1, se vuelve ahí.
+            profesionales === null
+              ? <Navigate to="/reservar/servicios" replace />
+              : (
+                <PasoProfesional
+                  profesionales={profesionales}
+                  elegido={profesionalElegido}
+                  alElegir={elegirProfesional}
+                />
+              )
+          }
+        />
+        <Route
+          path="dia"
+          element={
+            nombreElegido === null || profesionalElegido === null
+              ? <Navigate to="/reservar/servicios" replace />
+              : (
+                <PasoDia
+                  // Si cambian los servicios o el profesional, el calendario arranca de cero.
+                  key={`${profesionalElegido}|${serviciosElegidos.join(',')}`}
+                  servicios={serviciosElegidos}
+                  profesional={profesionalElegido}
+                  nombreProfesional={nombreElegido}
+                  // HU-06 CA3: si el paso 2 se salteó, "Atrás" vuelve al paso 1.
+                  atras={pasoProfesionalSalteado ? '/reservar/servicios' : '/reservar/profesional'}
+                  fechaElegida={fechaElegida}
+                  alElegirFecha={setFechaElegida}
+                />
+              )
+          }
+        />
+        <Route
+          path="hora"
+          element={
+            nombreElegido === null || profesionalElegido === null || fechaElegida === null
+              ? <Navigate to="/reservar/servicios" replace />
+              : (
+                <PasoHora
+                  servicios={serviciosElegidos}
+                  profesional={profesionalElegido}
+                  nombreProfesional={nombreElegido}
+                  fecha={fechaElegida}
+                  horaElegida={horaDelDia}
+                  horaApartada={horaApartada}
+                  alElegirHora={elegirHora}
+                  alAvanzar={avanzarDesdeHora}
+                />
+              )
+          }
+        />
+        <Route
+          path="datos"
+          element={
+            apartado === null || fechaElegida === null || horaDelDia === null
+              ? <Navigate to="/reservar/servicios" replace />
+              : (
+                <PasoDatos
+                  apartado={apartado.apartado}
+                  creadoEnMs={apartado.creadoEnMs}
+                  servicios={local.servicios.filter((s) => serviciosElegidos.includes(s.id))}
+                  datos={datos}
+                  alCambiarDatos={setDatos}
+                  alConfirmar={confirmarReserva}
+                />
+              )
+          }
+        />
+        <Route path="*" element={<Navigate to="/reservar/servicios" replace />} />
+      </Routes>
+    </>
   )
 }
 

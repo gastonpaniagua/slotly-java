@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitForElementToBeRemoved } from '@testing-library/react'
 import { useState } from 'react'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -172,8 +172,9 @@ describe('Paso 4: hora', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Ese horario se acaba de ocupar, elegí otro.')
-    expect(await screen.findByRole('button', { name: '10:15' })).toBeInTheDocument()
-    expect(hora('10:00')).not.toBeInTheDocument()
+    // Se espera a la lista nueva: 10:15 ya estaba en la vieja, así que lo que cambia es que 10:00 desaparece.
+    await waitForElementToBeRemoved(() => hora('10:00'))
+    expect(hora('10:15')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
   })
 

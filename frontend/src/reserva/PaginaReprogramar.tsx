@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
 
 import type { Resultado } from '../api/publico'
@@ -7,7 +7,7 @@ import {
 } from '../api/reserva'
 import type { HorasLibres } from '../api/tipos'
 import { fechaLarga } from '../fechas'
-import { linkDelTurno, reemplazarTurno } from './memoria'
+import { credencialDelTurno, linkDelTurno, reemplazarTurno } from './memoria'
 import PasoDia from './PasoDia'
 import PasoHora from './PasoHora'
 import './reserva.css'
@@ -24,7 +24,9 @@ function PaginaReprogramar() {
   const ubicacion = useLocation()
   const navegar = useNavigate()
   const token = new URLSearchParams(ubicacion.hash.replace(/^#/, '')).get('t') ?? ''
-  const conToken = `#t=${encodeURIComponent(token)}`
+  // Sin token en la dirección, vale el acceso del cliente (HU-22); entonces los links no llevan #.
+  const credencial = useMemo(() => credencialDelTurno(token), [token])
+  const conToken = token ? `#t=${encodeURIComponent(token)}` : ''
   const linkDeEstePaso = (paso: 'dia' | 'hora') => `/turno/${id}/reprogramar/${paso}${conToken}`
 
   const [actual, setActual] = useState<ResultadoTurno | null>(null)
@@ -35,7 +37,7 @@ function PaginaReprogramar() {
 
   useEffect(() => {
     let vigente = true
-    obtenerTurno(id, token).then((resultado) => {
+    obtenerTurno(id, credencial).then((resultado) => {
       if (vigente) {
         setActual(resultado)
       }
@@ -43,12 +45,12 @@ function PaginaReprogramar() {
     return () => {
       vigente = false
     }
-  }, [id, token])
+  }, [id, credencial])
 
-  const cargarDias = useCallback((desde?: string) => obtenerDiasParaReprogramar(id, token, desde), [id, token])
+  const cargarDias = useCallback((desde?: string) => obtenerDiasParaReprogramar(id, credencial, desde), [id, credencial])
   const cargarHoras = useCallback((): Promise<Resultado<HorasLibres>> => (
-    fecha === null ? Promise.resolve({ estado: 'error' }) : obtenerHorasParaReprogramar(id, token, fecha)
-  ), [id, token, fecha])
+    fecha === null ? Promise.resolve({ estado: 'error' }) : obtenerHorasParaReprogramar(id, credencial, fecha)
+  ), [id, credencial, fecha])
   const elegirHora = useCallback((elegida: string | null) => {
     setHora(elegida === null || fecha === null ? null : { fecha, hora: elegida })
   }, [fecha])
@@ -58,7 +60,7 @@ function PaginaReprogramar() {
     if (fecha === null || horaDelDia === null) {
       return { estado: 'error' as const }
     }
-    const resultado = await reprogramarTurno(id, token, fecha, horaDelDia)
+    const resultado = await reprogramarTurno(id, credencial, fecha, horaDelDia)
     switch (resultado.estado) {
       case 'ok':
         reemplazarTurno(id, { id: resultado.id, token: resultado.token, fecha: resultado.turno.fecha, hora: resultado.turno.hora })

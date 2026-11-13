@@ -74,6 +74,13 @@ export async function confirmar(id: string, pedido: ConfirmarPedido): Promise<Re
   }
 }
 
+// Con qué prueba el cliente que el turno es suyo: el token del link (un texto) o el acceso de entrar con el teléfono.
+export type CredencialTurno = string | { acceso: string }
+
+function cabeceras(credencial: CredencialTurno): Record<string, string> {
+  return typeof credencial === 'string' ? { 'X-Token-Turno': credencial } : { 'X-Acceso-Cliente': credencial.acceso }
+}
+
 export type ResultadoTurno =
   | { estado: 'ok'; turno: TurnoPublico }
   | { estado: 'invalido' }
@@ -81,16 +88,16 @@ export type ResultadoTurno =
   | { estado: 'error' }
 
 // Un turno con su token: la confirmación al recargar y "Mi turno" (HU-10 CA7 y CA9, HU-19).
-// "invalido": el token no corresponde, el turno no existe o es de otro local (CA2 y CA5). "vencido": pasaron
-// 30 días desde el turno (CA3).
-export async function obtenerTurno(id: string, token: string): Promise<ResultadoTurno> {
+// "invalido": el token no corresponde, el turno no existe o es de otro local (CA2 y CA5), o el acceso del cliente
+// venció. "vencido": pasaron 30 días desde el turno (CA3).
+export async function obtenerTurno(id: string, credencial: CredencialTurno): Promise<ResultadoTurno> {
   try {
-    const respuesta = await fetch(`/api/publico/turnos/${id}`, { headers: { 'X-Token-Turno': token } })
+    const respuesta = await fetch(`/api/publico/turnos/${id}`, { headers: cabeceras(credencial) })
     if (respuesta.ok) {
       return { estado: 'ok', turno: (await respuesta.json()) as TurnoPublico }
     }
     const problema = (await respuesta.json().catch(() => null)) as Problema | null
-    if (problema?.codigo === 'TURNO_NO_ENCONTRADO') {
+    if (problema?.codigo === 'TURNO_NO_ENCONTRADO' || problema?.codigo === 'NO_AUTENTICADO') {
       return { estado: 'invalido' }
     }
     return problema?.codigo === 'LINK_VENCIDO' ? { estado: 'vencido' } : { estado: 'error' }
@@ -107,11 +114,11 @@ export type ResultadoCancelar =
   | { estado: 'error' }
 
 // HU-20: cancela el turno con el token de su link. Fuera de plazo (menos de 3 horas) decide el local (CA2).
-export async function cancelarTurno(id: string, token: string): Promise<ResultadoCancelar> {
+export async function cancelarTurno(id: string, credencial: CredencialTurno): Promise<ResultadoCancelar> {
   try {
     const respuesta = await fetch(`/api/publico/turnos/${id}/cancelar`, {
       method: 'POST',
-      headers: { 'X-Token-Turno': token },
+      headers: cabeceras(credencial),
     })
     if (respuesta.ok) {
       return { estado: 'ok', turno: (await respuesta.json()) as TurnoPublico }
@@ -133,22 +140,22 @@ export async function cancelarTurno(id: string, token: string): Promise<Resultad
 }
 
 // HU-21: días y horas para mover el turno. No se mandan servicios ni profesional: la API usa los del turno.
-async function pedirConToken<T>(url: string, token: string): Promise<Resultado<T>> {
+async function pedirConCredencial<T>(url: string, credencial: CredencialTurno): Promise<Resultado<T>> {
   try {
-    const respuesta = await fetch(url, { headers: { 'X-Token-Turno': token } })
+    const respuesta = await fetch(url, { headers: cabeceras(credencial) })
     return respuesta.ok ? { estado: 'ok', datos: (await respuesta.json()) as T } : { estado: 'error' }
   } catch {
     return { estado: 'error' }
   }
 }
 
-export function obtenerDiasParaReprogramar(id: string, token: string, desde?: string): Promise<Resultado<DiasConLugar>> {
+export function obtenerDiasParaReprogramar(id: string, credencial: CredencialTurno, desde?: string): Promise<Resultado<DiasConLugar>> {
   const parametros = new URLSearchParams(desde ? { desde } : {})
-  return pedirConToken(`/api/publico/turnos/${id}/reprogramar/dias?${parametros}`, token)
+  return pedirConCredencial(`/api/publico/turnos/${id}/reprogramar/dias?${parametros}`, credencial)
 }
 
-export function obtenerHorasParaReprogramar(id: string, token: string, fecha: string): Promise<Resultado<HorasLibres>> {
-  return pedirConToken(`/api/publico/turnos/${id}/reprogramar/horas?${new URLSearchParams({ fecha })}`, token)
+export function obtenerHorasParaReprogramar(id: string, credencial: CredencialTurno, fecha: string): Promise<Resultado<HorasLibres>> {
+  return pedirConCredencial(`/api/publico/turnos/${id}/reprogramar/horas?${new URLSearchParams({ fecha })}`, credencial)
 }
 
 export type ResultadoReprogramar =
@@ -158,11 +165,11 @@ export type ResultadoReprogramar =
   | { estado: 'error' }
 
 // HU-21 CA2: mueve el turno. El turno nuevo tiene su propio link (id y token nuevos); el viejo queda cancelado.
-export async function reprogramarTurno(id: string, token: string, fecha: string, hora: string): Promise<ResultadoReprogramar> {
+export async function reprogramarTurno(id: string, credencial: CredencialTurno, fecha: string, hora: string): Promise<ResultadoReprogramar> {
   try {
     const respuesta = await fetch(`/api/publico/turnos/${id}/reprogramar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Token-Turno': token },
+      headers: { 'Content-Type': 'application/json', ...cabeceras(credencial) },
       body: JSON.stringify({ fecha, hora }),
     })
     if (respuesta.ok) {

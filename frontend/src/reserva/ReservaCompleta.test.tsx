@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { obtenerDias, obtenerHoras, obtenerProfesionales } from '../api/publico'
@@ -132,4 +133,46 @@ describe('Reserva completa', () => {
     expect(screen.getByRole('heading', { name: 'Política de privacidad' })).toBeInTheDocument()
     expect(screen.getByText(/Ley 25.326/)).toBeInTheDocument()
   })
+
+  it('HU-23 CA2: "Reservar lo mismo" con todo activo arranca en el paso 3 con el mismo profesional', async () => {
+    vi.mocked(obtenerProfesionales).mockResolvedValue({
+      estado: 'ok', profesionales: [{ id: 'ana', nombre: 'Ana', fotoUrl: null }, { id: 'bruno', nombre: 'Bruno', fotoUrl: null }],
+    })
+
+    repetir(['corte'], 'bruno')
+
+    expect(await screen.findByRole('heading', { name: 'Elegí el día' })).toBeInTheDocument()
+    expect(screen.getByText('Con Bruno.')).toBeInTheDocument()
+    expect(obtenerDias).toHaveBeenCalledWith(['corte'], 'bruno', undefined)
+  })
+
+  it('HU-23 CA3: si un servicio ya no está activo, arranca en el paso 1 con los que quedan elegidos y un aviso', async () => {
+    repetir(['corte', 'color-que-ya-no-existe'], 'bruno')
+
+    expect(await screen.findByText(/Algún servicio de ese turno ya no está disponible/)).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /Corte/ })).toBeChecked()
+    expect(obtenerProfesionales).not.toHaveBeenCalled()
+  })
+
+  it('HU-23: si el profesional de ese turno ya no está, arranca en el paso 2 con un aviso', async () => {
+    vi.mocked(obtenerProfesionales).mockResolvedValue({
+      estado: 'ok', profesionales: [{ id: 'ana', nombre: 'Ana', fotoUrl: null }, { id: 'carla', nombre: 'Carla', fotoUrl: null }],
+    })
+
+    repetir(['corte'], 'bruno')
+
+    expect(await screen.findByText('El profesional de ese turno ya no está disponible para esos servicios. Elegí otro.'))
+      .toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Elegí con quién' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Ana/ })).toBeInTheDocument()
+  })
 })
+
+// "Reservar lo mismo" desde Mis turnos: la reserva arranca con ese estado de navegación (HU-23).
+function repetir(servicioIds: string[], profesionalId: string) {
+  render(
+    <MemoryRouter initialEntries={[{ pathname: '/reservar/servicios', state: { repetir: { servicioIds, profesionalId } } }]}>
+      <SitioDelLocal local={unLocal({ servicios: [unServicio({ id: 'corte', nombre: 'Corte' })] })} />
+    </MemoryRouter>,
+  )
+}

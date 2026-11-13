@@ -1,7 +1,6 @@
 import { Link } from 'react-router'
 
 import type { LocalPublico } from '../api/tipos'
-import { leerTurnos } from '../reserva/memoria'
 
 type Props = {
   local: LocalPublico
@@ -26,10 +25,8 @@ function Encabezado({ local }: Props) {
           Reservar turno
         </Link>
       )}
-      {/* HU-10 CA9: quien ya reservó desde este navegador tiene a mano sus turnos. */}
-      {leerTurnos().length > 0 && (
-        <Link className="link" to="/mis-turnos">Mis turnos</Link>
-      )}
+      {/* HU-10 CA9 y HU-22: sus turnos a mano; desde otro dispositivo, ahí se entra con el teléfono. */}
+      <Link className="link" to="/mis-turnos">Mis turnos</Link>
     </header>
   )
 }
