@@ -17,6 +17,7 @@ const SECCIONES_ADMIN = [
   { ruta: '/admin/servicios', nombre: 'Servicios' },
   { ruta: '/admin/profesionales', nombre: 'Profesionales' },
   { ruta: '/admin/clientes', nombre: 'Clientes' },
+  { ruta: '/admin/local', nombre: 'Local' },
 ]
 
 type Estado = { tipo: 'cargando' } | { tipo: 'error' } | { tipo: 'ok'; usuario: UsuarioPanel }

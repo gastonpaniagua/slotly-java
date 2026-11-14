@@ -75,3 +75,16 @@ export function variablesDeAcento(hex: string | null): Record<string, string> {
     '--accent-edge': contraste(acento, BLANCO) < 3 ? 'rgba(17, 24, 39, .18)' : aHex(acento),
   }
 }
+
+// HU-32 CA4: si con ese color de acento el texto de los botones no llega a contraste AA (4,5:1) ni en blanco ni en
+// oscuro, se le avisa al admin. El sitio igual oscurece el color cuando lo usa para texto; esto es para los botones.
+export function avisoDeContraste(hex: string): string | null {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    return null
+  }
+  const acento = aRgb(hex.toLowerCase())
+  const mejor = Math.max(contraste(acento, BLANCO), contraste(acento, TINTA))
+  return mejor >= 4.5
+    ? null
+    : 'Con este color, el texto de los botones va a costar leerse. Probá uno más oscuro o más claro.'
+}

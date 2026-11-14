@@ -1,6 +1,6 @@
 import { guardarEnElPanel, pedirDelPanel, subirArchivo, type ResultadoGuardar, type ResultadoPanel } from './panel'
 import type {
-  ClienteAdmin, ClienteConHistorial, FranjaHorario, HorarioGuardado, ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ServicioAdmin, ServicioPedido,
+  ClienteAdmin, ClienteConHistorial, ConfiguracionDelLocal, FranjaHorario, HorarioGuardado, ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ServicioAdmin, ServicioPedido,
   TurnoFuturo,
 } from './tipos'
 
@@ -82,4 +82,13 @@ export function verCliente(id: string): Promise<ResultadoPanel<ClienteConHistori
 // HU-34: anonimiza sus datos personales. Con turnos por delante, la API pide cancelarlos antes (TURNOS_FUTUROS).
 export function borrarDatosCliente(id: string): Promise<ResultadoGuardar<ClienteAdmin>> {
   return guardarEnElPanel(`/api/admin/clientes/${id}/borrar-datos`, 'POST')
+}
+
+// HU-32: datos, imagen, pago y reglas de turnos del local.
+export function verLocal(): Promise<ResultadoPanel<ConfiguracionDelLocal>> {
+  return pedirDelPanel<ConfiguracionDelLocal>('/api/admin/local')
+}
+
+export function guardarLocal(configuracion: ConfiguracionDelLocal): Promise<ResultadoGuardar<ConfiguracionDelLocal>> {
+  return guardarEnElPanel('/api/admin/local', 'PUT', configuracion)
 }

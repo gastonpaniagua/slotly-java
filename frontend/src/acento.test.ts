@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { variablesDeAcento } from './acento'
+import { avisoDeContraste, variablesDeAcento } from './acento'
 
 // Los valores esperados son los que entregó el diseño junto con accent.js.
 describe('variablesDeAcento', () => {
@@ -39,3 +39,20 @@ describe('variablesDeAcento', () => {
     expect(variablesDeAcento('rojo')['--accent']).toBe('#1f2937')
   })
 })
+
+describe('avisoDeContraste', () => {
+  it('HU-32 CA4: avisa si el texto de los botones no llega a contraste AA ni en blanco ni en oscuro', () => {
+    expect(avisoDeContraste('#ff0000')).toBe('Con este color, el texto de los botones va a costar leerse. Probá uno más oscuro o más claro.')
+  })
+
+  it('HU-32 CA4: un color oscuro (texto blanco) o uno claro (texto oscuro) no avisa', () => {
+    expect(avisoDeContraste('#2e7d32')).toBeNull()
+    expect(avisoDeContraste('#FFD54F')).toBeNull()
+  })
+
+  it('mientras el color no está completo, no avisa', () => {
+    expect(avisoDeContraste('#2e7')).toBeNull()
+    expect(avisoDeContraste('')).toBeNull()
+  })
+})
+
