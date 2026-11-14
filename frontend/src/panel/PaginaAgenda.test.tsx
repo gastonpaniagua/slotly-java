@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { borrarBloqueo, cancelarTurnoDelPanel, crearTurnoManual, moverTurno } from '../api/agenda'
+import { borrarBloqueo, cancelarTurnoDelPanel, crearTurnoManual, marcarAsistencia, moverTurno } from '../api/agenda'
 import { obtenerAgenda } from '../api/panel'
 import type { Agenda, FranjaDeAgenda, TurnoDeAgenda, UsuarioPanel } from '../api/tipos'
 import { sumarDias } from '../fechas'
@@ -13,6 +13,7 @@ import { ContextoSesion } from './sesion'
 vi.mock('../api/panel', () => ({ obtenerAgenda: vi.fn() }))
 vi.mock('../api/agenda', () => ({
   borrarBloqueo: vi.fn(), crearBloqueo: vi.fn(), crearTurnoManual: vi.fn(), moverTurno: vi.fn(), cancelarTurnoDelPanel: vi.fn(),
+  marcarAsistencia: vi.fn(),
 }))
 
 const HOY = '2026-11-17'   // martes
@@ -301,6 +302,39 @@ describe('Agenda', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar turno' }))
 
     await vi.waitFor(() => expect(crearTurnoManual).toHaveBeenCalledWith(expect.objectContaining({ profesional: 'bruno' })))
+  })
+
+  it('HU-30 CA1: un turno que ya empezó ofrece "Vino" y "No vino", y marcarlo recarga la agenda', async () => {
+    vi.mocked(marcarAsistencia).mockReset().mockResolvedValue({ estado: 'ok', datos: { id: 't1' } })
+    turnos = [unTurno({ id: 't1', inicio: `${HOY}T10:00`, fin: `${HOY}T10:30`, yaEmpezo: true })]
+    abrir(ANA)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Vino' }))
+
+    expect(await screen.findByText('Marcado: vino.')).toBeInTheDocument()
+    expect(marcarAsistencia).toHaveBeenCalledWith('t1', true)
+  })
+
+  it('HU-30 CA2: un turno que todavía no empezó no ofrece marcarlo', async () => {
+    turnos = [unTurno({ inicio: `${HOY}T18:00`, fin: `${HOY}T18:30`, yaEmpezo: false })]
+    abrir(ANA)
+
+    await screen.findByRole('button', { name: 'Mover' })
+    expect(screen.queryByRole('button', { name: 'Vino' })).not.toBeInTheDocument()
+  })
+
+  it('HU-30 CA3: una marca de hoy se puede corregir; una de otro día, no', async () => {
+    vi.mocked(marcarAsistencia).mockReset().mockResolvedValue({ estado: 'ok', datos: { id: 'hoy' } })
+    turnos = [
+      unTurno({ id: 'hoy', inicio: `${HOY}T10:00`, fin: `${HOY}T10:30`, estado: 'completado', yaEmpezo: true }),
+      unTurno({ id: 'ayer', inicio: '2026-11-16T10:00', fin: '2026-11-16T10:30', estado: 'ausente', yaEmpezo: true }),
+    ]
+    abrir(ANA, '/agenda?vista=semana&dia=2026-11-17')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Corregir: no vino' }))
+
+    await vi.waitFor(() => expect(marcarAsistencia).toHaveBeenCalledWith('hoy', false))
+    expect(screen.queryByRole('button', { name: 'Corregir: vino' })).not.toBeInTheDocument()
   })
 })
 

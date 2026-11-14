@@ -493,3 +493,34 @@
   margin-top: var(--space-2);
   font-size: var(--fs-small);
 }
+
+/* Clientes (HU-31 y HU-34) */
+.clientes__buscar {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.clientes__buscar input {
+  flex: 1;
+  min-height: var(--control-h);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.clientes__detalle {
+  flex: 1 1 100%;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.clientes__historial {
+  margin: var(--space-2) 0 var(--space-3);
+  padding-left: var(--space-5);
+  font-size: var(--fs-small);
+  color: var(--color-text-soft);
+}

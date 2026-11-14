@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { borrarBloqueo, cancelarTurnoDelPanel } from '../api/agenda'
+import { borrarBloqueo, cancelarTurnoDelPanel, marcarAsistencia } from '../api/agenda'
 import { obtenerAgenda, type ResultadoPanel } from '../api/panel'
 import type { Agenda, LocalPublico, ProfesionalDeAgenda, TurnoDeAgenda } from '../api/tipos'
 import { diasDeLaSemana, fechaLarga, lunesDe, sumarDias, textoDeLaSemana } from '../fechas'
@@ -114,6 +114,16 @@ function PaginaAgenda({ local }: { local: LocalPublico }) {
         setAvisoAccion('No pudimos cancelar el turno. Probá de nuevo.')
       }
     },
+    asistencia: async (id, vino) => {
+      const resultado = await marcarAsistencia(id, vino)
+      if (resultado.estado === 'ok') {
+        cambioHecho(vino ? 'Marcado: vino.' : 'Marcado: no vino.')
+      } else if (resultado.estado === 'sin-sesion') {
+        sesionPerdida()
+      } else {
+        setAvisoAccion(resultado.estado === 'error' && resultado.mensaje ? resultado.mensaje : 'No pudimos marcarlo. Probá de nuevo.')
+      }
+    },
     quitarBloqueo: async (id) => {
       const resultado = await borrarBloqueo(id)
       if (resultado.estado === 'ok') {
@@ -208,6 +218,7 @@ type AccionesDeLaAgenda = {
   agregarTurno: (fecha: string, profesional: ProfesionalDeAgenda) => void
   mover: (turno: TurnoDeAgenda) => void
   cancelarTurno: (id: string) => Promise<void>
+  asistencia: (id: string, vino: boolean) => Promise<void>
   quitarBloqueo: (id: string) => Promise<void>
 }
 
@@ -238,7 +249,9 @@ function ContenidoDeLaAgenda({ agenda, dias, profesionales, conTituloPorDia, acc
                 </p>
                 {/* HU-17 CA4: un día de trabajo sin turnos lo dice; no es un error. */}
                 {hayTurnos && (
-                  <ul className="agenda__lista">{items.map((item) => <Item key={claveDe(item)} item={item} acciones={acciones} />)}</ul>
+                  <ul className="agenda__lista">
+                    {items.map((item) => <Item key={claveDe(item)} item={item} acciones={acciones} hoy={agenda.hoy} />)}
+                  </ul>
                 )}
                 {!hayTurnos && franjas.length > 0 && <p className="agenda__vacio">Sin turnos</p>}
                 {/* HU-28: cargar un turno en esta agenda, ese día. */}
@@ -259,7 +272,7 @@ function claveDe(item: ItemDeAgenda): string {
 }
 
 // HU-17 CA1 y CA5: un turno con su cliente, servicios y estado; los bloqueos y las pausas, marcados distinto.
-function Item({ item, acciones }: { item: ItemDeAgenda; acciones: AccionesDeLaAgenda }) {
+function Item({ item, acciones, hoy }: { item: ItemDeAgenda; acciones: AccionesDeLaAgenda; hoy: string }) {
   const horas = item.desde === TODO_EL_DIA.desde && item.hasta === TODO_EL_DIA.hasta
     ? 'Todo el día'
     : `${item.desde} a ${item.hasta}`
@@ -290,12 +303,27 @@ function Item({ item, acciones }: { item: ItemDeAgenda; acciones: AccionesDeLaAg
         {turno.clienteTelefono && <a className="agenda__telefono" href={`tel:${turno.clienteTelefono}`}>{turno.clienteTelefono}</a>}
       </div>
       <span className={`agenda__estado agenda__estado--${turno.estado}`}>{textoDelEstado(turno.estado)}</span>
-      {turno.estado === 'confirmado' && (
-        <span className="agenda__accion">
-          <button type="button" className="link" onClick={() => acciones.mover(turno)}>Mover</button>{' '}
-          <CancelarTurno alCancelar={() => acciones.cancelarTurno(turno.id)} />
-        </span>
-      )}
+      <span className="agenda__accion">
+        {/* HU-30 CA1 y CA2: "vino / no vino" recién cuando el turno empezó. */}
+        {turno.estado === 'confirmado' && turno.yaEmpezo && (
+          <>
+            <button type="button" className="link" onClick={() => acciones.asistencia(turno.id, true)}>Vino</button>{' '}
+            <button type="button" className="link" onClick={() => acciones.asistencia(turno.id, false)}>No vino</button>{' '}
+          </>
+        )}
+        {/* HU-30 CA3: una marca equivocada se corrige el mismo día. */}
+        {(turno.estado === 'completado' || turno.estado === 'ausente') && turno.inicio.slice(0, 10) === hoy && (
+          <button type="button" className="link" onClick={() => acciones.asistencia(turno.id, turno.estado === 'ausente')}>
+            {turno.estado === 'completado' ? 'Corregir: no vino' : 'Corregir: vino'}
+          </button>
+        )}
+        {turno.estado === 'confirmado' && (
+          <>
+            <button type="button" className="link" onClick={() => acciones.mover(turno)}>Mover</button>{' '}
+            <CancelarTurno alCancelar={() => acciones.cancelarTurno(turno.id)} />
+          </>
+        )}
+      </span>
     </li>
   )
 }

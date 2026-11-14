@@ -1,6 +1,6 @@
 import { guardarEnElPanel, pedirDelPanel, subirArchivo, type ResultadoGuardar, type ResultadoPanel } from './panel'
 import type {
-  FranjaHorario, HorarioGuardado, ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ServicioAdmin, ServicioPedido,
+  ClienteAdmin, ClienteConHistorial, FranjaHorario, HorarioGuardado, ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ServicioAdmin, ServicioPedido,
   TurnoFuturo,
 } from './tipos'
 
@@ -67,4 +67,19 @@ export function verHorario(id: string): Promise<ResultadoPanel<FranjaHorario[]>>
 // Reemplaza el horario entero. La respuesta trae los turnos por delante que quedaron fuera del horario nuevo (CA3).
 export function guardarHorario(id: string, franjas: FranjaHorario[]): Promise<ResultadoGuardar<HorarioGuardado>> {
   return guardarEnElPanel(`/api/admin/profesionales/${id}/horario`, 'PUT', { franjas })
+}
+
+// HU-31: clientes con visitas, faltas y última visita; se busca por nombre o teléfono.
+export function listarClientes(buscar: string): Promise<ResultadoPanel<ClienteAdmin[]>> {
+  const parametros = buscar.trim() === '' ? '' : `?${new URLSearchParams({ buscar: buscar.trim() })}`
+  return pedirDelPanel<ClienteAdmin[]>(`/api/admin/clientes${parametros}`)
+}
+
+export function verCliente(id: string): Promise<ResultadoPanel<ClienteConHistorial>> {
+  return pedirDelPanel<ClienteConHistorial>(`/api/admin/clientes/${id}`)
+}
+
+// HU-34: anonimiza sus datos personales. Con turnos por delante, la API pide cancelarlos antes (TURNOS_FUTUROS).
+export function borrarDatosCliente(id: string): Promise<ResultadoGuardar<ClienteAdmin>> {
+  return guardarEnElPanel(`/api/admin/clientes/${id}/borrar-datos`, 'POST')
 }

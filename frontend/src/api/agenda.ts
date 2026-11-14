@@ -30,3 +30,8 @@ export function moverTurno(id: string, fecha: string, hora: string): Promise<Res
 export function cancelarTurnoDelPanel(id: string): Promise<ResultadoGuardar<TurnoGuardado>> {
   return guardarEnElPanel(`/api/panel/turnos/${id}/cancelar`, 'POST')
 }
+
+// HU-30: si el cliente vino (true) o no (false), en un turno que ya empezó. Se corrige el mismo día.
+export function marcarAsistencia(id: string, vino: boolean): Promise<ResultadoGuardar<TurnoGuardado>> {
+  return guardarEnElPanel(`/api/panel/turnos/${id}/asistencia`, 'POST', { vino })
+}
