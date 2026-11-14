@@ -158,6 +158,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/panel/turnos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Carga un turno manual: sin anticipación mínima ni límite de turnos del cliente (HU-28) */
+        post: operations["crearManual"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/panel/turnos/{id}/mover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mueve un turno a otro día u hora del mismo profesional (HU-29) */
+        post: operations["mover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/panel/turnos/{id}/cancelar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancela un turno desde la agenda, sin plazo (HU-29 CA3) */
+        post: operations["cancelar_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/panel/salir": {
         parameters: {
             query?: never;
@@ -737,6 +788,26 @@ export interface components {
             formaPago: string;
             consentimiento: boolean;
         };
+        TurnoManualRequest: {
+            profesional?: string | null;
+            /** Format: date */
+            fecha: string;
+            /** @example 10:30 */
+            hora: string;
+            servicioIds: string[];
+            clienteNombre: string;
+            clienteTelefono?: string | null;
+        };
+        TurnoGuardado: {
+            /** Format: uuid */
+            id: string;
+        };
+        MoverRequest: {
+            /** Format: date */
+            fecha: string;
+            /** @example 11:00 */
+            hora: string;
+        };
         IngresarRequest: {
             email: string;
             password: string;
@@ -1149,6 +1220,78 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TurnoPublico"];
+                };
+            };
+        };
+    };
+    crearManual: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TurnoManualRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TurnoGuardado"];
+                };
+            };
+        };
+    };
+    mover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoverRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TurnoGuardado"];
+                };
+            };
+        };
+    };
+    cancelar_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TurnoGuardado"];
                 };
             };
         };
