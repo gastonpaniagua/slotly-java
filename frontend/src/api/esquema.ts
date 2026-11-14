@@ -56,6 +56,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/local": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** La configuración del local: datos, imagen, pago y reglas de turnos (HU-32) */
+        get: operations["ver_1"];
+        /** Guarda la configuración del local; la web y las reservas nuevas la usan en el acto (HU-32) */
+        put: operations["guardar_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/publico/turnos/{id}/reprogramar": {
         parameters: {
             query?: never;
@@ -423,7 +441,7 @@ export interface paths {
             cookie?: never;
         };
         /** Un turno: la pantalla de confirmación y "Mi turno" (HU-10 CA7 y CA9, HU-19) */
-        get: operations["ver_1"];
+        get: operations["ver_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -525,7 +543,7 @@ export interface paths {
             cookie?: never;
         };
         /** Una imagen del local */
-        get: operations["ver_2"];
+        get: operations["ver_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -593,7 +611,7 @@ export interface paths {
             cookie?: never;
         };
         /** Turnos, bloqueos y horario de trabajo de 1 o 7 días (HU-17 y HU-18) */
-        get: operations["ver_3"];
+        get: operations["ver_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -660,7 +678,7 @@ export interface paths {
             cookie?: never;
         };
         /** Un cliente con su historial de turnos en el local, del más nuevo al más viejo (HU-31 CA2) */
-        get: operations["ver_4"];
+        get: operations["ver_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -753,6 +771,34 @@ export interface components {
             /** @example 2026-11-17T10:00 */
             inicio: string;
             clienteNombre: string | null;
+        };
+        ConfiguracionDelLocal: {
+            nombre: string;
+            descripcion?: string | null;
+            logoUrl?: string | null;
+            colorAcento?: string | null;
+            whatsapp?: string | null;
+            instagram?: string | null;
+            tiktok?: string | null;
+            facebook?: string | null;
+            direccion?: string | null;
+            ciudad?: string | null;
+            alias?: string | null;
+            titularCuenta?: string | null;
+            cbu?: string | null;
+            linkResena?: string | null;
+            /** Format: int32 */
+            intervaloMin: number;
+            /** Format: int32 */
+            limpiezaMin: number;
+            /** Format: int32 */
+            anticipacionMin: number;
+            /** Format: int32 */
+            topeDias: number;
+            /** Format: int32 */
+            cancelarHastaHoras: number;
+            /** Format: int32 */
+            maxTurnosFuturos: number;
         };
         ReprogramarRequest: {
             /** Format: date */
@@ -1170,6 +1216,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["HorarioGuardado"];
+                };
+            };
+        };
+    };
+    ver_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConfiguracionDelLocal"];
+                };
+            };
+        };
+    };
+    guardar_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfiguracionDelLocal"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConfiguracionDelLocal"];
                 };
             };
         };
@@ -1725,7 +1815,7 @@ export interface operations {
             };
         };
     };
-    ver_1: {
+    ver_2: {
         parameters: {
             query?: never;
             header?: {
@@ -1869,7 +1959,7 @@ export interface operations {
             };
         };
     };
-    ver_2: {
+    ver_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1960,7 +2050,7 @@ export interface operations {
             };
         };
     };
-    ver_3: {
+    ver_4: {
         parameters: {
             query: {
                 /** @description Primer día, en hora del local. Si falta, hoy */
@@ -2051,7 +2141,7 @@ export interface operations {
             };
         };
     };
-    ver_4: {
+    ver_5: {
         parameters: {
             query?: never;
             header?: never;
