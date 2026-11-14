@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { borrarBloqueo } from '../api/agenda'
 import { obtenerAgenda } from '../api/panel'
 import type { Agenda, FranjaDeAgenda, TurnoDeAgenda, UsuarioPanel } from '../api/tipos'
 import { sumarDias } from '../fechas'
@@ -10,6 +11,7 @@ import PaginaAgenda from './PaginaAgenda'
 import { ContextoSesion } from './sesion'
 
 vi.mock('../api/panel', () => ({ obtenerAgenda: vi.fn() }))
+vi.mock('../api/agenda', () => ({ borrarBloqueo: vi.fn(), crearBloqueo: vi.fn() }))
 
 const HOY = '2026-11-17'   // martes
 const ANA: UsuarioPanel = { email: 'ana@demo.com', rol: 'profesional', profesionalId: 'ana' }
@@ -193,5 +195,28 @@ describe('Agenda', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Probar de nuevo' }))
 
     expect(await screen.findByText('Sin turnos')).toBeInTheDocument()
+  })
+
+  it('HU-27 CA4: "Quitar" un bloqueo pide un "sí", lo borra y vuelve a pedir la agenda', async () => {
+    vi.mocked(borrarBloqueo).mockReset().mockResolvedValue({ estado: 'ok', datos: null })
+    turnos = [unTurno({ id: 'bloqueo-1', tipo: 'bloqueo', inicio: `${HOY}T17:00`, fin: `${HOY}T18:00`, clienteNombre: null })]
+    abrir(ANA)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Quitar' }))
+    expect(borrarBloqueo).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, quitar' }))
+
+    expect(await screen.findByText('Bloqueo quitado: esas horas vuelven a ofrecerse.')).toBeInTheDocument()
+    expect(borrarBloqueo).toHaveBeenCalledWith('bloqueo-1')
+    await vi.waitFor(() => expect(obtenerAgenda).toHaveBeenCalledTimes(2))
+  })
+
+  it('HU-27: "Bloquear" abre el formulario con el día que se está mirando', async () => {
+    abrir(ANA)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Bloquear' }))
+
+    expect(screen.getByRole('form', { name: 'Bloquear' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Desde')).toHaveValue(HOY)
   })
 })

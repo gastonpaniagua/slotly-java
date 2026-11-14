@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
+import { borrarBloqueo } from '../api/agenda'
 import { obtenerAgenda, type ResultadoPanel } from '../api/panel'
 import type { Agenda, ProfesionalDeAgenda } from '../api/tipos'
 import { diasDeLaSemana, fechaLarga, lunesDe, sumarDias, textoDeLaSemana } from '../fechas'
 import { franjasDelDia, itemsDelDia, textoDelEstado, textoDelHorario, TODO_EL_DIA, type ItemDeAgenda } from './agenda'
+import FormularioBloqueo from './FormularioBloqueo'
 import { useSesion } from './sesion'
 
 type Vista = 'dia' | 'semana'
@@ -19,6 +21,9 @@ function PaginaAgenda() {
   const diaPedido = parametros.get('dia')
   const filtro = parametros.get('profesional')
   const [intento, setIntento] = useState(0)
+  // HU-27: el formulario de bloqueo abierto.
+  const [bloqueando, setBloqueando] = useState(false)
+  const [avisoAccion, setAvisoAccion] = useState<string | null>(null)
 
   // Sin día en la dirección, la API devuelve la de hoy (el "hoy" lo decide el back con la zona del local).
   const desde = diaPedido === null ? null : vista === 'semana' ? lunesDe(diaPedido) : diaPedido
@@ -76,10 +81,30 @@ function PaginaAgenda() {
     }
   }, [hoyDeLaSemanaSinDia, setParametros])
 
+  // Lo que se puede hacer con cada cosa de la agenda. Después de cada cambio se vuelve a pedir la agenda.
+  const acciones: AccionesDeLaAgenda = {
+    quitarBloqueo: async (id) => {
+      const resultado = await borrarBloqueo(id)
+      if (resultado.estado === 'ok') {
+        setAvisoAccion('Bloqueo quitado: esas horas vuelven a ofrecerse.')
+        setIntento((n) => n + 1)
+      } else if (resultado.estado === 'sin-sesion') {
+        sesionPerdida()
+      } else {
+        setAvisoAccion('No pudimos quitar el bloqueo. Probá de nuevo.')
+      }
+    },
+  }
+
   return (
     <section className="agenda" aria-busy={resultado === null}>
       <div className="agenda__barra">
         <h1 className="panel__titulo">Agenda</h1>
+        {agenda && !bloqueando && (
+          <button type="button" className="btn btn-secondary" onClick={() => { setBloqueando(true); setAvisoAccion(null) }}>
+            Bloquear
+          </button>
+        )}
         <div className="agenda__vistas" role="group" aria-label="Vista">
           <button type="button" className="agenda__vista" aria-pressed={vista === 'dia'}
             onClick={() => cambiar({ vista: null })}>Día</button>
@@ -111,6 +136,16 @@ function PaginaAgenda() {
         )}
       </div>
 
+      {bloqueando && agenda && dia && (
+        <FormularioBloqueo
+          dia={dia}
+          profesionales={agenda.profesionales}
+          alGuardar={() => { setBloqueando(false); setAvisoAccion('Bloqueo guardado.'); setIntento((n) => n + 1) }}
+          alCancelar={() => setBloqueando(false)}
+        />
+      )}
+      {avisoAccion && <p className="reserva__aviso" role="status">{avisoAccion}</p>}
+
       {(resultado === null || hoyDeLaSemanaSinDia !== null) && (
         <p className="panel__texto" role="status">Cargando agenda…</p>
       )}
@@ -128,10 +163,16 @@ function PaginaAgenda() {
           dias={vista === 'semana' ? diasDeLaSemana(agenda.desde) : [agenda.desde]}
           profesionales={agenda.profesionales.filter((p) => filtro === null || p.id === filtro)}
           conTituloPorDia={vista === 'semana'}
+          acciones={acciones}
         />
       )}
     </section>
   )
+}
+
+// Las acciones sobre la agenda (Etapa 7). Cada paso suma la suya.
+type AccionesDeLaAgenda = {
+  quitarBloqueo: (id: string) => Promise<void>
 }
 
 type ContenidoProps = {
@@ -139,9 +180,10 @@ type ContenidoProps = {
   dias: string[]
   profesionales: ProfesionalDeAgenda[]
   conTituloPorDia: boolean
+  acciones: AccionesDeLaAgenda
 }
 
-function ContenidoDeLaAgenda({ agenda, dias, profesionales, conTituloPorDia }: ContenidoProps) {
+function ContenidoDeLaAgenda({ agenda, dias, profesionales, conTituloPorDia, acciones }: ContenidoProps) {
   const conNombre = profesionales.length > 1
   return (
     <div className="agenda__dias">
@@ -160,7 +202,7 @@ function ContenidoDeLaAgenda({ agenda, dias, profesionales, conTituloPorDia }: C
                 </p>
                 {/* HU-17 CA4: un día de trabajo sin turnos lo dice; no es un error. */}
                 {hayTurnos && (
-                  <ul className="agenda__lista">{items.map((item) => <Item key={claveDe(item)} item={item} />)}</ul>
+                  <ul className="agenda__lista">{items.map((item) => <Item key={claveDe(item)} item={item} acciones={acciones} />)}</ul>
                 )}
                 {!hayTurnos && franjas.length > 0 && <p className="agenda__vacio">Sin turnos</p>}
               </div>
@@ -177,7 +219,7 @@ function claveDe(item: ItemDeAgenda): string {
 }
 
 // HU-17 CA1 y CA5: un turno con su cliente, servicios y estado; los bloqueos y las pausas, marcados distinto.
-function Item({ item }: { item: ItemDeAgenda }) {
+function Item({ item, acciones }: { item: ItemDeAgenda; acciones: AccionesDeLaAgenda }) {
   const horas = item.desde === TODO_EL_DIA.desde && item.hasta === TODO_EL_DIA.hasta
     ? 'Todo el día'
     : `${item.desde} a ${item.hasta}`
@@ -195,6 +237,7 @@ function Item({ item }: { item: ItemDeAgenda }) {
       <li className="agenda__item agenda__item--bloqueo">
         <span className="agenda__horas">{horas}</span>
         <span className="agenda__titulo-item">Bloqueado{turno.motivo ? `: ${turno.motivo}` : ''}</span>
+        <QuitarBloqueo alQuitar={() => acciones.quitarBloqueo(turno.id)} />
       </li>
     )
   }
@@ -208,6 +251,21 @@ function Item({ item }: { item: ItemDeAgenda }) {
       </div>
       <span className={`agenda__estado agenda__estado--${turno.estado}`}>{textoDelEstado(turno.estado)}</span>
     </li>
+  )
+}
+
+// HU-27 CA4: quitar un bloqueo pide un "sí", para no borrarlo con un toque sin querer.
+function QuitarBloqueo({ alQuitar }: { alQuitar: () => Promise<void> }) {
+  const [confirmando, setConfirmando] = useState(false)
+  if (!confirmando) {
+    return <button type="button" className="link agenda__accion" onClick={() => setConfirmando(true)}>Quitar</button>
+  }
+  return (
+    <span className="agenda__accion">
+      ¿Quitar el bloqueo?{' '}
+      <button type="button" className="link" onClick={alQuitar}>Sí, quitar</button>{' '}
+      <button type="button" className="link" onClick={() => setConfirmando(false)}>No</button>
+    </span>
   )
 }
 

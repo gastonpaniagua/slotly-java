@@ -100,7 +100,9 @@ export type ResultadoGuardar<T> =
   | { estado: 'validacion'; errores: Record<string, string>; mensaje: string }
   | { estado: 'sin-sesion' }
   | { estado: 'sin-permiso' }
-  | { estado: 'error'; mensaje?: string }
+  // codigo y problema: el error completo, para los casos que traen datos (por ejemplo, la lista de turnos que
+  // impiden un bloqueo, HU-27 CA2).
+  | { estado: 'error'; mensaje?: string; codigo?: string; problema?: Record<string, unknown> }
 
 export async function guardarEnElPanel<T>(url: string, metodo: 'POST' | 'PUT' | 'DELETE', cuerpo?: unknown): Promise<ResultadoGuardar<T>> {
   const respuesta = await enviar(url, cuerpo, metodo)
@@ -125,7 +127,7 @@ export async function guardarEnElPanel<T>(url: string, metodo: 'POST' | 'PUT' | 
       mensaje: problema.detail ?? 'Revisá los datos marcados.',
     }
   }
-  return { estado: 'error', mensaje: problema?.detail }
+  return { estado: 'error', mensaje: problema?.detail, codigo: problema?.codigo, problema: problema ?? undefined }
 }
 
 // Sube un archivo (multipart) con el token CSRF, para las imágenes del local (D10). Un 413 es un archivo enorme

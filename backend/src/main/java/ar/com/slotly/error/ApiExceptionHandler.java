@@ -27,6 +27,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarSlotly(SlotlyException e) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(e.getEstado(), e.getMessage());
         problema.setProperty("codigo", e.getCodigo());
+        e.getPropiedades().forEach(problema::setProperty);
         ResponseEntity.BodyBuilder respuesta = ResponseEntity.status(e.getEstado());
         // Un 429 dice cuándo se puede volver a probar (HU-16 CA3).
         if (e instanceof DemasiadosIntentosException demasiados) {

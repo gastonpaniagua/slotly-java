@@ -192,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/panel/bloqueos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bloquea un rango de un profesional o de todo el local (HU-27) */
+        post: operations["crear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/servicios": {
         parameters: {
             query?: never;
@@ -203,7 +220,7 @@ export interface paths {
         get: operations["listar"];
         put?: never;
         /** Crea un servicio; queda último en el orden (HU-24 CA1) */
-        post: operations["crear"];
+        post: operations["crear_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -238,7 +255,7 @@ export interface paths {
         get: operations["listar_1"];
         put?: never;
         /** Da de alta un profesional con sus servicios; aparece en la reserva para esos servicios (HU-25 CA1) */
-        post: operations["crear_1"];
+        post: operations["crear_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -533,6 +550,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/panel/bloqueos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Borra un bloqueo (HU-27 CA4) */
+        delete: operations["borrar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -712,6 +746,18 @@ export interface components {
             rol: string;
             /** Format: uuid */
             profesionalId: string | null;
+        };
+        BloqueoRequest: {
+            /** @description Id del profesional o "todos" (solo el admin). Si falta, el del usuario */
+            profesional?: string | null;
+            /** @example 2026-11-17T10:00 */
+            desde: string;
+            /** @example 2026-11-17T13:00 */
+            hasta: string;
+            motivo?: string | null;
+        };
+        BloqueosCreados: {
+            ids: string[];
         };
         OrdenRequest: {
             ids: string[];
@@ -1149,6 +1195,30 @@ export interface operations {
             };
         };
     };
+    crear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BloqueoRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BloqueosCreados"];
+                };
+            };
+        };
+    };
     listar: {
         parameters: {
             query?: never;
@@ -1169,7 +1239,7 @@ export interface operations {
             };
         };
     };
-    crear: {
+    crear_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1237,7 +1307,7 @@ export interface operations {
             };
         };
     };
-    crear_1: {
+    crear_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1663,6 +1733,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["TurnoFuturo"][];
                 };
+            };
+        };
+    };
+    borrar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
