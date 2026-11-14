@@ -1,28 +1,35 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { borrarBloqueo } from '../api/agenda'
+import { borrarBloqueo, cancelarTurnoDelPanel } from '../api/agenda'
 import { obtenerAgenda, type ResultadoPanel } from '../api/panel'
-import type { Agenda, ProfesionalDeAgenda } from '../api/tipos'
+import type { Agenda, LocalPublico, ProfesionalDeAgenda, TurnoDeAgenda } from '../api/tipos'
 import { diasDeLaSemana, fechaLarga, lunesDe, sumarDias, textoDeLaSemana } from '../fechas'
 import { franjasDelDia, itemsDelDia, textoDelEstado, textoDelHorario, TODO_EL_DIA, type ItemDeAgenda } from './agenda'
 import FormularioBloqueo from './FormularioBloqueo'
+import FormularioMover from './FormularioMover'
+import FormularioTurnoManual from './FormularioTurnoManual'
 import { useSesion } from './sesion'
 
 type Vista = 'dia' | 'semana'
 
+// El formulario abierto arriba de la agenda (uno por vez): bloquear (HU-27), turno manual (HU-28) o mover (HU-29).
+type Formulario =
+  | { tipo: 'bloqueo' }
+  | { tipo: 'manual'; fecha: string; profesional: ProfesionalDeAgenda }
+  | { tipo: 'mover'; turno: TurnoDeAgenda }
+
 // La agenda del panel (HU-17 y HU-18). Lo que se está mirando vive en la dirección
 // (/agenda?vista=semana&dia=2026-11-17&profesional=…): recargar, o volver después del login (HU-16 CA6),
 // muestra lo mismo.
-function PaginaAgenda() {
+function PaginaAgenda({ local }: { local: LocalPublico }) {
   const { usuario, sesionPerdida } = useSesion()
   const [parametros, setParametros] = useSearchParams()
   const vista: Vista = parametros.get('vista') === 'semana' ? 'semana' : 'dia'
   const diaPedido = parametros.get('dia')
   const filtro = parametros.get('profesional')
   const [intento, setIntento] = useState(0)
-  // HU-27: el formulario de bloqueo abierto.
-  const [bloqueando, setBloqueando] = useState(false)
+  const [formulario, setFormulario] = useState<Formulario | null>(null)
   const [avisoAccion, setAvisoAccion] = useState<string | null>(null)
 
   // Sin día en la dirección, la API devuelve la de hoy (el "hoy" lo decide el back con la zona del local).
@@ -81,8 +88,32 @@ function PaginaAgenda() {
     }
   }, [hoyDeLaSemanaSinDia, setParametros])
 
-  // Lo que se puede hacer con cada cosa de la agenda. Después de cada cambio se vuelve a pedir la agenda.
+  // Después de cada cambio: se cierra el formulario, se avisa y se vuelve a pedir la agenda.
+  function cambioHecho(aviso: string) {
+    setFormulario(null)
+    setAvisoAccion(aviso)
+    setIntento((n) => n + 1)
+  }
+
+  function abrir(nuevo: Formulario) {
+    setFormulario(nuevo)
+    setAvisoAccion(null)
+  }
+
+  // Lo que se puede hacer con cada cosa de la agenda.
   const acciones: AccionesDeLaAgenda = {
+    agregarTurno: (fecha, profesional) => abrir({ tipo: 'manual', fecha, profesional }),
+    mover: (turno) => abrir({ tipo: 'mover', turno }),
+    cancelarTurno: async (id) => {
+      const resultado = await cancelarTurnoDelPanel(id)
+      if (resultado.estado === 'ok') {
+        cambioHecho('Turno cancelado: el horario quedó libre.')
+      } else if (resultado.estado === 'sin-sesion') {
+        sesionPerdida()
+      } else {
+        setAvisoAccion('No pudimos cancelar el turno. Probá de nuevo.')
+      }
+    },
     quitarBloqueo: async (id) => {
       const resultado = await borrarBloqueo(id)
       if (resultado.estado === 'ok') {
@@ -100,10 +131,8 @@ function PaginaAgenda() {
     <section className="agenda" aria-busy={resultado === null}>
       <div className="agenda__barra">
         <h1 className="panel__titulo">Agenda</h1>
-        {agenda && !bloqueando && (
-          <button type="button" className="btn btn-secondary" onClick={() => { setBloqueando(true); setAvisoAccion(null) }}>
-            Bloquear
-          </button>
+        {agenda && formulario === null && (
+          <button type="button" className="btn btn-secondary" onClick={() => abrir({ tipo: 'bloqueo' })}>Bloquear</button>
         )}
         <div className="agenda__vistas" role="group" aria-label="Vista">
           <button type="button" className="agenda__vista" aria-pressed={vista === 'dia'}
@@ -136,13 +165,17 @@ function PaginaAgenda() {
         )}
       </div>
 
-      {bloqueando && agenda && dia && (
-        <FormularioBloqueo
-          dia={dia}
-          profesionales={agenda.profesionales}
-          alGuardar={() => { setBloqueando(false); setAvisoAccion('Bloqueo guardado.'); setIntento((n) => n + 1) }}
-          alCancelar={() => setBloqueando(false)}
-        />
+      {formulario?.tipo === 'bloqueo' && agenda && dia && (
+        <FormularioBloqueo dia={dia} profesionales={agenda.profesionales}
+          alGuardar={() => cambioHecho('Bloqueo guardado.')} alCancelar={() => setFormulario(null)} />
+      )}
+      {formulario?.tipo === 'manual' && (
+        <FormularioTurnoManual fecha={formulario.fecha} profesional={formulario.profesional} servicios={local.servicios}
+          alGuardar={() => cambioHecho('Turno guardado.')} alCancelar={() => setFormulario(null)} />
+      )}
+      {formulario?.tipo === 'mover' && (
+        <FormularioMover turno={formulario.turno}
+          alGuardar={() => cambioHecho('Turno movido.')} alCancelar={() => setFormulario(null)} />
       )}
       {avisoAccion && <p className="reserva__aviso" role="status">{avisoAccion}</p>}
 
@@ -172,6 +205,9 @@ function PaginaAgenda() {
 
 // Las acciones sobre la agenda (Etapa 7). Cada paso suma la suya.
 type AccionesDeLaAgenda = {
+  agregarTurno: (fecha: string, profesional: ProfesionalDeAgenda) => void
+  mover: (turno: TurnoDeAgenda) => void
+  cancelarTurno: (id: string) => Promise<void>
   quitarBloqueo: (id: string) => Promise<void>
 }
 
@@ -205,6 +241,10 @@ function ContenidoDeLaAgenda({ agenda, dias, profesionales, conTituloPorDia, acc
                   <ul className="agenda__lista">{items.map((item) => <Item key={claveDe(item)} item={item} acciones={acciones} />)}</ul>
                 )}
                 {!hayTurnos && franjas.length > 0 && <p className="agenda__vacio">Sin turnos</p>}
+                {/* HU-28: cargar un turno en esta agenda, ese día. */}
+                <button type="button" className="link agenda__agregar"
+                  aria-label={`Agregar turno con ${profesional.nombre} el ${fechaLarga(fecha)}`}
+                  onClick={() => acciones.agregarTurno(fecha, profesional)}>+ Agregar turno</button>
               </div>
             )
           })}
@@ -250,7 +290,28 @@ function Item({ item, acciones }: { item: ItemDeAgenda; acciones: AccionesDeLaAg
         {turno.clienteTelefono && <a className="agenda__telefono" href={`tel:${turno.clienteTelefono}`}>{turno.clienteTelefono}</a>}
       </div>
       <span className={`agenda__estado agenda__estado--${turno.estado}`}>{textoDelEstado(turno.estado)}</span>
+      {turno.estado === 'confirmado' && (
+        <span className="agenda__accion">
+          <button type="button" className="link" onClick={() => acciones.mover(turno)}>Mover</button>{' '}
+          <CancelarTurno alCancelar={() => acciones.cancelarTurno(turno.id)} />
+        </span>
+      )}
     </li>
+  )
+}
+
+// HU-29 CA3: cancelar desde el panel (sin plazo) pide un "sí".
+function CancelarTurno({ alCancelar }: { alCancelar: () => Promise<void> }) {
+  const [confirmando, setConfirmando] = useState(false)
+  if (!confirmando) {
+    return <button type="button" className="link" onClick={() => setConfirmando(true)}>Cancelar</button>
+  }
+  return (
+    <span>
+      ¿Cancelar el turno?{' '}
+      <button type="button" className="link" onClick={alCancelar}>Sí, cancelar</button>{' '}
+      <button type="button" className="link" onClick={() => setConfirmando(false)}>No</button>
+    </span>
   )
 }
 

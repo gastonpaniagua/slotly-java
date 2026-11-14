@@ -48,7 +48,7 @@ function SitioDelLocal({ local }: Props) {
         {/* Panel (Etapa 5): el login y, con sesión, la agenda. */}
         <Route path="ingresar" element={<PaginaIngresar local={local} />} />
         <Route element={<PanelConSesion local={local} />}>
-          <Route path="agenda" element={<PaginaAgenda />} />
+          <Route path="agenda" element={<PaginaAgenda local={local} />} />
           {/* Gestión del local (Etapa 7): solo el admin. */}
           <Route path="admin/servicios" element={<SoloAdmin><PaginaServicios /></SoloAdmin>} />
           <Route path="admin/profesionales" element={<SoloAdmin><PaginaProfesionales /></SoloAdmin>} />

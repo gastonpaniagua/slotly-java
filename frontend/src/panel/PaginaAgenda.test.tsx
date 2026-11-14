@@ -2,20 +2,24 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { borrarBloqueo } from '../api/agenda'
+import { borrarBloqueo, cancelarTurnoDelPanel, crearTurnoManual, moverTurno } from '../api/agenda'
 import { obtenerAgenda } from '../api/panel'
 import type { Agenda, FranjaDeAgenda, TurnoDeAgenda, UsuarioPanel } from '../api/tipos'
 import { sumarDias } from '../fechas'
-import { unTurno } from '../test/datos'
+import { unLocal, unServicio, unTurno } from '../test/datos'
 import PaginaAgenda from './PaginaAgenda'
 import { ContextoSesion } from './sesion'
 
 vi.mock('../api/panel', () => ({ obtenerAgenda: vi.fn() }))
-vi.mock('../api/agenda', () => ({ borrarBloqueo: vi.fn(), crearBloqueo: vi.fn() }))
+vi.mock('../api/agenda', () => ({
+  borrarBloqueo: vi.fn(), crearBloqueo: vi.fn(), crearTurnoManual: vi.fn(), moverTurno: vi.fn(), cancelarTurnoDelPanel: vi.fn(),
+}))
 
 const HOY = '2026-11-17'   // martes
 const ANA: UsuarioPanel = { email: 'ana@demo.com', rol: 'profesional', profesionalId: 'ana' }
 const DUENIO: UsuarioPanel = { email: 'duenio@demo.com', rol: 'admin', profesionalId: null }
+
+const LOCAL = unLocal({ servicios: [unServicio({ id: 'corte', nombre: 'Corte' }), unServicio({ id: 'barba', nombre: 'Barba' })] })
 
 let turnos: TurnoDeAgenda[]
 let franjas: FranjaDeAgenda[]
@@ -43,7 +47,7 @@ function abrir(usuario: UsuarioPanel, ruta = '/agenda', sesionPerdida = vi.fn())
     <ContextoSesion.Provider value={{ usuario, sesionPerdida }}>
       <MemoryRouter initialEntries={[ruta]}>
         <Routes>
-          <Route path="/agenda" element={<PaginaAgenda />} />
+          <Route path="/agenda" element={<PaginaAgenda local={LOCAL} />} />
         </Routes>
       </MemoryRouter>
     </ContextoSesion.Provider>,
@@ -219,4 +223,84 @@ describe('Agenda', () => {
     expect(screen.getByRole('form', { name: 'Bloquear' })).toBeInTheDocument()
     expect(screen.getByLabelText('Desde')).toHaveValue(HOY)
   })
+
+  it('HU-28 CA1: "+ Agregar turno" carga un turno manual en esa agenda y ese día, con teléfono opcional', async () => {
+    vi.mocked(crearTurnoManual).mockReset().mockResolvedValue({ estado: 'ok', datos: { id: 'nuevo' } })
+    abrir(ANA)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar turno con Ana el martes 17 de noviembre' }))
+    const formulario = screen.getByRole('form', { name: 'Nuevo turno con Ana' })
+    fireEvent.change(within(formulario).getByLabelText('Hora'), { target: { value: '11:30' } })
+    fireEvent.click(within(formulario).getByRole('checkbox', { name: 'Barba' }))
+    fireEvent.change(within(formulario).getByLabelText('Nombre del cliente'), { target: { value: 'Pedro' } })
+    fireEvent.click(within(formulario).getByRole('button', { name: 'Guardar turno' }))
+
+    expect(await screen.findByText('Turno guardado.')).toBeInTheDocument()
+    expect(crearTurnoManual).toHaveBeenCalledWith({
+      profesional: null, fecha: HOY, hora: '11:30', servicioIds: ['barba'], clienteNombre: 'Pedro', clienteTelefono: null,
+    })
+  })
+
+  it('HU-28 CA2: si el hueco está ocupado, lo dice y el formulario queda abierto', async () => {
+    vi.mocked(crearTurnoManual).mockReset().mockResolvedValue({
+      estado: 'error', codigo: 'HORARIO_OCUPADO', mensaje: 'Ese horario se pisa con otro turno o un bloqueo.',
+    })
+    abrir(ANA)
+    fireEvent.click(await screen.findByRole('button', { name: /Agregar turno con Ana/ }))
+    fireEvent.change(screen.getByLabelText('Nombre del cliente'), { target: { value: 'Pedro' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar turno' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ese horario se pisa con otro turno o un bloqueo.')
+    expect(screen.getByRole('form', { name: 'Nuevo turno con Ana' })).toBeInTheDocument()
+  })
+
+  it('HU-29 CA1: "Mover" lleva el turno al día y la hora nuevos', async () => {
+    vi.mocked(moverTurno).mockReset().mockResolvedValue({ estado: 'ok', datos: { id: 't1' } })
+    turnos = [unTurno({ id: 't1', inicio: `${HOY}T10:00`, fin: `${HOY}T10:30`, clienteNombre: 'Lucía' })]
+    abrir(ANA)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Mover' }))
+    const formulario = screen.getByRole('form', { name: 'Mover el turno de Lucía' })
+    expect(within(formulario).getByLabelText('Hora nueva')).toHaveValue('10:00')
+    fireEvent.change(within(formulario).getByLabelText('Hora nueva'), { target: { value: '12:00' } })
+    fireEvent.click(within(formulario).getByRole('button', { name: 'Mover' }))
+
+    expect(await screen.findByText('Turno movido.')).toBeInTheDocument()
+    expect(moverTurno).toHaveBeenCalledWith('t1', HOY, '12:00')
+  })
+
+  it('HU-29 CA3: "Cancelar" pide un "sí" y cancela el turno', async () => {
+    vi.mocked(cancelarTurnoDelPanel).mockReset().mockResolvedValue({ estado: 'ok', datos: { id: 't1' } })
+    turnos = [unTurno({ id: 't1', inicio: `${HOY}T10:00`, fin: `${HOY}T10:30` })]
+    abrir(ANA)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }))
+    expect(cancelarTurnoDelPanel).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, cancelar' }))
+
+    expect(await screen.findByText('Turno cancelado: el horario quedó libre.')).toBeInTheDocument()
+    expect(cancelarTurnoDelPanel).toHaveBeenCalledWith('t1')
+  })
+
+  it('HU-29: un turno que ya no está confirmado no ofrece mover ni cancelar', async () => {
+    turnos = [unTurno({ estado: 'completado' })]
+    abrir(ANA)
+
+    await screen.findByText('Vino')
+    expect(screen.queryByRole('button', { name: 'Mover' })).not.toBeInTheDocument()
+  })
+
+  it('HU-28: el admin carga el turno en la agenda del profesional que tocó', async () => {
+    vi.mocked(crearTurnoManual).mockReset().mockResolvedValue({ estado: 'ok', datos: { id: 'nuevo' } })
+    profesionales = [{ id: 'ana', nombre: 'Ana' }, { id: 'bruno', nombre: 'Bruno' }]
+    abrir(DUENIO)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar turno con Bruno el martes 17 de noviembre' }))
+    fireEvent.change(screen.getByLabelText('Nombre del cliente'), { target: { value: 'Pedro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar turno' }))
+
+    await vi.waitFor(() => expect(crearTurnoManual).toHaveBeenCalledWith(expect.objectContaining({ profesional: 'bruno' })))
+  })
 })
+

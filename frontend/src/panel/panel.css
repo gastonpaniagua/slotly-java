@@ -487,3 +487,9 @@
   margin-left: auto;
   font-size: var(--fs-small);
 }
+
+/* Turno manual, mover y cancelar (HU-28 y HU-29) */
+.agenda__agregar {
+  margin-top: var(--space-2);
+  font-size: var(--fs-small);
+}
