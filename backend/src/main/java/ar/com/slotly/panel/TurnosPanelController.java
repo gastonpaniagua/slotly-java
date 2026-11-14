@@ -82,6 +82,9 @@ class TurnosPanelController {
     record TurnoGuardado(UUID id) {
     }
 
+    record AsistenciaRequest(@NotNull(message = "Elegí si vino o no.") Boolean vino) {
+    }
+
     @PostMapping("/api/panel/turnos")
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
@@ -160,6 +163,35 @@ class TurnosPanelController {
             throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "Solo se puede cancelar un turno confirmado.");
         }
         jdbc.update("UPDATE turno SET estado = 'cancelado' WHERE id = ?", id);
+        return new TurnoGuardado(id);
+    }
+
+    // HU-30: marca si el cliente vino (completado) o no (ausente). Las visitas y faltas del cliente se cuentan de los
+    // turnos (doc 03), así que cambiar el estado ya actualiza su contador (CA1).
+    @PostMapping("/api/panel/turnos/{id}/asistencia")
+    @Transactional
+    @Operation(summary = "Marca si el cliente vino o no a un turno que ya empezó (HU-30)")
+    TurnoGuardado marcarAsistencia(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
+            @AuthenticationPrincipal UsuarioSesion usuario, @PathVariable UUID id, @Valid @RequestBody AsistenciaRequest pedido) {
+        Local local = localResolver.resolver(host);
+        Map<String, Object> turno = bloquear(local, usuario, id);
+        String estado = (String) turno.get("estado");
+        Instant inicio = ((Timestamp) turno.get("inicio")).toInstant();
+        Instant ahora = reloj.instant();
+        // CA2: antes de que empiece, no se sabe si viene.
+        if (ahora.isBefore(inicio)) {
+            throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "El turno todavía no empezó.");
+        }
+        boolean yaMarcado = "completado".equals(estado) || "ausente".equals(estado);
+        if (!"confirmado".equals(estado) && !yaMarcado) {
+            throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "Solo se marca un turno confirmado.");
+        }
+        // CA3: una marca equivocada se corrige el mismo día del turno (en hora del local); después queda como está.
+        ZoneId zona = ZoneId.of(local.getZonaHoraria());
+        if (yaMarcado && !LocalDate.ofInstant(inicio, zona).equals(LocalDate.ofInstant(ahora, zona))) {
+            throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "Solo se puede corregir el mismo día del turno.");
+        }
+        jdbc.update("UPDATE turno SET estado = ? WHERE id = ?", pedido.vino() ? "completado" : "ausente", id);
         return new TurnoGuardado(id);
     }
 

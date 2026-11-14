@@ -48,6 +48,7 @@ export function unTurno(datos: Partial<TurnoDeAgenda> = {}): TurnoDeAgenda {
     formaPago: 'efectivo',
     nota: null,
     motivo: null,
+    yaEmpezo: false,
     ...datos,
   }
 }

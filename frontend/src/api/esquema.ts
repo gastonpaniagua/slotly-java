@@ -209,6 +209,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/panel/turnos/{id}/asistencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca si el cliente vino o no a un turno que ya empezó (HU-30) */
+        post: operations["marcarAsistencia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/panel/salir": {
         parameters: {
             query?: never;
@@ -375,6 +392,23 @@ export interface paths {
         put?: never;
         /** Sube una imagen PNG, JPG o WebP de hasta 500 KB y devuelve su URL pública (D10) */
         post: operations["subir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/clientes/{id}/borrar-datos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Anonimiza los datos personales de un cliente sin turnos por delante (HU-34) */
+        post: operations["borrarDatos"];
         delete?: never;
         options?: never;
         head?: never;
@@ -601,6 +635,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/clientes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Clientes del local con visitas, faltas y última visita; se busca por nombre o teléfono (HU-31 CA1) */
+        get: operations["listar_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/clientes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un cliente con su historial de turnos en el local, del más nuevo al más viejo (HU-31 CA2) */
+        get: operations["ver_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/panel/bloqueos/{id}": {
         parameters: {
             query?: never;
@@ -808,6 +876,9 @@ export interface components {
             /** @example 11:00 */
             hora: string;
         };
+        AsistenciaRequest: {
+            vino: boolean;
+        };
         IngresarRequest: {
             email: string;
             password: string;
@@ -844,6 +915,21 @@ export interface components {
             /** Format: uuid */
             id: string;
             url: string;
+        };
+        ClienteAdmin: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            telefono: string | null;
+            email: string | null;
+            /** Format: int32 */
+            visitas: number;
+            /** Format: int32 */
+            faltas: number;
+            /** Format: date */
+            ultimaVisita: string | null;
+            /** Format: int32 */
+            turnosFuturos: number;
         };
         HorasResponse: {
             /** Format: date */
@@ -958,10 +1044,26 @@ export interface components {
             formaPago: string | null;
             nota: string | null;
             motivo: string | null;
+            yaEmpezo: boolean;
         };
         HealthResponse: {
             estado: string;
             baseDeDatos: string;
+        };
+        ClienteConHistorial: {
+            cliente: components["schemas"]["ClienteAdmin"];
+            turnos: components["schemas"]["TurnoDelHistorial"][];
+        };
+        TurnoDelHistorial: {
+            /** Format: uuid */
+            id: string;
+            /** @example 2026-11-17T10:00 */
+            inicio: string;
+            estado: string;
+            profesionalNombre: string;
+            servicios: string[];
+            /** Format: int32 */
+            precioTotal: number;
         };
     };
     responses: never;
@@ -1296,6 +1398,32 @@ export interface operations {
             };
         };
     };
+    marcarAsistencia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AsistenciaRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TurnoGuardado"];
+                };
+            };
+        };
+    };
     salir: {
         parameters: {
             query?: never;
@@ -1571,6 +1699,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ImagenSubida"];
+                };
+            };
+        };
+    };
+    borrarDatos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClienteAdmin"];
                 };
             };
         };
@@ -1875,6 +2025,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TurnoFuturo"][];
+                };
+            };
+        };
+    };
+    listar_2: {
+        parameters: {
+            query?: {
+                buscar?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClienteAdmin"][];
+                };
+            };
+        };
+    };
+    ver_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClienteConHistorial"];
                 };
             };
         };

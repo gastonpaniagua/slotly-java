@@ -69,7 +69,9 @@ class AgendaService {
             List<String> servicios,
             @Schema(types = {"string", "null"}) String formaPago,
             @Schema(types = {"string", "null"}) String nota,
-            @Schema(types = {"string", "null"}) String motivo) {
+            @Schema(types = {"string", "null"}) String motivo,
+            // Si ya empezó: recién ahí se puede marcar si vino (HU-30 CA2).
+            boolean yaEmpezo) {
     }
 
     // hoy: el día de hoy en la zona del local (el front no lo calcula con el reloj del navegador).
@@ -168,11 +170,11 @@ class AgendaService {
                   AND t.fin > ?
                 ORDER BY t.inicio, t.profesional_id
                 """,
-                (fila, n) -> turno(fila, zona),
+                (fila, n) -> turno(fila, zona, reloj.instant()),
                 local.getId(), ids.toArray(UUID[]::new), Timestamp.from(hasta), Timestamp.from(desde));
     }
 
-    private static TurnoDeAgenda turno(ResultSet fila, ZoneId zona) throws SQLException {
+    private static TurnoDeAgenda turno(ResultSet fila, ZoneId zona, Instant ahora) throws SQLException {
         Array servicios = fila.getArray("servicios");
         return new TurnoDeAgenda(
                 fila.getObject("id", UUID.class),
@@ -186,6 +188,7 @@ class AgendaService {
                 Arrays.asList((String[]) servicios.getArray()),
                 fila.getString("forma_pago"),
                 fila.getString("nota"),
-                fila.getString("motivo"));
+                fila.getString("motivo"),
+                !fila.getTimestamp("inicio").toInstant().isAfter(ahora));
     }
 }
