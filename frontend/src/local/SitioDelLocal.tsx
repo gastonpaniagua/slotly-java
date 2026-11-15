@@ -9,6 +9,7 @@ import PaginaIngresar from '../panel/PaginaIngresar'
 import PaginaClientes from '../panel/PaginaClientes'
 import PaginaLocal from '../panel/PaginaLocal'
 import PaginaProfesionales from '../panel/PaginaProfesionales'
+import PaginaResumen from '../panel/PaginaResumen'
 import PaginaServicios from '../panel/PaginaServicios'
 import PanelConSesion from '../panel/PanelConSesion'
 import SoloAdmin from '../panel/SoloAdmin'
@@ -56,6 +57,7 @@ function SitioDelLocal({ local }: Props) {
           <Route path="admin/profesionales" element={<SoloAdmin><PaginaProfesionales /></SoloAdmin>} />
           <Route path="admin/clientes" element={<SoloAdmin><PaginaClientes /></SoloAdmin>} />
           <Route path="admin/local" element={<SoloAdmin><PaginaLocal /></SoloAdmin>} />
+          <Route path="admin/resumen" element={<SoloAdmin><PaginaResumen /></SoloAdmin>} />
         </Route>
         {/* Cualquier otra dirección vuelve a la home del local. */}
         <Route path="*" element={<Navigate to="/" replace />} />

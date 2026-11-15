@@ -1,6 +1,6 @@
 import { guardarEnElPanel, pedirDelPanel, subirArchivo, type ResultadoGuardar, type ResultadoPanel } from './panel'
 import type {
-  ClienteAdmin, ClienteConHistorial, ConfiguracionDelLocal, FranjaHorario, HorarioGuardado, ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ServicioAdmin, ServicioPedido,
+  ClienteAdmin, ClienteConHistorial, ConfiguracionDelLocal, FranjaHorario, HorarioGuardado, ImagenSubida, ProfesionalAdmin, ProfesionalPedido, ResumenDeLaSemana, ServicioAdmin, ServicioPedido,
   TurnoFuturo,
 } from './tipos'
 
@@ -91,4 +91,9 @@ export function verLocal(): Promise<ResultadoPanel<ConfiguracionDelLocal>> {
 
 export function guardarLocal(configuracion: ConfiguracionDelLocal): Promise<ResultadoGuardar<ConfiguracionDelLocal>> {
   return guardarEnElPanel('/api/admin/local', 'PUT', configuracion)
+}
+
+// HU-33: turnos de hoy y de la semana, ingresos estimados y faltas.
+export function verResumen(): Promise<ResultadoPanel<ResumenDeLaSemana>> {
+  return pedirDelPanel<ResumenDeLaSemana>('/api/admin/resumen')
 }

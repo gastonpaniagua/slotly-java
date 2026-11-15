@@ -11,13 +11,14 @@ type Props = {
   local: LocalPublico
 }
 
-// Las secciones del admin. Se suman a medida que se hacen (Etapa 7).
+// Las secciones del admin (Etapa 7).
 const SECCIONES_ADMIN = [
   { ruta: '/agenda', nombre: 'Agenda' },
   { ruta: '/admin/servicios', nombre: 'Servicios' },
   { ruta: '/admin/profesionales', nombre: 'Profesionales' },
   { ruta: '/admin/clientes', nombre: 'Clientes' },
   { ruta: '/admin/local', nombre: 'Local' },
+  { ruta: '/admin/resumen', nombre: 'Resumen' },
 ]
 
 type Estado = { tipo: 'cargando' } | { tipo: 'error' } | { tipo: 'ok'; usuario: UsuarioPanel }

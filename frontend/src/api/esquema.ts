@@ -636,6 +636,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/resumen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Turnos de hoy y de la semana, ingresos estimados y faltas (HU-33) */
+        get: operations["ver_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/profesionales/{id}/turnos-futuros": {
         parameters: {
             query?: never;
@@ -678,7 +695,7 @@ export interface paths {
             cookie?: never;
         };
         /** Un cliente con su historial de turnos en el local, del más nuevo al más viejo (HU-31 CA2) */
-        get: operations["ver_5"];
+        get: operations["ver_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1095,6 +1112,22 @@ export interface components {
         HealthResponse: {
             estado: string;
             baseDeDatos: string;
+        };
+        Resumen: {
+            /** Format: date */
+            hoy: string;
+            /** Format: date */
+            semanaDesde: string;
+            /** Format: date */
+            semanaHasta: string;
+            /** Format: int32 */
+            turnosHoy: number;
+            /** Format: int32 */
+            turnosSemana: number;
+            /** Format: int64 */
+            ingresosSemana: number;
+            /** Format: int32 */
+            faltasSemana: number;
         };
         ClienteConHistorial: {
             cliente: components["schemas"]["ClienteAdmin"];
@@ -2097,6 +2130,26 @@ export interface operations {
             };
         };
     };
+    ver_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Resumen"];
+                };
+            };
+        };
+    };
     turnosFuturos: {
         parameters: {
             query?: never;
@@ -2141,7 +2194,7 @@ export interface operations {
             };
         };
     };
-    ver_5: {
+    ver_6: {
         parameters: {
             query?: never;
             header?: never;
