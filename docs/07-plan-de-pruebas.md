@@ -344,7 +344,79 @@ docker compose exec db psql -U slotly -d slotly -c "SELECT telefono, intentos, u
 docker compose exec db psql -U slotly -d slotly -c "SELECT estado, inicio AT TIME ZONE 'America/Argentina/Buenos_Aires' AS inicio, reprogramado_de_id IS NOT NULL AS reprogramado, left(token_hash, 12) AS token_hash FROM turno WHERE tipo = 'reserva' AND estado <> 'vencido' ORDER BY inicio;"
 ```
 
-## Smoke test (versión Etapa 6, ~10 minutos)
+## Etapa 7 · Gestión del local en el panel
+
+**Precondiciones comunes:** base, API y front levantados, con la API reiniciada después del paso 54. "Admin" es entrar con `admin@demo.com` y "Bruno" con `bruno@demo.com` (contraseña `demo1234`). "Reservar" es hacer la reserva como cliente: "Barba" con Bruno el martes que viene, celular `11 2345-6789`. Los casos que cambian datos de la demo dicen cómo dejarlos como estaban.
+
+Quedan solo con tests automáticos: los 403 de la API para un profesional (salvo C13), el servicio y el cliente de otro local, la imagen de más de 500 KB y el cierre de las sesiones abiertas del profesional dado de baja (a mano se prueba que no puede volver a entrar).
+
+| ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CP-HU24-01 | Crear un servicio (CA1) | Admin | 1. Servicios → "Nuevo servicio": Color, 90 min, $ 30.000 → Guardar 2. Abrir la home | Aparece último en la lista y en la home | Si, aparece ultimo en la lista y en el home | Paso | 2026/11/15 |
+| CP-HU24-02 | Cambiar el precio no toca lo reservado (CA2) | L1, reservar | 1. Servicios → Editar Barba → precio 9000 → Guardar 2. Abrir el link del turno 3. Correr S16 | El turno sigue diciendo $ 8.000 | Si , despues de reservar y editar el precio sigue en 8000, el precio previo a editar | Paso | 2026/11/15 |
+| CP-HU24-03 | Ocultar (CA3) | Admin | 1. "Ocultar" en Corte infantil 2. Abrir la home 3. "Mostrar" | Aparece "Oculto" y la home no lo muestra; al mostrarlo vuelve | Si, al ocultar corte infantil  aparece "Oculto" y la home no lo muestra; al mostrarlo vuelve | Paso | 2026/11/15 |
+| CP-HU24-04 | Datos inválidos (CA4) | Admin | 1. "Nuevo servicio": duración 42, precio -1 → Guardar | Errores junto a la duración y al precio; no se guarda | Si, al intentar crear ese servicio sale "La duración tiene que ser múltiplo de 5 minutos." y "El precio no puede ser negativo." | Paso | 2026/11/15 |
+| CP-HU24-05 | Un profesional no administra (CA5) | Bruno | 1. Abrir `demo.localhost:5173/admin/servicios` 2. En la consola, correr C13 | "No tenés permiso para ver esto" y C13 responde `403` | Sale "No tenés permiso para ver esto" y C13 responde `403` | Paso | 2026/11/15 |
+| CP-HU25-01 | Alta con foto y servicios (CA1) | Admin, una imagen PNG o JPG chica | 1. Profesionales → "Nuevo profesional": Carla, la foto, "Corte de pelo" → Guardar 2. Reservar "Corte de pelo" hasta el paso 2 | Carla aparece en el paso 2, con su foto | Si, al crar a Carla con su foto aparece con su foto al reservar turno | Paso | 2026/11/15 |
+| CP-HU25-02 | Foto que no es imagen (D10) | Admin | 1. Editar Carla → elegir como foto un archivo `.txt` con texto 2. Elegir un `.txt` vacío | Las dos veces: "La imagen tiene que ser PNG, JPG o WebP." | Con un .txt con texto adentro sale “La imagen tiene que ser PNG, JPG o WebP.”. Con un .txt vacío (0 bytes) sale “La imagen puede pesar hasta 500 KB.”; se corrige en el cierre de la Etapa 7. | Paso | 2026/11/15 |
+| CP-HU25-03 | Mail repetido (CA4) | Después de CP-HU25-01 | 1. "Crear usuario" de Carla con `bruno@demo.com` | Junto al mail: "Ese mail ya tiene un usuario en este local." | Si , al intentar crear el usuario con el mail `bruno@demo.com` salta "Ese mail ya tiene un usuario en este local." | Paso | 2026/11/15 |
+| CP-HU25-04 | Usuario del profesional (CA2) | Después de CP-HU25-03 | 1. "Crear usuario" de Carla: `carla@demo.com` / `carla1234` 2. En incógnito, entrar con ese usuario | Entra a la agenda de Carla, sin menú de secciones | Al entrar a la agenda de Carla esta sin menu de seccciones | Paso | 2026/11/15 |
+| CP-HU25-05 | Baja con turnos (CA3) | L1, después de CP-HU25-04 | 1. Reservar "Corte de pelo" con Carla el martes que viene 2. Admin → "Dar de baja" a Carla 3. "Dar de baja igual" 4. Reservar "Corte de pelo" hasta el paso 2 5. Agenda del admin, ese martes 6. Intentar entrar como Carla | Antes de confirmar muestra su turno; después Carla ya no aparece en el paso 2, en la agenda sigue su turno y no puede entrar | Antes de confirmar la baja se mostró el turno del martes. Después, Carla no aparece en el paso 2 de la reserva; en la agenda del admin sigue su turno de “Corte de pelo” ese martes; al ingresar con carla@demo.com la rechaza. | Paso | 2026/11/15 |
+| CP-HU26-01 | Horario con pausa (CA1) | Admin | 1. Profesionales → "Horario" de Bruno: martes de 10 a 12 y de 15 a 19 → Guardar 2. Reservar hasta las horas 3. Para dejarlo como estaba: volver el martes a 10–13 y 16–20 | Se ofrece hasta 11:40 y desde 15:00; no 12:00 ni 19:00 | Con 10–12 y 15–19 se ofrece hasta 11:40 y desde 15:00; no 12:00 ni 19:00. Al volver a 10–13 y 16–20 vuelven a aparecer 12:00 y 19:00, como corresponde. | Paso | 2026/11/16 |
+| CP-HU26-02 | Franjas que se pisan (CA2) | Admin | 1. "Horario" de Bruno: martes 10–13 y 12–14 → Guardar | "El martes tiene dos franjas que se pisan: 10:00 a 13:00 y 12:00 a 14:00." | Paso , al intentar poner ese horario salta el mensaje El martes tiene dos franjas que se pisan: 10:00 a 13:00 y 12:00 a 14:00. | Paso | 2026/11/15 |
+| CP-HU26-03 | Turnos que quedan afuera (CA3) | L1 | 1. Reservar a las 17:00 2. "Horario" de Bruno: martes solo 10–13 → Guardar 3. Volver a 10–13 y 16–20 | "Hay 1 turno fuera del horario nuevo…" con el turno; en la agenda el turno sigue | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU27-01 | Bloquear horas (CA1) | L1, admin | 1. Agenda → "Bloquear": Bruno, martes que viene de 10:00 a 12:00, motivo "Médico" 2. Reservar hasta las horas | La agenda muestra "Bloqueado: Médico"; la reserva no ofrece de 10:00 a 11:40 | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU27-02 | Feriado de todo el local (CA1) | Admin | 1. "Bloquear": Todo el local, Días enteros, el miércoles que viene, motivo "Feriado" 2. Reservar "Corte de pelo" hasta el calendario | Ese miércoles aparece en gris para Ana y para Bruno | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU27-03 | Con turnos en el rango (CA2) | L1 | 1. Reservar a las 10:00 2. Admin → "Bloquear": Bruno, ese martes de 9:00 a 12:00 | "Hay 1 turno en ese rango. No se guardó…" con el turno | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU27-04 | El profesional bloquea su agenda (CA3) | Bruno | 1. Agenda → "Bloquear" | No aparece "A quién"; el bloqueo queda en la agenda de Bruno | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU27-05 | Quitar un bloqueo (CA4) | Después de CP-HU27-01 | 1. "Quitar" → "Sí, quitar" 2. Reservar hasta las horas | Las 10:00 vuelven a ofrecerse | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU28-01 | Turno manual (CA1) | L1, admin | 1. Agenda del martes que viene → "+ Agregar turno" de Bruno: 11:00, Barba, nombre Pedro, sin celular 2. Reservar hasta las horas | Aparece en la agenda; la reserva no ofrece 11:00 | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU28-02 | Turno manual ocupado (CA2) | Después de CP-HU28-01 | 1. "+ Agregar turno" de Bruno: 11:10, Barba, Juan | "Ese horario se pisa con otro turno o un bloqueo." | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU28-03 | Sin anticipación (CA3) | Admin | 1. "+ Agregar turno" de Bruno para hoy, dentro de 30 minutos | Se guarda (a la web no la deja reservar con menos de 1 hora) | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU29-01 | Mover (CA1) | Después de CP-HU28-01 | 1. "Mover" el turno de Pedro → 12:00 2. Reservar hasta las horas | Queda a las 12:00 y las 11:00 vuelven a ofrecerse | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU29-02 | Mover a un hueco ocupado (CA2) | Después de CP-HU29-01 | 1. "Bloquear" a Bruno ese martes de 15:00 a 16:00 2. "Mover" el turno de Pedro → 15:00 | "Ese horario se pisa…" y el turno sigue a las 12:00 | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU29-03 | Cancelar sin plazo (CA3) | L1 | 1. Reservar 2. Correr S12 3. Agenda de hoy → "Cancelar" → "Sí, cancelar" | Se cancela, aunque falten 2 horas | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU30-01 | Vino (CA1) | L1 | 1. Reservar 2. Correr S19 3. Agenda de hoy → "Vino" 4. Clientes | El turno dice "Vino"; el cliente tiene 1 visita | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU30-02 | Todavía no empezó (CA2) | L1 | 1. Reservar 2. Agenda de ese martes | El turno no ofrece "Vino" ni "No vino" | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU30-03 | Corregir el mismo día (CA3) | Después de CP-HU30-01 | 1. "Corregir: no vino" 2. Clientes | Dice "No vino"; el cliente tiene 0 visitas y 1 falta | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU31-01 | Lista y búsqueda (CA1) | Después de CP-HU30-03 | 1. Clientes → buscar `2345` | Aparece el cliente con su teléfono, visitas, faltas y última visita | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU31-02 | Historial (CA2) | Después de CP-HU31-01 | 1. "Ver historial" | Sus turnos, del más nuevo al más viejo, con servicios, profesional, total y estado | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU31-03 | Un profesional no ve clientes (CA3) | Bruno | 1. Abrir `demo.localhost:5173/admin/clientes` | "No tenés permiso para ver esto" | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU32-01 | Los datos se ven en la web (CA1) | Admin | 1. Local: nombre "Barbería Nueva", Instagram `@barberia.nueva`, un logo → Guardar 2. Recargar la home 3. Correr S20 | La home muestra el nombre, el logo y, en Contacto, "Instagram @barberia.nueva" que abre instagram.com/barberia.nueva | Nombre y logo se ven bien; el Instagram no aparece en la home (la home no tiene sección de contacto y redes). | No paso | 2026/11/16 |
+| CP-HU32-02 | Las reglas valen en la reserva (CA2) | Admin | 1. Local: intervalo 30 → Guardar 2. Reservar hasta las horas 3. Correr S20 | Solo horas en punto y media | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU32-03 | Fuera de rango (CA3) | Admin | 1. Local: intervalo 61, CBU `123` → Guardar | Errores junto al intervalo y al CBU; no se guarda | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU32-04 | Aviso de contraste (CA4) | Admin | 1. Local: escribir el color `#ff0000` | "Con este color, el texto de los botones va a costar leerse…" antes de guardar | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU33-01 | Resumen de la semana (CA1) | Algunos turnos esta semana | 1. Resumen 2. Correr C14 | Los números coinciden con C14 | Se cumplió lo esperado. | Paso | 2026/11/16 |
+| CP-HU34-01 | Borrar datos (CA1) | Después de CP-HU28-01, sin correr L1 en el medio, con el turno de Pedro cancelado | 1. Clientes → Pedro → "Ver historial" → "Borrar los datos de este cliente" → "Sí, borrar sus datos" | Pasa a "Cliente borrado", sin teléfono; su turno sigue en el historial y ya no ofrece borrar sus datos | Se cumplió lo esperado. Después de borrar, el botón "Borrar los datos de este cliente" sigue apareciendo; se corrige en el cierre. | Paso | 2026/11/16 |
+| CP-HU34-02 | Con turnos por delante (CA2) | L1, reservar | 1. Clientes → el cliente → "Borrar los datos…" → "Sí, borrar sus datos" | "Tiene 1 turno por delante. Cancelalos antes de borrar sus datos." | Se cumplió lo esperado. | Paso | 2026/11/16 |
+
+### Comandos de la Etapa 7 (desde `C:\dev\slotly-java`)
+
+**S19** · El turno confirmado más próximo pasa a haber empezado hace una hora:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE turno SET inicio = now() - interval '1 hour', fin = now() - interval '40 minutes', ocupado_hasta = now() - interval '40 minutes' WHERE id = (SELECT id FROM turno WHERE estado = 'confirmado' AND tipo <> 'bloqueo' ORDER BY inicio LIMIT 1);"
+```
+
+**S20** · Vuelve el local demo a sus datos y reglas:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE local SET nombre = 'Barbería Demo', instagram = 'barberia.demo', logo_url = NULL, color_acento = '#2e7d32', intervalo_min = 15 WHERE subdominio = 'demo';"
+```
+
+**C13** · Siendo Bruno, pide los servicios de administración (consola del navegador):
+
+```js
+fetch('/api/admin/servicios').then(r => r.status)
+```
+
+**C14** · Turnos, ingresos y faltas de esta semana (de lunes a domingo, en hora del local):
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "WITH s AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') AS lunes) SELECT count(*) AS turnos, count(*) FILTER (WHERE t.estado = 'ausente') AS faltas, coalesce(sum((SELECT sum(precio) FROM turno_servicio ts WHERE ts.turno_id = t.id)), 0) AS ingresos FROM turno t, s WHERE t.tipo <> 'bloqueo' AND t.estado IN ('confirmado', 'completado', 'ausente') AND t.inicio AT TIME ZONE 'America/Argentina/Buenos_Aires' >= s.lunes AND t.inicio AT TIME ZONE 'America/Argentina/Buenos_Aires' < s.lunes + interval '7 days';"
+```
+
+## Smoke test (versión Etapa 7, ~12 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
 2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
@@ -354,8 +426,9 @@ docker compose exec db psql -U slotly -d slotly -c "SELECT estado, inicio AT TIM
 6. Elegir una hora → completar los datos → "Confirmar" muestra "¡Listo! Tu turno quedó reservado"; recargar muestra el mismo turno.
 7. En Mi turno, "Reprogramar" → otro horario → "Confirmar cambio" muestra "Listo, cambiaste tu turno".
 8. `demo.localhost:5173/agenda` lleva al login; con `admin@demo.com` / `demo1234` muestra la agenda con el filtro "Profesional".
-9. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
-10. El último commit tiene el ✅ del CI en GitHub.
+9. El admin ve el menú con Agenda, Servicios, Profesionales, Clientes, Local y Resumen, y cada sección carga sin errores.
+10. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+11. El último commit tiene el ✅ del CI en GitHub.
 
 Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 
