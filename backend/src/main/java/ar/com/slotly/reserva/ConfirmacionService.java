@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import ar.com.slotly.cliente.Telefonos;
 import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.local.Local;
+import ar.com.slotly.mensaje.Mensajes;
 
 // Confirma un apartado con los datos del cliente (HU-10) y muestra un turno con su token ("Mi turno").
 // Todo pasa en una transacción: el apartado y el cliente se bloquean (SELECT … FOR UPDATE) para que dos pedidos a la
@@ -37,10 +38,12 @@ public class ConfirmacionService {
 
     private final JdbcTemplate jdbc;
     private final Clock reloj;
+    private final Mensajes mensajes;
 
-    ConfirmacionService(JdbcTemplate jdbc, Clock reloj) {
+    ConfirmacionService(JdbcTemplate jdbc, Clock reloj, Mensajes mensajes) {
         this.jdbc = jdbc;
         this.reloj = reloj;
+        this.mensajes = mensajes;
     }
 
     // Los datos que deja el cliente (ya validados por el controlador).
@@ -97,6 +100,8 @@ public class ConfirmacionService {
                 UPDATE turno SET estado = 'confirmado', cliente_id = ?, forma_pago = ?, vence_en = NULL, token_vence_en = ?
                 WHERE id = ?
                 """, clienteId, datos.formaPago(), Timestamp.from(fin.plus(TOKEN_DESPUES_DEL_TURNO)), id);
+        // HU-35 y HU-36: la confirmación con el link y el recordatorio, en la misma transacción.
+        mensajes.alReservar(local, id, token, ((Timestamp) turno.get("inicio")).toInstant());
         return ver(local, id);
     }
 
@@ -105,7 +110,7 @@ public class ConfirmacionService {
     private Map<String, Object> bloquearTurno(Local local, UUID id, String token) {
         try {
             return jdbc.queryForMap("""
-                    SELECT estado, vence_en, fin FROM turno
+                    SELECT estado, vence_en, inicio, fin FROM turno
                     WHERE id = ? AND local_id = ? AND token_hash = ?
                     FOR UPDATE
                     """, id, local.getId(), TokenSecreto.hash(token));

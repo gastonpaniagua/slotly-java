@@ -25,6 +25,7 @@ import ar.com.slotly.disponibilidad.DisponibilidadService.DiasConLugar;
 import ar.com.slotly.disponibilidad.DisponibilidadService.HorarioReservable;
 import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.local.Local;
+import ar.com.slotly.mensaje.Mensajes;
 import ar.com.slotly.reserva.ConfirmacionService.TurnoPublico;
 
 // Lo que el cliente puede hacer con un turno ya confirmado desde su link: cancelarlo (HU-20) y reprogramarlo
@@ -37,14 +38,16 @@ class MiTurnoService {
     private final ConfirmacionService confirmaciones;
     private final DisponibilidadService disponibilidad;
     private final CodigoService codigos;
+    private final Mensajes mensajes;
 
     MiTurnoService(JdbcTemplate jdbc, Clock reloj, ConfirmacionService confirmaciones,
-            DisponibilidadService disponibilidad, CodigoService codigos) {
+            DisponibilidadService disponibilidad, CodigoService codigos, Mensajes mensajes) {
         this.jdbc = jdbc;
         this.reloj = reloj;
         this.confirmaciones = confirmaciones;
         this.disponibilidad = disponibilidad;
         this.codigos = codigos;
+        this.mensajes = mensajes;
     }
 
     // "Mi turno" (HU-19): el turno, si la credencial es suya.
@@ -140,6 +143,9 @@ class MiTurnoService {
                 INSERT INTO turno_servicio (local_id, turno_id, servicio_id, duracion_min, precio)
                 SELECT local_id, ?, servicio_id, duracion_min, precio FROM turno_servicio WHERE turno_id = ?
                 """, nuevo, id);
+        // HU-36 CA3: el turno nuevo tiene su propia confirmación (con el link nuevo) y su recordatorio; los del viejo,
+        // que quedó cancelado, ya no salen.
+        mensajes.alReservar(local, nuevo, tokenNuevo, horario.inicio());
         return new TurnoReprogramado(nuevo, tokenNuevo, confirmaciones.ver(local, nuevo));
     }
 

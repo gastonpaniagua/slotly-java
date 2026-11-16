@@ -43,6 +43,7 @@ import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.error.ValidacionException;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
+import ar.com.slotly.mensaje.Mensajes;
 import ar.com.slotly.usuario.UsuarioSesion;
 
 // Turnos desde la agenda del panel: cargar uno manual (HU-28), moverlo y cancelarlo (HU-29). El admin trabaja sobre
@@ -54,11 +55,13 @@ class TurnosPanelController {
     private final LocalResolver localResolver;
     private final JdbcTemplate jdbc;
     private final Clock reloj;
+    private final Mensajes mensajes;
 
-    TurnosPanelController(LocalResolver localResolver, JdbcTemplate jdbc, Clock reloj) {
+    TurnosPanelController(LocalResolver localResolver, JdbcTemplate jdbc, Clock reloj, Mensajes mensajes) {
         this.localResolver = localResolver;
         this.jdbc = jdbc;
         this.reloj = reloj;
+        this.mensajes = mensajes;
     }
 
     // profesional: el id (si falta, el del usuario). fecha y hora, del local. El teléfono es opcional (CA1).
@@ -144,6 +147,7 @@ class TurnosPanelController {
                 WHERE id = ?
                 """, Timestamp.from(inicio), Timestamp.from(inicio.plus(duracion)), Timestamp.from(inicio.plus(conLimpieza)),
                 Timestamp.from(inicio.plus(duracion).plus(Duration.ofDays(30))), id));
+        mensajes.alMover(local, id, inicio);
         return new TurnoGuardado(id);
     }
 
