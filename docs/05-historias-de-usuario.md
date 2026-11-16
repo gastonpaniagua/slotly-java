@@ -38,17 +38,17 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 | HU-21 | Reprogramar mi turno                              | cliente             | Debe      | M      | 6     | Hecha     |
 | HU-22 | Volver a entrar con mi teléfono y un código       | cliente             | Debería   | M      | 6     | Hecha     |
 | HU-23 | Ver mi historial y reservar lo mismo de nuevo     | cliente             | Podría    | S      | 6     | Hecha     |
-| HU-24 | Administrar servicios                             | admin               | Debe      | M      | 7     | Pendiente |
-| HU-25 | Administrar profesionales y sus usuarios          | admin               | Debe      | M      | 7     | Pendiente |
-| HU-26 | Cargar el horario semanal con pausas              | admin               | Debe      | M      | 7     | Pendiente |
-| HU-27 | Bloquear días y horas (feriados, vacaciones)      | admin y profesional | Debe      | M      | 7     | Pendiente |
-| HU-28 | Cargar un turno manual                            | admin y profesional | Debe      | S      | 7     | Pendiente |
-| HU-29 | Mover o cancelar un turno desde la agenda         | admin y profesional | Debe      | M      | 7     | Pendiente |
-| HU-30 | Marcar "vino" o "no vino"                         | admin y profesional | Debe      | S      | 7     | Pendiente |
-| HU-31 | Ver mis clientes con visitas y faltas             | admin               | Debe      | S      | 7     | Pendiente |
-| HU-32 | Configurar datos y reglas del local               | admin               | Debe      | M      | 7     | Pendiente |
-| HU-33 | Ver un resumen de la semana                       | admin               | Podría    | S      | 7     | Pendiente |
-| HU-34 | Borrar los datos de un cliente que lo pide        | admin               | Podría    | S      | 7     | Pendiente |
+| HU-24 | Administrar servicios                             | admin               | Debe      | M      | 7     | Hecha     |
+| HU-25 | Administrar profesionales y sus usuarios          | admin               | Debe      | M      | 7     | Hecha     |
+| HU-26 | Cargar el horario semanal con pausas              | admin               | Debe      | M      | 7     | Hecha     |
+| HU-27 | Bloquear días y horas (feriados, vacaciones)      | admin y profesional | Debe      | M      | 7     | Hecha     |
+| HU-28 | Cargar un turno manual                            | admin y profesional | Debe      | S      | 7     | Hecha     |
+| HU-29 | Mover o cancelar un turno desde la agenda         | admin y profesional | Debe      | M      | 7     | Hecha     |
+| HU-30 | Marcar "vino" o "no vino"                         | admin y profesional | Debe      | S      | 7     | Hecha     |
+| HU-31 | Ver mis clientes con visitas y faltas             | admin               | Debe      | S      | 7     | Hecha     |
+| HU-32 | Configurar datos y reglas del local               | admin               | Debe      | M      | 7     | Hecha     |
+| HU-33 | Ver un resumen de la semana                       | admin               | Podría    | S      | 7     | Hecha     |
+| HU-34 | Borrar los datos de un cliente que lo pide        | admin               | Podría    | S      | 7     | Hecha     |
 | HU-35 | Recibir la confirmación con el link de mi turno   | cliente             | Debe      | S      | 8     | Pendiente |
 | HU-36 | Recibir un recordatorio 24 h antes                | cliente             | Debe      | M      | 8     | Pendiente |
 | HU-37 | Enterarme de cada reserva, cancelación o cambio   | profesional         | Debe      | M      | 8     | Pendiente |
@@ -364,7 +364,7 @@ Cubierta el 2026-11-13 con tests y casos manuales (CP-HU23-01 a 03).
 ### HU-24 · Administrar servicios
 
 Como **admin** quiero crear, editar, ordenar y ocultar servicios para mantener mi oferta al día.
-Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado el formulario de servicio, cuando guardo nombre, descripción, precio, duración (múltiplo de 5, entre 5 y 480 min) y limpieza, entonces aparece en la lista y en la home pública.
 - **CA2.** Dado un servicio con turnos reservados, cuando cambio su precio o duración, entonces los turnos ya reservados mantienen los valores copiados.
@@ -372,95 +372,117 @@ Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Pendiente
 - **CA4.** Dados datos inválidos (precio negativo, duración 0), cuando guardo, entonces veo el error junto al campo y la API responde 400.
 - **CA5.** Dado que soy profesional, cuando intento administrar servicios, entonces recibo 403.
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU24-01 a 05). El 403 de la API para un profesional (CA5) se probó a mano con C13; el resto de los 403 y el servicio de otro local quedan en `ServiciosAdminTest`.
+
 ### HU-25 · Administrar profesionales y sus usuarios
 
 Como **admin** quiero dar de alta profesionales, elegir qué servicios hace cada uno y darles su usuario para que cada uno vea su agenda.
-Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado el alta de un profesional con nombre, foto opcional y servicios, cuando guardo, entonces aparece en el paso 2 de la reserva para esos servicios.
 - **CA2.** Dado un profesional, cuando le creo un usuario con mail y contraseña inicial, entonces puede iniciar sesión y solo ve su agenda.
 - **CA3.** Dado un profesional con turnos futuros, cuando intento darlo de baja, entonces veo cuántos turnos tiene y la baja no se hace hasta que confirme; al confirmar deja de recibir reservas y sus turnos futuros quedan listados para reprogramar.
 - **CA4.** Dado un mail ya usado en el local, cuando creo otro usuario con ese mail, entonces se rechaza.
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU25-01 a 05). La imagen de más de 500 KB, el 403 para un profesional y el cierre de las sesiones abiertas del profesional dado de baja quedan solo en `ProfesionalesAdminTest`; a mano se probó que no puede volver a entrar. CA3: al confirmar la baja, sus turnos futuros siguen en la agenda para reprogramarlos desde ahí con "Mover" (no hay una lista aparte).
+
 ### HU-26 · Horario semanal con pausas
 
 Como **admin** quiero cargar el horario semanal de cada profesional con pausas para que solo se ofrezcan las horas en las que trabaja.
-Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dadas dos franjas el mismo día (10 a 13 y 16 a 20), cuando guardo, entonces la disponibilidad ofrece horas solo dentro de esas franjas.
 - **CA2.** Dadas dos franjas que se pisan el mismo día o una franja con fin antes del inicio, cuando guardo, entonces se rechaza con un mensaje claro.
 - **CA3.** Dado un cambio de horario que deja afuera turnos ya reservados, cuando guardo, entonces veo cuántos turnos quedan fuera del horario nuevo (no se cancelan solos).
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU26-01 a 03). La franja que termina antes de empezar (CA2) y el 403 para un profesional quedan solo en `HorarioAdminTest`.
+
 ### HU-27 · Bloqueos, feriados y vacaciones
 
 Como **admin o profesional** quiero bloquear días u horas para que no se reserve cuando no voy a estar.
-Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado un bloqueo de un rango (horas o días enteros) para un profesional o para todo el local, cuando lo guardo, entonces esas horas dejan de ofrecerse.
 - **CA2.** Dado un rango con turnos reservados, cuando intento bloquearlo, entonces veo "Hay N turnos en ese rango" con la lista, y el bloqueo no se guarda hasta que esos turnos se reprogramen o cancelen (lo garantiza el mismo constraint de HU-13).
 - **CA3.** Dado que soy profesional, cuando creo un bloqueo, entonces solo puedo hacerlo sobre mi agenda.
 - **CA4.** Dado un bloqueo, cuando lo borro, entonces esas horas vuelven a ofrecerse.
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU27-01 a 05).
+
 ### HU-28 · Turno manual
 
 Como **admin o profesional** quiero cargar en dos toques un turno para quien llama o entra sin reserva para que ese horario deje de aparecer libre.
-Prioridad: Debe · Tamaño: S · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado un hueco de la agenda, cuando lo toco y completo servicios y nombre (teléfono opcional), entonces se crea el turno y deja de ofrecerse en la web pública.
 - **CA2.** Dado un hueco que se superpone con otro turno o bloqueo, cuando guardo, entonces veo `HORARIO_OCUPADO`.
 - **CA3.** Dado un turno manual, cuando lo cargo, entonces no cuenta para el límite de 2 turnos futuros del cliente y se permite fuera de la anticipación mínima.
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU28-01 a 03). El máximo de 2 turnos futuros (CA3) queda en `TurnosPanelTest`; a mano se probó la anticipación. A propósito, el turno manual tampoco aplica el horario del profesional: quien lo carga decide.
+
 ### HU-29 · Mover o cancelar un turno desde la agenda
 
 Como **admin o profesional** quiero mover o cancelar un turno desde la agenda para acomodar cambios que me piden por teléfono.
-Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado un turno, cuando lo muevo a un hueco libre, entonces queda en el horario nuevo y el viejo se libera en la misma transacción.
 - **CA2.** Dado un hueco ocupado, cuando intento moverlo ahí, entonces veo `HORARIO_OCUPADO` y el turno no cambia.
 - **CA3.** Dado un turno, cuando lo cancelo desde el panel, entonces queda cancelado aunque falten menos de 3 horas (la regla de anticipación es para el cliente).
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU29-01 a 03).
+
 ### HU-30 · Marcar "vino" o "no vino"
 
 Como **admin o profesional** quiero marcar si el cliente vino para llevar la cuenta de quién falta.
-Prioridad: Debe · Tamaño: S · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado un turno que ya empezó, cuando lo marco "vino" o "no vino", entonces cambia su estado y se actualiza el contador del cliente.
 - **CA2.** Dado un turno que todavía no empezó, cuando intento marcarlo, entonces no se permite.
 - **CA3.** Dado un turno marcado por error, cuando lo cambio el mismo día, entonces se corrige el estado y el contador.
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU30-01 a 03).
+
 ### HU-31 · Ver mis clientes
 
 Como **admin** quiero ver mis clientes con visitas, faltas y última visita para saber quién es fiel y quién falta seguido.
-Prioridad: Debe · Tamaño: S · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dada la lista de clientes, cuando la abro, entonces veo nombre, teléfono, visitas, faltas y última visita, y puedo buscar por nombre o teléfono.
 - **CA2.** Dado un cliente, cuando lo abro, entonces veo su historial de turnos en el local.
 - **CA3.** Dado que soy profesional, cuando intento ver la lista de clientes, entonces recibo 403.
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU31-01 a 03). A mano, CA3 se ve como "No tenés permiso para ver esto"; el 403 de la API y el cliente de otro local quedan en `ClientesYAsistenciaTest`.
+
 ### HU-32 · Configurar datos y reglas del local
 
 Como **admin** quiero configurar los datos, la imagen y las reglas de turnos de mi local para que la web y las reservas funcionen como yo trabajo.
-Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado el formulario de configuración, cuando cambio nombre, logo, color, dirección, redes, WhatsApp de contacto, alias/CBU/titular y link de reseña de Google, entonces se reflejan en la web pública.
 - **CA2.** Dadas las reglas (intervalo 5 a 60 min, limpieza 0 a 30 min, anticipación mínima, tope de días, horas para cancelar, turnos futuros por teléfono), cuando las cambio, entonces la disponibilidad y las reservas nuevas las respetan.
 - **CA3.** Dados valores fuera de rango, cuando guardo, entonces se rechazan con un mensaje claro.
 - **CA4.** Dado un color de acento, cuando lo elijo, entonces se avisa si no tiene contraste suficiente con el texto.
 
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU32-01 a 04). CA1: a mano se probaron nombre, logo e Instagram (en la sección Contacto de la home); color, dirección, WhatsApp y redes normalizados quedan en `LocalAdminTest`, y alias/CBU/titular se ven en los datos de transferencia de la reserva. El link de reseña de Google se guarda, pero se usa recién en la Etapa 8 (HU-38). El 403 para un profesional queda en `LocalAdminTest`.
+
 ### HU-33 · Resumen de la semana
 
 Como **admin** quiero ver los turnos de hoy y de la semana, los ingresos estimados y las faltas para tener una idea rápida de cómo viene el local.
-Prioridad: Podría · Tamaño: S · Etapa: 7 · Estado: Pendiente
+Prioridad: Podría · Tamaño: S · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dados los turnos de la semana, cuando abro el resumen, entonces veo cantidad de turnos de hoy y de la semana, suma de precios copiados de los no cancelados y cantidad de "no vino".
+
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU33-01). El 403 para un profesional queda en `ResumenAdminTest`.
 
 ### HU-34 · Borrar los datos de un cliente
 
 Como **admin** quiero borrar los datos personales de un cliente que lo pide para cumplir con la ley de datos personales.
-Prioridad: Podría · Tamaño: S · Etapa: 7 · Estado: Pendiente
+Prioridad: Podría · Tamaño: S · Etapa: 7 · Estado: Hecha
 
 - **CA1.** Dado un cliente sin turnos futuros, cuando confirmo "Borrar datos", entonces su nombre, teléfono y mail se anonimizan y los turnos pasados quedan sin datos personales (para no romper el historial del local).
 - **CA2.** Dado un cliente con turnos futuros, cuando intento borrarlo, entonces se pide cancelarlos antes.
+
+Cubierta el 2026-11-16 con tests y casos manuales (CP-HU34-01 y 02). El cliente de otro local queda en `ClientesYAsistenciaTest`.
 
 ---
 
