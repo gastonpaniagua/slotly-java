@@ -44,6 +44,7 @@ import ar.com.slotly.error.ValidacionException;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
 import ar.com.slotly.mensaje.Mensajes;
+import ar.com.slotly.notificacion.Notificaciones;
 import ar.com.slotly.usuario.UsuarioSesion;
 
 // Turnos desde la agenda del panel: cargar uno manual (HU-28), moverlo y cancelarlo (HU-29). El admin trabaja sobre
@@ -56,12 +57,15 @@ class TurnosPanelController {
     private final JdbcTemplate jdbc;
     private final Clock reloj;
     private final Mensajes mensajes;
+    private final Notificaciones notificaciones;
 
-    TurnosPanelController(LocalResolver localResolver, JdbcTemplate jdbc, Clock reloj, Mensajes mensajes) {
+    TurnosPanelController(LocalResolver localResolver, JdbcTemplate jdbc, Clock reloj, Mensajes mensajes,
+            Notificaciones notificaciones) {
         this.localResolver = localResolver;
         this.jdbc = jdbc;
         this.reloj = reloj;
         this.mensajes = mensajes;
+        this.notificaciones = notificaciones;
     }
 
     // profesional: el id (si falta, el del usuario). fecha y hora, del local. El teléfono es opcional (CA1).
@@ -118,6 +122,8 @@ class TurnosPanelController {
             jdbc.update("INSERT INTO turno_servicio (local_id, turno_id, servicio_id, duracion_min, precio) VALUES (?, ?, ?, ?, ?)",
                     local.getId(), id, servicio.get("id"), servicio.get("duracion_min"), servicio.get("precio"));
         }
+        // HU-37: si lo cargó otro (el admin en la agenda de un profesional), el profesional se entera.
+        notificaciones.delPanel(local, id, "reserva", null, usuario.profesionalId());
         return new TurnoGuardado(id);
     }
 
@@ -148,6 +154,7 @@ class TurnosPanelController {
                 """, Timestamp.from(inicio), Timestamp.from(inicio.plus(duracion)), Timestamp.from(inicio.plus(conLimpieza)),
                 Timestamp.from(inicio.plus(duracion).plus(Duration.ofDays(30))), id));
         mensajes.alMover(local, id, inicio);
+        notificaciones.delPanel(local, id, "movido", inicioViejo, usuario.profesionalId());
         return new TurnoGuardado(id);
     }
 
@@ -167,6 +174,7 @@ class TurnosPanelController {
             throw new SlotlyException(HttpStatus.BAD_REQUEST, "VALIDACION", "Solo se puede cancelar un turno confirmado.");
         }
         jdbc.update("UPDATE turno SET estado = 'cancelado' WHERE id = ?", id);
+        notificaciones.delPanel(local, id, "cancelacion", null, usuario.profesionalId());
         return new TurnoGuardado(id);
     }
 

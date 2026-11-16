@@ -26,6 +26,7 @@ import ar.com.slotly.cliente.Telefonos;
 import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.mensaje.Mensajes;
+import ar.com.slotly.notificacion.Notificaciones;
 
 // Confirma un apartado con los datos del cliente (HU-10) y muestra un turno con su token ("Mi turno").
 // Todo pasa en una transacción: el apartado y el cliente se bloquean (SELECT … FOR UPDATE) para que dos pedidos a la
@@ -39,11 +40,13 @@ public class ConfirmacionService {
     private final JdbcTemplate jdbc;
     private final Clock reloj;
     private final Mensajes mensajes;
+    private final Notificaciones notificaciones;
 
-    ConfirmacionService(JdbcTemplate jdbc, Clock reloj, Mensajes mensajes) {
+    ConfirmacionService(JdbcTemplate jdbc, Clock reloj, Mensajes mensajes, Notificaciones notificaciones) {
         this.jdbc = jdbc;
         this.reloj = reloj;
         this.mensajes = mensajes;
+        this.notificaciones = notificaciones;
     }
 
     // Los datos que deja el cliente (ya validados por el controlador).
@@ -102,6 +105,8 @@ public class ConfirmacionService {
                 """, clienteId, datos.formaPago(), Timestamp.from(fin.plus(TOKEN_DESPUES_DEL_TURNO)), id);
         // HU-35 y HU-36: la confirmación con el link y el recordatorio, en la misma transacción.
         mensajes.alReservar(local, id, token, ((Timestamp) turno.get("inicio")).toInstant());
+        // HU-37: el profesional se entera en el panel.
+        notificaciones.delCliente(local, id, "reserva", null);
         return ver(local, id);
     }
 
