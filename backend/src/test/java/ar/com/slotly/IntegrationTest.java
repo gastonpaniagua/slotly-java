@@ -11,8 +11,10 @@ import org.springframework.context.annotation.Import;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@SpringBootTest
+// Los trabajos programados (Etapa 8) quedan apagados: cada test los llama directo, con el reloj fijado.
+@SpringBootTest(properties = "slotly.trabajos.activos=false")
 @AutoConfigureMockMvc
-@Import({TestcontainersConfiguration.class, RelojDeTest.Config.class, CodigosEnviadosDeTest.Config.class})
+@Import({TestcontainersConfiguration.class, RelojDeTest.Config.class, CodigosEnviadosDeTest.Config.class,
+        MensajesEnviadosDeTest.Config.class})
 public @interface IntegrationTest {
 }

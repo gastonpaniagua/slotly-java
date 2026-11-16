@@ -14,7 +14,7 @@ public interface TurnoRepository extends JpaRepository<Turno, UUID> {
 
     // Todo lo que ocupa a esos profesionales entre desde y hasta: turnos, bloqueos y apartados vigentes.
     // No cuentan los cancelados ni los vencidos, ni los apartados que ya vencieron aunque sigan como 'apartado'
-    // (el trabajo que los marca como vencidos llega en la Etapa 8; doc 03, "Apartados vencidos").
+    // (el trabajo que los marca como vencidos corre cada minuto, así que puede haber alguno; doc 03, "Apartados vencidos").
     // Se cruzan con el rango si empiezan antes de que termine y terminan (con limpieza) después de que empiece.
     @Query("""
             SELECT t FROM Turno t
