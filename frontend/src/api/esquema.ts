@@ -261,6 +261,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/panel/notificaciones/leidas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca como leídos todos los avisos del profesional de la sesión (HU-37 CA2) */
+        post: operations["marcarLeidas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/panel/ingresar": {
         parameters: {
             query?: never;
@@ -603,6 +620,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/panel/notificaciones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Los avisos del profesional de la sesión, del más nuevo al más viejo, y cuántos no leyó (HU-37) */
+        get: operations["ver_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/panel/agenda": {
         parameters: {
             query?: never;
@@ -611,7 +645,7 @@ export interface paths {
             cookie?: never;
         };
         /** Turnos, bloqueos y horario de trabajo de 1 o 7 días (HU-17 y HU-18) */
-        get: operations["ver_4"];
+        get: operations["ver_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -644,7 +678,7 @@ export interface paths {
             cookie?: never;
         };
         /** Turnos de hoy y de la semana, ingresos estimados y faltas (HU-33) */
-        get: operations["ver_5"];
+        get: operations["ver_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -695,7 +729,7 @@ export interface paths {
             cookie?: never;
         };
         /** Un cliente con su historial de turnos en el local, del más nuevo al más viejo (HU-31 CA2) */
-        get: operations["ver_6"];
+        get: operations["ver_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1064,6 +1098,32 @@ export interface components {
             duracionMin: number;
             /** Format: int32 */
             precio: number;
+        };
+        Bandeja: {
+            /** Format: int32 */
+            sinLeer: number;
+            notificaciones: components["schemas"]["Notificacion"][];
+        };
+        Notificacion: {
+            /** Format: uuid */
+            id: string;
+            tipo: string;
+            /** Format: date */
+            fecha: string;
+            /** Format: time-local */
+            hora: string;
+            /** Format: date */
+            fechaAnterior: string | null;
+            /**
+             * Format: time-local
+             * @example 10:00
+             */
+            horaAnterior: string | null;
+            clienteNombre: string;
+            servicios: string[];
+            /** @example 2026-11-16T09:30 */
+            creadaEn: string;
+            leida: boolean;
         };
         Agenda: {
             /** Format: date */
@@ -1559,6 +1619,24 @@ export interface operations {
         responses: {
             /** @description OK */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    marcarLeidas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2086,6 +2164,26 @@ export interface operations {
     };
     ver_4: {
         parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Bandeja"];
+                };
+            };
+        };
+    };
+    ver_5: {
+        parameters: {
             query: {
                 /** @description Primer día, en hora del local. Si falta, hoy */
                 desde?: string;
@@ -2131,7 +2229,7 @@ export interface operations {
             };
         };
     };
-    ver_5: {
+    ver_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -2195,7 +2293,7 @@ export interface operations {
             };
         };
     };
-    ver_6: {
+    ver_7: {
         parameters: {
             query?: never;
             header?: never;

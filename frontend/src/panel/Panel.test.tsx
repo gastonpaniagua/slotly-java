@@ -10,6 +10,11 @@ import PanelConSesion from './PanelConSesion'
 import { destinoDespuesDeIngresar, useSesion } from './sesion'
 
 vi.mock('../api/panel', () => ({ ingresar: vi.fn(), obtenerUsuario: vi.fn(), salir: vi.fn() }))
+// Los avisos (HU-37) se prueban en AvisosDelPanel.test.tsx; acá, una bandeja vacía.
+vi.mock('../api/notificaciones', () => ({
+  verAvisos: vi.fn(async () => ({ estado: 'ok', datos: { sinLeer: 0, notificaciones: [] } })),
+  marcarAvisosLeidos: vi.fn(),
+}))
 
 const ANA: UsuarioPanel = { email: 'ana@demo.com', rol: 'profesional', profesionalId: 'ana' }
 

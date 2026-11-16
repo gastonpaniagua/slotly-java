@@ -4,6 +4,8 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { obtenerUsuario, salir } from '../api/panel'
 import type { LocalPublico, UsuarioPanel } from '../api/tipos'
 import PantallaMensaje from '../PantallaMensaje'
+import { useAvisos } from './avisos'
+import { BotonAvisos, ListaAvisos } from './AvisosDelPanel'
 import { ContextoSesion, linkIngresar } from './sesion'
 import './panel.css'
 
@@ -32,6 +34,8 @@ function PanelConSesion({ local }: Props) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'cargando' })
   const [intento, setIntento] = useState(0)
   const aqui = ubicacion.pathname + ubicacion.search
+  // HU-37: los avisos son de la agenda propia; un admin sin agenda no tiene.
+  const avisos = useAvisos(estado.tipo === 'ok' && estado.usuario.profesionalId !== null)
 
   const sesionPerdida = useCallback(() => {
     navegar(linkIngresar(aqui), { replace: true })
@@ -80,10 +84,12 @@ function PanelConSesion({ local }: Props) {
         <header className="panel__encabezado">
           <p className="panel__local">{local.nombre}</p>
           <div className="panel__usuario">
+            {estado.usuario.profesionalId !== null && <BotonAvisos avisos={avisos} />}
             <span className="panel__email">{estado.usuario.email}</span>
             <button type="button" className="btn btn-secondary" onClick={cerrarSesion}>Salir</button>
           </div>
         </header>
+        <ListaAvisos avisos={avisos} />
         {/* El menú: el admin ve todas las secciones; el profesional, solo su agenda (doc 00). */}
         {estado.usuario.rol === 'admin' && (
           <nav className="panel__menu" aria-label="Secciones del panel">

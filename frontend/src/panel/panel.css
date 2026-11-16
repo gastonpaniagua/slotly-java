@@ -583,3 +583,60 @@
   font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
 }
+
+/* Avisos del profesional (HU-37) */
+.avisos__boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.avisos__contador {
+  min-width: 22px;
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: var(--fs-small);
+  line-height: 22px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.avisos {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--gutter) 0;
+}
+
+.avisos__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.avisos__item {
+  padding: var(--space-3) var(--space-4);
+}
+
+.avisos__item + .avisos__item {
+  border-top: 1px solid var(--color-border);
+}
+
+.avisos__item--nuevo {
+  border-left: 3px solid var(--accent);
+}
+
+.avisos__nuevo {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semibold);
+  color: var(--accent-ink);
+}
+
+.avisos__cuando {
+  font-size: var(--fs-small);
+  color: var(--color-text-soft);
+}
