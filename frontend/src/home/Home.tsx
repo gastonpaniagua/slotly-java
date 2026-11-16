@@ -1,5 +1,6 @@
 import type { LocalPublico } from '../api/tipos'
 import Encabezado from './Encabezado'
+import Contacto from './Contacto'
 import Horarios from './Horarios'
 import ListaServicios from './ListaServicios'
 import Ubicacion from './Ubicacion'
@@ -26,6 +27,7 @@ function Home({ local }: Props) {
           longitud={local.longitud}
         />
       )}
+      <Contacto local={local} />
     </main>
   )
 }

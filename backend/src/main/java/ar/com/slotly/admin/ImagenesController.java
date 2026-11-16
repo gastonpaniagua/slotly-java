@@ -56,7 +56,8 @@ class ImagenesController {
     ImagenSubida subir(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
             @RequestParam("archivo") MultipartFile archivo) throws IOException {
         byte[] datos = archivo.getBytes();
-        if (datos.length == 0 || datos.length > MAXIMO_BYTES) {
+        // Un archivo vacío no pasa por acá: no tiene la firma de ninguna imagen, así que recibe el mensaje del tipo.
+        if (datos.length > MAXIMO_BYTES) {
             throw invalida("La imagen puede pesar hasta 500 KB.");
         }
         String tipo = tipoDe(datos).orElseThrow(() -> invalida("La imagen tiene que ser PNG, JPG o WebP."));

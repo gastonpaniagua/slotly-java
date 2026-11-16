@@ -11,10 +11,11 @@ vi.mock('../api/admin', () => ({ listarClientes: vi.fn(), verCliente: vi.fn(), b
 const ADMIN: UsuarioPanel = { email: 'duenio@demo.com', rol: 'admin', profesionalId: null }
 const LUCIA: ClienteAdmin = {
   id: 'lucia', nombre: 'Lucía', telefono: '+5491123456789', email: 'lucia@mail.com', visitas: 3, faltas: 1,
-  ultimaVisita: '2026-11-10', turnosFuturos: 0,
+  ultimaVisita: '2026-11-10', turnosFuturos: 0, datosBorrados: false,
 }
 const PEDRO: ClienteAdmin = {
   id: 'pedro', nombre: 'Pedro', telefono: null, email: null, visitas: 1, faltas: 0, ultimaVisita: null, turnosFuturos: 1,
+  datosBorrados: false,
 }
 
 beforeEach(() => {
@@ -72,8 +73,9 @@ describe('Clientes del local', () => {
     expect(verCliente).toHaveBeenCalledWith('lucia')
   })
 
-  it('HU-34 CA1: borrar los datos pide confirmar, y después recarga la lista', async () => {
-    vi.mocked(borrarDatosCliente).mockResolvedValue({ estado: 'ok', datos: { ...LUCIA, nombre: 'Cliente borrado', telefono: null } })
+  it('HU-34 CA1: borrar los datos pide confirmar, y después recarga la lista y ya no ofrece borrar', async () => {
+    const borrada = { ...LUCIA, nombre: 'Cliente borrado', telefono: null, email: null, datosBorrados: true }
+    vi.mocked(borrarDatosCliente).mockResolvedValue({ estado: 'ok', datos: borrada })
     abrir()
     fireEvent.click((await screen.findAllByRole('button', { name: 'Ver historial' }))[0])
     fireEvent.click(await screen.findByRole('button', { name: 'Borrar los datos de este cliente' }))
@@ -85,6 +87,18 @@ describe('Clientes del local', () => {
     expect(await screen.findByText('Datos borrados. Sus turnos quedan en el historial, sin datos personales.')).toBeInTheDocument()
     expect(borrarDatosCliente).toHaveBeenCalledWith('lucia')
     await vi.waitFor(() => expect(listarClientes).toHaveBeenCalledTimes(2))
+  })
+
+  it('HU-34 CA1: a un cliente con los datos ya borrados no le ofrece borrarlos otra vez', async () => {
+    vi.mocked(verCliente).mockResolvedValue({
+      estado: 'ok',
+      datos: { cliente: { ...LUCIA, nombre: 'Cliente borrado', telefono: null, email: null, datosBorrados: true }, turnos: [] },
+    })
+    abrir()
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Ver historial' }))[0])
+
+    expect(await screen.findByText('Todavía no tiene turnos.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Borrar los datos de este cliente' })).not.toBeInTheDocument()
   })
 
   it('HU-34 CA2: con turnos por delante, muestra que hay que cancelarlos antes', async () => {

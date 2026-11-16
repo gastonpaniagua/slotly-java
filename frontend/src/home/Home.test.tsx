@@ -92,6 +92,29 @@ describe('Home', () => {
     expect(document.querySelector('iframe')).not.toBeInTheDocument()
   })
 
+  it('HU-32 CA1: Contacto con WhatsApp y las redes que el local cargó, cada una hacia su perfil', () => {
+    renderConRouter(<Home local={unLocal({
+      whatsapp: '+5493534000000', instagram: 'barberia.nueva', tiktok: 'barberia.tt', facebook: 'BarberiaNueva',
+    })} />)
+
+    const contacto = screen.getByRole('region', { name: 'Contacto' })
+    expect(within(contacto).getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/5493534000000')
+    const instagram = within(contacto).getByRole('link', { name: 'Instagram @barberia.nueva' })
+    expect(instagram).toHaveAttribute('href', 'https://www.instagram.com/barberia.nueva')
+    expect(instagram).toHaveAttribute('target', '_blank')
+    expect(within(contacto).getByRole('link', { name: 'TikTok @barberia.tt' })).toHaveAttribute('href', 'https://www.tiktok.com/@barberia.tt')
+    expect(within(contacto).getByRole('link', { name: 'Facebook BarberiaNueva' })).toHaveAttribute('href', 'https://www.facebook.com/BarberiaNueva')
+  })
+
+  it('HU-32 CA1: solo aparece lo que el local cargó; sin nada, no hay sección de contacto', () => {
+    const { unmount } = renderConRouter(<Home local={unLocal({ instagram: 'barberia.nueva' })} />)
+    expect(within(screen.getByRole('region', { name: 'Contacto' })).getAllByRole('link')).toHaveLength(1)
+    unmount()
+
+    renderConRouter(<Home local={unLocal()} />)
+    expect(screen.queryByRole('region', { name: 'Contacto' })).not.toBeInTheDocument()
+  })
+
   it('HU-01 CA3: sin servicios muestra "Todavía no hay servicios para reservar"', () => {
     renderConRouter(<Home local={unLocal({ servicios: [] })} />)
 

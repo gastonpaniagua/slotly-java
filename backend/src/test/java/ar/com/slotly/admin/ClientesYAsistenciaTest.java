@@ -95,7 +95,8 @@ class ClientesYAsistenciaTest {
         clientes(admin, null)
                 .andExpect(jsonPath("$[0].visitas").value(1))
                 .andExpect(jsonPath("$[0].faltas").value(1))
-                .andExpect(jsonPath("$[0].ultimaVisita").value("2026-11-17"));
+                .andExpect(jsonPath("$[0].ultimaVisita").value("2026-11-17"))
+                .andExpect(jsonPath("$[0].datosBorrados").value(false));
     }
 
     @Test
@@ -182,7 +183,8 @@ class ClientesYAsistenciaTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Cliente borrado"))
                 .andExpect(jsonPath("$.telefono").doesNotExist())
-                .andExpect(jsonPath("$.visitas").value(1));
+                .andExpect(jsonPath("$.visitas").value(1))
+                .andExpect(jsonPath("$.datosBorrados").value(true));
 
         assertThat(jdbc.queryForObject("SELECT telefono IS NULL AND email IS NULL FROM cliente WHERE id = ?", Boolean.class, luciaId)).isTrue();
         assertThat(estado(pasado)).isEqualTo("completado");

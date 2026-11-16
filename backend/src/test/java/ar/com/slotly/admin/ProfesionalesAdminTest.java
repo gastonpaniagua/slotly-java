@@ -121,11 +121,14 @@ class ProfesionalesAdminTest {
     }
 
     @Test
-    @DisplayName("D10: un archivo que no es PNG, JPG ni WebP (aunque diga serlo) o que pesa más de 500 KB se rechaza")
+    @DisplayName("D10: un archivo que no es PNG, JPG ni WebP (aunque diga serlo), vacío o que pesa más de 500 KB se rechaza")
     void imagenesInvalidas() throws Exception {
         subirImagen("esto no es una imagen".getBytes())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.codigo").value("VALIDACION"))
+                .andExpect(jsonPath("$.detail").value("La imagen tiene que ser PNG, JPG o WebP."));
+        subirImagen(new byte[0])
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("La imagen tiene que ser PNG, JPG o WebP."));
         subirImagen(conFirma(512_001, 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A))
                 .andExpect(status().isBadRequest())

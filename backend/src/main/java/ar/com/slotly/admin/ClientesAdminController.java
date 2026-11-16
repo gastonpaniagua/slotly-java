@@ -48,9 +48,11 @@ class ClientesAdminController {
     }
 
     // visitas: turnos en los que vino; faltas: en los que no vino; ultimaVisita: el día de la última vez que vino.
+    // datosBorrados: ya se le borraron los datos (HU-34), así que no hay nada más que borrar.
     record ClienteAdmin(UUID id, String nombre, @Schema(types = {"string", "null"}) String telefono,
             @Schema(types = {"string", "null"}) String email, int visitas, int faltas,
-            @Schema(types = {"string", "null"}, format = "date") LocalDate ultimaVisita, int turnosFuturos) {
+            @Schema(types = {"string", "null"}, format = "date") LocalDate ultimaVisita, int turnosFuturos,
+            boolean datosBorrados) {
     }
 
     record TurnoDelHistorial(UUID id,
@@ -130,6 +132,7 @@ class ClientesAdminController {
         ZoneId zona = ZoneId.of(local.getZonaHoraria());
         List<ClienteAdmin> encontrados = jdbc.query("""
                 SELECT c.id, c.nombre, c.telefono, c.email,
+                       (c.nombre = ? AND c.telefono IS NULL AND c.email IS NULL) AS borrado,
                        count(*) FILTER (WHERE t.estado = 'completado') AS visitas,
                        count(*) FILTER (WHERE t.estado = 'ausente') AS faltas,
                        max(t.inicio) FILTER (WHERE t.estado = 'completado') AS ultima,
@@ -141,8 +144,9 @@ class ClientesAdminController {
                     Timestamp ultima = fila.getTimestamp("ultima");
                     return new ClienteAdmin(fila.getObject("id", UUID.class), fila.getString("nombre"),
                             fila.getString("telefono"), fila.getString("email"), fila.getInt("visitas"), fila.getInt("faltas"),
-                            ultima == null ? null : LocalDate.ofInstant(ultima.toInstant(), zona), fila.getInt("futuros"));
-                }, Timestamp.from(reloj.instant()), id, local.getId());
+                            ultima == null ? null : LocalDate.ofInstant(ultima.toInstant(), zona), fila.getInt("futuros"),
+                            fila.getBoolean("borrado"));
+                }, NOMBRE_BORRADO, Timestamp.from(reloj.instant()), id, local.getId());
         if (encontrados.isEmpty()) {
             throw new SlotlyException(HttpStatus.NOT_FOUND, "CLIENTE_NO_ENCONTRADO", "No existe ese cliente.");
         }

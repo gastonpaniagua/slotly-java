@@ -993,6 +993,7 @@ export interface components {
             ultimaVisita: string | null;
             /** Format: int32 */
             turnosFuturos: number;
+            datosBorrados: boolean;
         };
         HorasResponse: {
             /** Format: date */

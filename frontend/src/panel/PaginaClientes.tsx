@@ -149,8 +149,8 @@ function DetalleCliente({ id, alBorrar }: { id: string; alBorrar: () => void }) 
               ))}
             </ul>
           )}
-          {/* HU-34: no se puede deshacer, así que pide confirmar. */}
-          {confirmando ? (
+          {/* HU-34: no se puede deshacer, así que pide confirmar. A un cliente ya borrado no hay nada más que borrarle. */}
+          {detalle.cliente.datosBorrados ? null : confirmando ? (
             <div className="turno__aviso">
               <p>¿Borrar los datos de {detalle.cliente.nombre}? Nombre, teléfono y mail se borran y no se pueden recuperar.</p>
               <div className="turno__acciones">
