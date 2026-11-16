@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import ar.com.slotly.mensaje.PedidosDeResena;
 import ar.com.slotly.mensaje.TrabajoDeMensajes;
 
 // Los trabajos en segundo plano (D2): Spring los corre cada tanto, sin servicios aparte. Cada uno espera a que
@@ -17,10 +18,12 @@ class TrabajosProgramados {
 
     private final TrabajoDeMensajes mensajes;
     private final ApartadosVencidos apartados;
+    private final PedidosDeResena resenas;
 
-    TrabajosProgramados(TrabajoDeMensajes mensajes, ApartadosVencidos apartados) {
+    TrabajosProgramados(TrabajoDeMensajes mensajes, ApartadosVencidos apartados, PedidosDeResena resenas) {
         this.mensajes = mensajes;
         this.apartados = apartados;
+        this.resenas = resenas;
     }
 
     @Scheduled(initialDelayString = "PT10S", fixedDelayString = "PT30S")
@@ -31,5 +34,11 @@ class TrabajosProgramados {
     @Scheduled(initialDelayString = "PT10S", fixedDelayString = "PT1M")
     void vencerApartados() {
         apartados.vencer();
+    }
+
+    // HU-38: los encola; los manda mandarMensajes en su próxima vuelta.
+    @Scheduled(initialDelayString = "PT10S", fixedDelayString = "PT1M")
+    void pedirResenas() {
+        resenas.encolar();
     }
 }
