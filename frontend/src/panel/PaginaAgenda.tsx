@@ -5,7 +5,9 @@ import { borrarBloqueo, cancelarTurnoDelPanel, marcarAsistencia } from '../api/a
 import { obtenerAgenda, type ResultadoPanel } from '../api/panel'
 import type { Agenda, LocalPublico, ProfesionalDeAgenda, TurnoDeAgenda } from '../api/tipos'
 import { diasDeLaSemana, fechaLarga, lunesDe, sumarDias, textoDeLaSemana } from '../fechas'
-import { franjasDelDia, itemsDelDia, textoDelEstado, textoDelHorario, TODO_EL_DIA, type ItemDeAgenda } from './agenda'
+import {
+  algunMensajeFallo, franjasDelDia, itemsDelDia, textoDeLosMensajes, textoDelEstado, textoDelHorario, TODO_EL_DIA, type ItemDeAgenda,
+} from './agenda'
 import FormularioBloqueo from './FormularioBloqueo'
 import FormularioMover from './FormularioMover'
 import FormularioTurnoManual from './FormularioTurnoManual'
@@ -294,13 +296,17 @@ function Item({ item, acciones, hoy }: { item: ItemDeAgenda; acciones: AccionesD
       </li>
     )
   }
+  // HU-39 CA2: si un mensaje no le llegó, el turno queda marcado para llamarlo.
+  const fallo = algunMensajeFallo(turno.mensajes)
   return (
-    <li className="agenda__item agenda__item--turno">
+    <li className={fallo ? 'agenda__item agenda__item--turno agenda__item--fallo' : 'agenda__item agenda__item--turno'}>
       <span className="agenda__horas">{horas}</span>
       <div className="agenda__detalle">
         <span className="agenda__titulo-item">{turno.clienteNombre ?? 'Sin nombre'}</span>
         <span className="agenda__servicios">{turno.servicios.join(' + ')}</span>
         {turno.clienteTelefono && <a className="agenda__telefono" href={`tel:${turno.clienteTelefono}`}>{turno.clienteTelefono}</a>}
+        {turno.mensajes.length > 0 && <span className="agenda__mensajes">{textoDeLosMensajes(turno.mensajes)}</span>}
+        {fallo && <span className="agenda__fallo">No le llegó un mensaje: llamalo.</span>}
       </div>
       <span className={`agenda__estado agenda__estado--${turno.estado}`}>{textoDelEstado(turno.estado)}</span>
       <span className="agenda__accion">

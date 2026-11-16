@@ -49,6 +49,7 @@ export function unTurno(datos: Partial<TurnoDeAgenda> = {}): TurnoDeAgenda {
     nota: null,
     motivo: null,
     yaEmpezo: false,
+    mensajes: [],
     ...datos,
   }
 }

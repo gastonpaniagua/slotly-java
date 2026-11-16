@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { FranjaDeAgenda } from '../api/tipos'
 import { unTurno } from '../test/datos'
-import { itemsDelDia, textoDelEstado, textoDelHorario } from './agenda'
+import { algunMensajeFallo, itemsDelDia, textoDeLosMensajes, textoDelEstado, textoDelHorario } from './agenda'
 
 function franja(profesionalId: string, fecha: string, desde: string, hasta: string): FranjaDeAgenda {
   return { profesionalId, fecha, desde, hasta }
@@ -56,5 +56,20 @@ describe('textos', () => {
     expect(textoDelEstado('confirmado')).toBe('Confirmado')
     expect(textoDelEstado('completado')).toBe('Vino')
     expect(textoDelEstado('ausente')).toBe('No vino')
+  })
+})
+
+describe('Mensajes del turno (HU-39)', () => {
+  it('CA1: cada mensaje con su estado, en una línea', () => {
+    expect(textoDeLosMensajes([
+      { tipo: 'confirmacion', estado: 'enviado' },
+      { tipo: 'recordatorio', estado: 'fallido' },
+      { tipo: 'resena', estado: 'pendiente' },
+    ])).toBe('Confirmación enviada · Recordatorio no llegó · Pedido de reseña pendiente')
+  })
+
+  it('CA2: alcanza con que uno haya fallado', () => {
+    expect(algunMensajeFallo([{ tipo: 'confirmacion', estado: 'enviado' }, { tipo: 'resena', estado: 'fallido' }])).toBe(true)
+    expect(algunMensajeFallo([{ tipo: 'confirmacion', estado: 'enviado' }, { tipo: 'recordatorio', estado: 'pendiente' }])).toBe(false)
   })
 })

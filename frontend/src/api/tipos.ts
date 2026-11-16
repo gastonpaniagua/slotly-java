@@ -26,6 +26,7 @@ export type TurnoPublico = Omit<Esquemas['TurnoPublico'], 'transferencia'> & {
 export type UsuarioPanel = Esquemas['UsuarioActual']
 export type Agenda = Esquemas['Agenda']
 export type TurnoDeAgenda = Esquemas['TurnoDeAgenda']
+export type MensajeDelTurno = Esquemas['MensajeDelTurno']
 export type FranjaDeAgenda = Esquemas['FranjaDeAgenda']
 export type ProfesionalDeAgenda = Esquemas['ProfesionalDeAgenda']
 

@@ -78,6 +78,28 @@ describe('Agenda', () => {
     expect(screen.getByText('Trabaja de 10:00 a 13:00 y 16:00 a 20:00.')).toBeInTheDocument()
   })
 
+  it('HU-39 CA1 y CA2: cada turno dice cómo van sus mensajes; si uno no llegó, queda marcado para llamarlo', async () => {
+    turnos = [
+      unTurno({ inicio: `${HOY}T10:00`, fin: `${HOY}T10:30`, clienteNombre: 'Lucía',
+        mensajes: [{ tipo: 'confirmacion', estado: 'enviado' }, { tipo: 'recordatorio', estado: 'pendiente' }] }),
+      unTurno({ inicio: `${HOY}T11:00`, fin: `${HOY}T11:30`, clienteNombre: 'Martín',
+        mensajes: [{ tipo: 'confirmacion', estado: 'fallido' }] }),
+      unTurno({ inicio: `${HOY}T12:00`, fin: `${HOY}T12:30`, clienteNombre: 'Pedro', tipo: 'manual' }),
+    ]
+
+    abrir(ANA)
+
+    await screen.findByRole('heading', { name: 'martes 17 de noviembre' })
+    const [lucia, martin, pedro] = screen.getAllByRole('listitem')
+    expect(lucia).toHaveTextContent('Confirmación enviada · Recordatorio pendiente')
+    expect(lucia).not.toHaveTextContent('No le llegó')
+    expect(martin).toHaveTextContent('Confirmación no llegó')
+    expect(martin).toHaveTextContent('No le llegó un mensaje: llamalo.')
+    expect(martin).toHaveClass('agenda__item--fallo')
+    expect(pedro).not.toHaveTextContent('Confirmación')
+    expect(pedro).not.toHaveClass('agenda__item--fallo')
+  })
+
   it('HU-17: se pasa al día siguiente y al anterior, y "Hoy" vuelve', async () => {
     abrir(ANA)
     await screen.findByRole('heading', { name: 'martes 17 de noviembre' })

@@ -110,6 +110,29 @@ class AgendaTest {
     }
 
     @Test
+    @DisplayName("HU-39 CA1 y CA2: cada turno trae sus mensajes al cliente con su estado (sin los descartados), en orden")
+    void estadoDeLosMensajes() throws Exception {
+        UUID conMensajes = turno(anaId, "reserva", "confirmado", MARTES, "10:00", "10:30", luciaId, corteId);
+        UUID sinMensajes = turno(anaId, "manual", "confirmado", MARTES, "11:00", "11:30", luciaId, corteId);
+        mensaje(conMensajes, "resena", "descartado");
+        mensaje(conMensajes, "recordatorio", "fallido");
+        mensaje(conMensajes, "confirmacion", "enviado");
+
+        agenda(sesionAna, MARTES, 1, null)
+                .andExpect(jsonPath("$.turnos[*].id", contains(conMensajes.toString(), sinMensajes.toString())))
+                .andExpect(jsonPath("$.turnos[0].mensajes[*].tipo", contains("confirmacion", "recordatorio")))
+                .andExpect(jsonPath("$.turnos[0].mensajes[*].estado", contains("enviado", "fallido")))
+                .andExpect(jsonPath("$.turnos[1].mensajes", hasSize(0)));
+    }
+
+    private void mensaje(UUID turno, String tipo, String estado) {
+        jdbc.update("""
+                INSERT INTO mensaje (local_id, turno_id, tipo, estado, enviar_en, creado_en, terminado_en)
+                VALUES (?, ?, ?, ?, now(), now(), CASE WHEN ? = 'pendiente' THEN NULL ELSE now() END)
+                """, demoId, turno, tipo, estado, estado);
+    }
+
+    @Test
     @DisplayName("HU-17 CA1: no se muestran los cancelados, los apartados ni los vencidos (ese horario está libre)")
     void soloLoQueOcupa() throws Exception {
         turno(anaId, "reserva", "cancelado", MARTES, "10:00", "10:30", luciaId, corteId);

@@ -1,4 +1,4 @@
-import type { FranjaDeAgenda, TurnoDeAgenda } from '../api/tipos'
+import type { FranjaDeAgenda, MensajeDelTurno, TurnoDeAgenda } from '../api/tipos'
 
 // Lo que se dibuja en la lista de un día de un profesional: turnos, bloqueos y pausas, en orden.
 // Todas las horas son del local y vienen así de la API ("2026-11-17T10:00"): acá no se convierten zonas.
@@ -62,4 +62,25 @@ const ESTADOS: Record<string, string> = {
 
 export function textoDelEstado(estado: string): string {
   return ESTADOS[estado] ?? estado
+}
+
+// HU-39 CA1: cómo van los mensajes al cliente de un turno, en una línea:
+// "Confirmación enviada · Recordatorio pendiente".
+const MENSAJES: Record<string, { nombre: string; enviado: string }> = {
+  confirmacion: { nombre: 'Confirmación', enviado: 'enviada' },
+  recordatorio: { nombre: 'Recordatorio', enviado: 'enviado' },
+  resena: { nombre: 'Pedido de reseña', enviado: 'enviado' },
+}
+
+export function textoDeLosMensajes(mensajes: MensajeDelTurno[]): string {
+  return mensajes.map((mensaje) => {
+    const tipo = MENSAJES[mensaje.tipo] ?? { nombre: mensaje.tipo, enviado: 'enviado' }
+    const estado = mensaje.estado === 'enviado' ? tipo.enviado : mensaje.estado === 'fallido' ? 'no llegó' : 'pendiente'
+    return `${tipo.nombre} ${estado}`
+  }).join(' · ')
+}
+
+// HU-39 CA2: algún mensaje no llegó (se agotaron los reintentos).
+export function algunMensajeFallo(mensajes: MensajeDelTurno[]): boolean {
+  return mensajes.some((mensaje) => mensaje.estado === 'fallido')
 }

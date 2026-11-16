@@ -71,7 +71,13 @@ class AgendaService {
             @Schema(types = {"string", "null"}) String nota,
             @Schema(types = {"string", "null"}) String motivo,
             // Si ya empezó: recién ahí se puede marcar si vino (HU-30 CA2).
-            boolean yaEmpezo) {
+            boolean yaEmpezo,
+            // HU-39: los mensajes al cliente y cómo van (los descartados no: nunca se iban a mandar).
+            List<MensajeDelTurno> mensajes) {
+    }
+
+    // tipo: confirmacion, recordatorio o resena. estado: pendiente, enviado o fallido.
+    record MensajeDelTurno(String tipo, String estado) {
     }
 
     // hoy: el día de hoy en la zona del local (el front no lo calcula con el reloj del navegador).
@@ -160,7 +166,10 @@ class AgendaService {
                        c.nombre AS cliente_nombre, c.telefono AS cliente_telefono,
                        ARRAY(SELECT s.nombre FROM turno_servicio ts
                              JOIN servicio s ON s.local_id = ts.local_id AND s.id = ts.servicio_id
-                             WHERE ts.turno_id = t.id ORDER BY s.orden, s.nombre) AS servicios
+                             WHERE ts.turno_id = t.id ORDER BY s.orden, s.nombre) AS servicios,
+                       ARRAY(SELECT m.tipo || ':' || m.estado FROM mensaje m
+                             WHERE m.local_id = t.local_id AND m.turno_id = t.id AND m.estado <> 'descartado'
+                             ORDER BY array_position(ARRAY['confirmacion', 'recordatorio', 'resena'], m.tipo)) AS mensajes
                 FROM turno t
                 LEFT JOIN cliente c ON c.local_id = t.local_id AND c.id = t.cliente_id
                 WHERE t.local_id = ?
@@ -189,6 +198,9 @@ class AgendaService {
                 fila.getString("forma_pago"),
                 fila.getString("nota"),
                 fila.getString("motivo"),
-                !fila.getTimestamp("inicio").toInstant().isAfter(ahora));
+                !fila.getTimestamp("inicio").toInstant().isAfter(ahora),
+                Arrays.stream((String[]) fila.getArray("mensajes").getArray())
+                        .map(m -> new MensajeDelTurno(m.substring(0, m.indexOf(':')), m.substring(m.indexOf(':') + 1)))
+                        .toList());
     }
 }

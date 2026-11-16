@@ -1146,6 +1146,10 @@ export interface components {
             /** @example 13:00 */
             hasta: string;
         };
+        MensajeDelTurno: {
+            tipo: string;
+            estado: string;
+        };
         ProfesionalDeAgenda: {
             /** Format: uuid */
             id: string;
@@ -1169,6 +1173,7 @@ export interface components {
             nota: string | null;
             motivo: string | null;
             yaEmpezo: boolean;
+            mensajes: components["schemas"]["MensajeDelTurno"][];
         };
         HealthResponse: {
             estado: string;

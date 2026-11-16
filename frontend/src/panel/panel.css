@@ -640,3 +640,19 @@
   font-size: var(--fs-small);
   color: var(--color-text-soft);
 }
+
+/* Estado de los mensajes al cliente (HU-39) */
+.agenda__mensajes {
+  font-size: var(--fs-small);
+  color: var(--color-text-soft);
+}
+
+.agenda__fallo {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semibold);
+  color: var(--color-danger);
+}
+
+.agenda__item--fallo {
+  border-left: 3px solid var(--color-danger);
+}
