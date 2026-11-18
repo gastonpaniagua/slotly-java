@@ -77,10 +77,10 @@ CA8 (limpieza) y CA10 (horario de verano) se cubren solo con tests automáticos 
 
 Todos usan el local demo (`10000000-…-001`), Ana (`30000000-…-001`) y Bruno (`30000000-…-002`). Las horas son de Buenos Aires.
 
-**L1** · Borra todos los turnos de la demo (son solo de prueba). Primero sus servicios (`turno_servicio`), porque la base no deja borrar un turno que todavía los tiene:
+**L1** · Borra todos los turnos de la demo (son solo de prueba). Primero sus mensajes, sus avisos y sus servicios, porque la base no deja borrar un turno que todavía los tiene:
 
 ```bash
-docker compose exec db psql -U slotly -d slotly -c "DELETE FROM turno_servicio; DELETE FROM turno;"
+docker compose exec db psql -U slotly -d slotly -c "DELETE FROM mensaje; DELETE FROM notificacion; DELETE FROM turno_servicio; DELETE FROM turno;"
 ```
 
 **S1** · Bruno con un turno el martes que viene de 10:00 a 10:45:
@@ -416,7 +416,74 @@ fetch('/api/admin/servicios').then(r => r.status)
 docker compose exec db psql -U slotly -d slotly -c "WITH s AS (SELECT date_trunc('week', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') AS lunes) SELECT count(*) AS turnos, count(*) FILTER (WHERE t.estado = 'ausente') AS faltas, coalesce(sum((SELECT sum(precio) FROM turno_servicio ts WHERE ts.turno_id = t.id)), 0) AS ingresos FROM turno t, s WHERE t.tipo <> 'bloqueo' AND t.estado IN ('confirmado', 'completado', 'ausente') AND t.inicio AT TIME ZONE 'America/Argentina/Buenos_Aires' >= s.lunes AND t.inicio AT TIME ZONE 'America/Argentina/Buenos_Aires' < s.lunes + interval '7 days';"
 ```
 
-## Smoke test (versión Etapa 7, ~12 minutos)
+## Etapa 8 · Mensajes y avisos
+
+**Precondiciones comunes:** base, API y front levantados, con la API reiniciada después del paso 59. "Admin", "Bruno" y "Reservar" son lo mismo que en la Etapa 7. Los mensajes salen por el envío simulado: aparecen en la terminal de la API como `[SIMULADO] WhatsApp a …`. El trabajo que los manda corre cada 30 s, y el de reseñas cada minuto.
+
+Quedan solo con tests automáticos: los reintentos a 1, 5 y 15 minutos y el paso a `fallido` (HU-35 CA3; a mano, S22 simula el fallo); que correr los trabajos dos veces no duplique nada (HU-35 CA2, HU-36 CA4, HU-38 CA5); que dos instancias no tomen el mismo mensaje (`SKIP LOCKED`); el pedido de reseña para un "no vino" o un local sin link (HU-38 CA3 y CA4); y que el recordatorio siga al turno movido desde el panel.
+
+| ID | Qué se prueba | Precondiciones | Pasos | Resultado esperado | Resultado real | Estado | Fecha |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CP-HU35-01 | Confirmación con el link (CA1) | L1 | 1. Reservar 2. Esperar hasta 30 s y mirar la terminal de la API 3. Abrir el link | `[SIMULADO] WhatsApp a +5491123456789: Hola, … Tu turno en Barbería Demo quedó reservado para el martes … a las …. Para verlo, cancelarlo o cambiarlo: http://demo.localhost:5173/turno/…#t=…`; el link abre Mi turno | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU35-02 | El link no queda guardado | Después de CP-HU35-01 | 1. Correr C15 | La confirmación figura `enviado`, con `tiene_link` en `f`; el recordatorio figura `pendiente`, 24 h antes del turno, con `tiene_link` en `t` | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU36-01 | Recordatorio (CA1) | Después de CP-HU35-02 | 1. Correr S21 2. Esperar hasta 30 s | En la terminal: "Te recordamos tu turno en Barbería Demo el martes … a las …", con el link | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU36-02 | Reservado con menos de 24 h (CA2) | L1, un horario libre dentro de las próximas 24 h | 1. Reservar ese horario 2. Correr C15 | Está la confirmación y no hay recordatorio | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU36-03 | Reprogramado (CA3) | L1, reservar | 1. Mi turno → "Reprogramar" a otra hora 2. Correr S21 3. Esperar 30 s 4. Correr C15 | Un solo "Te recordamos…" en la terminal, con la hora nueva; en C15, el recordatorio del turno viejo figura `descartado` | Se cumplió lo esperado. (La primera vez se reprogramó a menos de 24 h y, como corresponde, no hubo recordatorio; se repitió a más de 24 h.) | 2026/11/18 |
+| CP-HU37-01 | Aviso por una reserva (CA1, CA2) | L1, Bruno en incógnito | 1. Reservar 2. En la pestaña de Bruno, ir a Agenda 3. Tocar "Avisos" 4. Volver a Agenda | Antes el botón dice "Avisos 1"; la lista muestra "Nuevo" y "Nuevo turno de …: Barba, el martes … a las …"; después, el botón queda sin número | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU37-02 | Cancelación del cliente (CA1) | Después de CP-HU37-01 | 1. En Mi turno, cancelar 2. Bruno va a Agenda y abre "Avisos" | "Se canceló el turno de … del martes … a las …" | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU37-03 | Cambio hecho por otro y por él mismo (CA3) | Admin y Bruno | 1. Admin → "+ Agregar turno" de Bruno: 11:00, Barba, Pedro 2. Admin → "Mover" ese turno a 12:00 3. Bruno → "Mover" el mismo turno a 12:30 4. Bruno abre "Avisos" | Están "Nuevo turno de Pedro…" y "Se movió el turno de Pedro del … a las 11:00 al … a las 12:00"; no hay aviso por el cambio a 12:30 | Se cumplió lo esperado. (La primera vez los avisos mostraban la hora actual del turno, 12:30, en vez de la de cada momento; se arregló en el cierre con V13 y se repitió.) | Paso | 2026/11/18 |
+| CP-HU37-04 | Solo los suyos (CA4) | Después de CP-HU37-01 | 1. Admin (que es Ana) abre "Avisos" | No aparece ningún aviso de Bruno | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU38-01 | Pedido de reseña (CA1) | L1, S24 | 1. Reservar 2. Correr S23 3. Esperar hasta 2 minutos | En la terminal: "¡Gracias por venir a Barbería Demo! … reseña: https://g.page/r/barberia-demo/review" | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU38-02 | Una vez cada 90 días (CA2) | Después de CP-HU38-01 | 1. Reservar de nuevo con el mismo celular 2. Correr S23 3. Esperar 2 minutos 4. Correr S25 | No aparece otro pedido de reseña | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU39-01 | Estado de los mensajes (CA1) | L1, reservar, esperar 30 s | 1. Agenda del admin, ese martes | El turno dice "Confirmación enviada · Recordatorio pendiente" | Se cumplió lo esperado. | 2026/11/18 |
+| CP-HU39-02 | Un mensaje que no llegó (CA2) | Después de CP-HU39-01 | 1. Correr S22 2. Recargar la agenda | El turno tiene borde rojo y dice "No le llegó un mensaje: llamalo." | Se cumplió lo esperado. | 2026/11/18 |
+| CP-E8-01 | Apartados vencidos | — | 1. Reservar hasta el paso de datos y no confirmar 2. Esperar 6 minutos 3. Correr C16 | Ese apartado figura `vencido` | Se cumplió lo esperado. | 2026/11/18 |
+
+### Comandos de la Etapa 8 (desde `C:\dev\slotly-java`)
+
+**S21** · Los recordatorios pendientes salen ya:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE mensaje SET enviar_en = now() WHERE tipo = 'recordatorio' AND estado = 'pendiente';"
+```
+
+**S22** · El último mensaje enviado pasa a no entregado:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE mensaje SET estado = 'fallido', intentos = 4, ultimo_error = 'Prueba manual' WHERE id = (SELECT id FROM mensaje WHERE estado = 'enviado' ORDER BY terminado_en DESC LIMIT 1);"
+```
+
+**S23** · El turno confirmado más próximo pasa a "vino", terminado hace 2 horas:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE turno SET inicio = now() - interval '150 minutes', fin = now() - interval '2 hours', ocupado_hasta = now() - interval '2 hours', estado = 'completado' WHERE id = (SELECT id FROM turno WHERE estado = 'confirmado' AND tipo <> 'bloqueo' ORDER BY inicio LIMIT 1);"
+```
+
+**S24** · El local demo con link de reseña:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE local SET link_resena = 'https://g.page/r/barberia-demo/review' WHERE subdominio = 'demo';"
+```
+
+**S25** · El local demo sin link de reseña, como viene:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "UPDATE local SET link_resena = NULL WHERE subdominio = 'demo';"
+```
+
+**C15** · Los mensajes con su estado, en hora del local:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "SELECT m.tipo, m.estado, m.enviar_en AT TIME ZONE 'America/Argentina/Buenos_Aires' AS enviar_en, m.intentos, m.link IS NOT NULL AS tiene_link, t.inicio AT TIME ZONE 'America/Argentina/Buenos_Aires' AS turno FROM mensaje m JOIN turno t ON t.id = m.turno_id ORDER BY m.creado_en;"
+```
+
+**C16** · Los últimos apartados:
+
+```bash
+docker compose exec db psql -U slotly -d slotly -c "SELECT estado, vence_en AT TIME ZONE 'America/Argentina/Buenos_Aires' AS vence FROM turno WHERE tipo = 'reserva' AND estado IN ('apartado', 'vencido') ORDER BY vence_en DESC LIMIT 3;"
+```
+
+## Smoke test (versión Etapa 8, ~13 minutos)
 
 1. `docker compose up -d`, API y front levantados sin errores en las terminales.
 2. `http://demo.localhost:5173` muestra la home de Barbería Demo con servicios, horarios y mapa.
@@ -424,11 +491,12 @@ docker compose exec db psql -U slotly -d slotly -c "WITH s AS (SELECT date_trunc
 4. "Reservar turno" → marcar "Corte de pelo" → "Siguiente" muestra "Cualquiera disponible", Ana y Bruno.
 5. Volver, marcar solo "Barba" → "Siguiente" muestra el calendario con un día elegido → "Siguiente" muestra horas.
 6. Elegir una hora → completar los datos → "Confirmar" muestra "¡Listo! Tu turno quedó reservado"; recargar muestra el mismo turno.
-7. En Mi turno, "Reprogramar" → otro horario → "Confirmar cambio" muestra "Listo, cambiaste tu turno".
-8. `demo.localhost:5173/agenda` lleva al login; con `admin@demo.com` / `demo1234` muestra la agenda con el filtro "Profesional".
-9. El admin ve el menú con Agenda, Servicios, Profesionales, Clientes, Local y Resumen, y cada sección carga sin errores.
-10. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
-11. El último commit tiene el ✅ del CI en GitHub.
+7. En menos de 30 s, la terminal de la API muestra `[SIMULADO] WhatsApp a …` con el link del turno.
+8. En Mi turno, "Reprogramar" → otro horario → "Confirmar cambio" muestra "Listo, cambiaste tu turno".
+9. `demo.localhost:5173/agenda` lleva al login; con `admin@demo.com` / `demo1234` muestra la agenda con el filtro "Profesional".
+10. El admin ve el menú con Agenda, Servicios, Profesionales, Clientes, Local y Resumen, y cada sección carga sin errores.
+11. `.\mvnw.cmd test` en `backend/` y `npm test` en `frontend/` terminan en verde.
+12. El último commit tiene el ✅ del CI en GitHub.
 
 Los casos CP-E0-01 a CP-E0-03 quedan como historial: la página de "API: ok" se reemplazó por la home del local en la Etapa 1.
 

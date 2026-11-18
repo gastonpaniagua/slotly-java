@@ -49,11 +49,11 @@ Contrato del trabajo de la v1. Sale de los docs 01 a 04 y de las decisiones del 
 | HU-32 | Configurar datos y reglas del local               | admin               | Debe      | M      | 7     | Hecha     |
 | HU-33 | Ver un resumen de la semana                       | admin               | Podría    | S      | 7     | Hecha     |
 | HU-34 | Borrar los datos de un cliente que lo pide        | admin               | Podría    | S      | 7     | Hecha     |
-| HU-35 | Recibir la confirmación con el link de mi turno   | cliente             | Debe      | S      | 8     | Pendiente |
-| HU-36 | Recibir un recordatorio 24 h antes                | cliente             | Debe      | M      | 8     | Pendiente |
-| HU-37 | Enterarme de cada reserva, cancelación o cambio   | profesional         | Debe      | M      | 8     | Pendiente |
-| HU-38 | Pedirle reseña al cliente sin cansarlo            | admin               | Debe      | M      | 8     | Pendiente |
-| HU-39 | Ver si el mensaje al cliente se entregó           | admin               | Debería   | S      | 8     | Pendiente |
+| HU-35 | Recibir la confirmación con el link de mi turno   | cliente             | Debe      | S      | 8     | Hecha     |
+| HU-36 | Recibir un recordatorio 24 h antes                | cliente             | Debe      | M      | 8     | Hecha     |
+| HU-37 | Enterarme de cada reserva, cancelación o cambio   | profesional         | Debe      | M      | 8     | Hecha     |
+| HU-38 | Pedirle reseña al cliente sin cansarlo            | admin               | Debe      | M      | 8     | Hecha     |
+| HU-39 | Ver si el mensaje al cliente se entregó           | admin               | Debería   | S      | 8     | Hecha     |
 
 La Etapa 9 (calidad, observabilidad y cierre) no agrega historias nuevas: cubre HU-03 CA6 y refuerza la cobertura de las anteriores (e2e, carga, logs, deploy).
 
@@ -493,38 +493,44 @@ En la v1 los mensajes salen por un **adaptador simulado** (se guardan y se ven e
 ### HU-35 · Confirmación con el link de mi turno
 
 Como **cliente** quiero recibir la confirmación con el link de mi turno para tenerlo a mano y poder cancelarlo o cambiarlo.
-Prioridad: Debe · Tamaño: S · Etapa: 8 · Estado: Pendiente
+Prioridad: Debe · Tamaño: S · Etapa: 8 · Estado: Hecha
 
 - **CA1.** Dado un turno reservado, cuando se confirma, entonces se encola un mensaje al cliente con el nombre del local, el día en palabras, la hora del local y el link personal.
 - **CA2.** Dado que el trabajo de envío se ejecuta dos veces, cuando termina, entonces hay un solo mensaje enviado.
 - **CA3.** Dado que el envío falla, cuando pasa, entonces se reintenta hasta 3 veces y después queda marcado como no entregado (ver HU-39).
 
+Cubierta el 2026-11-18 con tests y casos manuales (CP-HU35-01 y 02). CA2 (el trabajo corre dos veces) y CA3 (reintentos a 1, 5 y 15 minutos y después fallido) quedan en `TrabajoDeMensajesTest`, igual que el envío que otra instancia tiene tomado (SKIP LOCKED).
+
 ### HU-36 · Recordatorio 24 h antes
 
 Como **cliente** quiero recibir un recordatorio el día anterior para no olvidarme del turno.
-Prioridad: Debe · Tamaño: M · Etapa: 8 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 8 · Estado: Hecha
 
 - **CA1.** Dado un turno confirmado, cuando faltan 24 h, entonces se envía un recordatorio con día, hora y link.
 - **CA2.** Dado un turno reservado con menos de 24 h de anticipación, cuando se confirma, entonces no se manda recordatorio.
 - **CA3.** Dado un turno cancelado o reprogramado antes del recordatorio, cuando llega la hora, entonces no se manda (y el turno nuevo tiene su propio recordatorio).
 - **CA4.** Dado que el trabajo corre dos veces, cuando termina, entonces hay un solo recordatorio.
 
+Cubierta el 2026-11-18 con tests y casos manuales (CP-HU36-01 a 03). En CA3, el turno cancelado (el recordatorio se descarta al llegar su hora) y el movido desde el panel quedan en `TrabajoDeMensajesTest` y `MensajesDelTurnoTest`; CA4 (corre dos veces) queda en tests.
+
 ### HU-37 · Aviso al profesional
 
 Como **profesional** quiero enterarme de cada reserva, cancelación o cambio en mi agenda para no encontrarme sorpresas.
-Prioridad: Debe · Tamaño: M · Etapa: 8 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 8 · Estado: Hecha
 
 - **CA1.** Dado un turno reservado, cancelado o reprogramado por un cliente, cuando pasa, entonces el profesional ve una notificación en el panel (contador y lista) con el detalle.
 - **CA2.** Dado que abro las notificaciones, cuando las leo, entonces el contador baja a cero.
 - **CA3.** Dado un cambio hecho por el mismo profesional desde el panel, cuando pasa, entonces no se le notifica a sí mismo.
 - **CA4.** Dado un profesional, cuando pide las notificaciones, entonces solo ve las suyas.
 
+Cubierta el 2026-11-18 con tests y casos manuales (CP-HU37-01 a 04). Cada aviso guarda el horario del turno en ese momento (V13), así un cambio posterior no altera los avisos anteriores; lo cubre `AvisosAlProfesionalTest`, junto con la reprogramación del cliente y el 401 sin sesión.
+
 Decisión 2026-10-05: en la v1 el profesional se entera solo por el panel; el WhatsApp al profesional queda para después (PD-18).
 
 ### HU-38 · Pedido de reseña sin cansar al cliente
 
 Como **admin** quiero que a mis clientes les llegue un pedido de reseña de Google después del servicio para sumar reseñas sin molestar.
-Prioridad: Debe · Tamaño: M · Etapa: 8 · Estado: Pendiente
+Prioridad: Debe · Tamaño: M · Etapa: 8 · Estado: Hecha
 
 - **CA1.** Dado un turno marcado "vino" (o terminado sin marcar), cuando pasan 2 horas desde el fin, entonces se envía el pedido con el link de reseña del local.
 - **CA2.** Dado un cliente que recibió un pedido hace menos de 90 días, cuando termina otro turno, entonces no se le manda.
@@ -532,13 +538,17 @@ Prioridad: Debe · Tamaño: M · Etapa: 8 · Estado: Pendiente
 - **CA4.** Dado un local sin link de reseña configurado, cuando termina un turno, entonces no se manda.
 - **CA5.** Dado que el trabajo corre dos veces, cuando termina, entonces hay un solo pedido.
 
+Cubierta el 2026-11-18 con tests y casos manuales (CP-HU38-01 y 02). CA3 (cancelado o "no vino"), CA4 (local sin link) y CA5 (corre dos veces) quedan en `PedidosDeResenaTest`, que también cubre el cliente sin teléfono y los turnos de hace más de 3 días (estos no reciben pedido).
+
 ### HU-39 · Estado de entrega del mensaje
 
 Como **admin** quiero ver si el mensaje al cliente se entregó para llamarlo si no le llegó.
-Prioridad: Debería · Tamaño: S · Etapa: 8 · Estado: Pendiente
+Prioridad: Debería · Tamaño: S · Etapa: 8 · Estado: Hecha
 
 - **CA1.** Dado un turno, cuando lo abro en la agenda, entonces veo el estado de cada mensaje (pendiente, enviado, falló).
 - **CA2.** Dado un mensaje fallido, cuando miro la agenda del día, entonces el turno aparece marcado.
+
+Cubierta el 2026-11-18 con tests y casos manuales (CP-HU39-01 y 02).
 
 ---
 
