@@ -34,10 +34,11 @@ public class Notificaciones {
         avisar(local, turnoId, tipo, inicioAnterior, quien);
     }
 
+    // Guarda el horario del turno en este momento: si después alguien lo mueve, este aviso sigue diciendo lo que pasó.
     private void avisar(Local local, UUID turnoId, String tipo, Instant inicioAnterior, UUID quien) {
         jdbc.update("""
-                INSERT INTO notificacion (local_id, profesional_id, turno_id, tipo, inicio_anterior, creada_en)
-                SELECT local_id, profesional_id, id, ?, ?, ? FROM turno
+                INSERT INTO notificacion (local_id, profesional_id, turno_id, tipo, inicio, inicio_anterior, creada_en)
+                SELECT local_id, profesional_id, id, ?, inicio, ?, ? FROM turno
                 WHERE id = ? AND local_id = ? AND profesional_id IS DISTINCT FROM ?::uuid
                 """, tipo, inicioAnterior == null ? null : Timestamp.from(inicioAnterior), Timestamp.from(reloj.instant()),
                 turnoId, local.getId(), quien);

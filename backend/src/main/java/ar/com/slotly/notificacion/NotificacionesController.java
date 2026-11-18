@@ -42,7 +42,8 @@ class NotificacionesController {
         this.reloj = reloj;
     }
 
-    // tipo: reserva, cancelacion, reprogramacion o movido. fecha y hora: del turno como quedó, en hora del local;
+    // tipo: reserva, cancelacion, reprogramacion o movido. fecha y hora: del turno en el momento del aviso (no como
+    // está ahora: si después lo movieron, eso es otro aviso), en hora del local;
     // fechaAnterior y horaAnterior: cuándo era antes (solo en reprogramacion y movido).
     record Notificacion(UUID id, String tipo, LocalDate fecha, @JsonFormat(pattern = "HH:mm") LocalTime hora,
             @Schema(types = {"string", "null"}, format = "date") LocalDate fechaAnterior,
@@ -66,7 +67,7 @@ class NotificacionesController {
                 SELECT count(*) FROM notificacion WHERE local_id = ? AND profesional_id = ? AND leida_en IS NULL
                 """, Integer.class, usuario.localId(), usuario.profesionalId());
         List<Notificacion> notificaciones = jdbc.query("""
-                SELECT n.id, n.tipo, t.inicio, n.inicio_anterior, c.nombre AS cliente, n.creada_en, n.leida_en IS NOT NULL AS leida,
+                SELECT n.id, n.tipo, n.inicio, n.inicio_anterior, c.nombre AS cliente, n.creada_en, n.leida_en IS NOT NULL AS leida,
                        ARRAY(SELECT s.nombre FROM turno_servicio ts JOIN servicio s ON s.local_id = ts.local_id AND s.id = ts.servicio_id
                              WHERE ts.turno_id = t.id ORDER BY s.orden, s.nombre) AS servicios
                 FROM notificacion n

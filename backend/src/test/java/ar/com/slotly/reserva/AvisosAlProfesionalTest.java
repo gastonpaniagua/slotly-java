@@ -183,6 +183,20 @@ class AvisosAlProfesionalTest {
     }
 
     @Test
+    @DisplayName("HU-37 CA1: cada aviso muestra el horario de ese momento, aunque después el turno se mueva")
+    void elHorarioDeEseMomento() throws Exception {
+        String turno = manual(admin, brunoId.toString(), "11:00");
+        mover(admin, turno, "12:00");
+        mover(bruno, turno, "12:30");
+
+        avisos(bruno)
+                .andExpect(jsonPath("$.notificaciones[*].tipo", contains("movido", "reserva")))
+                .andExpect(jsonPath("$.notificaciones[0].hora").value("12:00"))
+                .andExpect(jsonPath("$.notificaciones[0].horaAnterior").value("11:00"))
+                .andExpect(jsonPath("$.notificaciones[1].hora").value("11:00"));
+    }
+
+    @Test
     @DisplayName("HU-37 CA4: cada profesional ve y marca como leídos solo los suyos; un admin sin agenda no tiene; sin sesión, 401")
     void soloLosSuyos() throws Exception {
         reservar(brunoId, "10:00");
