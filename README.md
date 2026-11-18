@@ -64,6 +64,45 @@ npm run lint
 npm run build
 ```
 
+## Desplegar la demo (gratis: Render + Neon)
+
+La demo publicada es una sola app: la imagen del [`Dockerfile`](Dockerfile) trae la API y el front compilado, así el navegador ve un solo dominio (sin CORS y con la cookie de sesión del mismo sitio). La base va en Neon, que no vence ni se pausa por días sin uso. No hace falta tarjeta en ninguna de las dos.
+
+**1. Base en Neon** ([neon.com](https://neon.com))
+
+1. Crear la cuenta y un proyecto: nombre `slotly`, Postgres 17, región **AWS US East 1 (N. Virginia)**, cerca de Render.
+2. En "Connect", **apagar "Connection pooling"** (Flyway necesita la conexión directa: el host no tiene que terminar en `-pooler`) y anotar el host, la base, el usuario y la contraseña.
+
+**2. App en Render** ([render.com](https://render.com))
+
+1. Entrar con GitHub → "New" → "Web Service" → elegir este repo. Render detecta el `Dockerfile`.
+2. Región **Virginia (US East)** e instancia **Free**.
+3. Variables de entorno (las de la base, de Neon):
+
+   | Variable | Valor |
+   | --- | --- |
+   | `SPRING_PROFILES_ACTIVE` | `prod,demo` |
+   | `POSTGRES_HOST` | el host de Neon, por ejemplo `ep-algo-123.us-east-1.aws.neon.tech` |
+   | `POSTGRES_DB` | la base de Neon (por ejemplo `neondb`) |
+   | `POSTGRES_USER` | el usuario de Neon |
+   | `POSTGRES_PASSWORD` | la contraseña de Neon |
+   | `SLOTLY_DOMINIO_BASE` | `onrender.com` |
+   | `SLOTLY_URL_SITIO` | la dirección que da Render, por ejemplo `https://slotly-demo.onrender.com` |
+   | `SLOTLY_LOCAL_POR_DEFECTO` | `demo` |
+
+4. En "Advanced": **Health Check Path** `/api/health`. Si ofrece "Auto-Deploy: After CI Checks Pass", elegirlo (así no se publica un commit con el CI en rojo).
+5. "Create Web Service". El primer deploy tarda unos minutos (arma la imagen) y termina con "Your service is live". Las migraciones y los datos de demo se cargan solos al arrancar.
+
+**Para probarla:** la dirección de Render abre la web de "Barbería Demo"; el panel está en `/ingresar` con los usuarios de la demo (tabla de arriba) y la documentación de la API en `/swagger-ui.html`.
+
+**Límites del plan gratis:**
+
+- Render la duerme después de 15 minutos sin visitas. La primera visita después la despierta y tarda **unos 2 minutos** (Spring Boot con poco CPU); las siguientes van normal. Conviene avisarlo donde se comparta el link.
+- 512 MB de memoria: la imagen le dice a la JVM que se acomode a ese límite (ver el `Dockerfile`).
+- Cualquiera que entre puede cambiar los datos de la demo.
+
+Para armar y probar la imagen en la máquina (con los mismos 512 MB de Render): `docker build -t slotly .` en la raíz.
+
 ## Convenciones
 
 - **Nombres:** el dominio va en castellano (`Turno`, `Profesional`, `reservar()`, `estado`) y los términos técnicos en inglés (`Controller`, `Repository`, `Response`, `health`).

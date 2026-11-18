@@ -1,0 +1,9 @@
+# Lo que no entra al armar la imagen: secretos, lo que se instala o compila adentro, y lo que no hace falta.
+.env
+.git
+.github
+.vscode
+docs
+**/node_modules
+**/dist
+**/target
