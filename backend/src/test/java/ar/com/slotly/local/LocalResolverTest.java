@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import ar.com.slotly.BaseDeTest;
 import ar.com.slotly.IntegrationTest;
+import ar.com.slotly.SlotlyProperties;
 import ar.com.slotly.error.SlotlyException;
 
 // Prueba que el LocalResolver encuentra el local por el Host. Se prueba contra Postgres real.
@@ -24,6 +25,9 @@ class LocalResolverTest {
 
     @Autowired
     LocalResolver resolver;
+
+    @Autowired
+    LocalRepository locales;
 
     @BeforeEach
     void limpiarBase() {
@@ -60,6 +64,37 @@ class LocalResolverTest {
         assertThatThrownBy(() -> resolver.resolver("demo.localhost"))
                 .isInstanceOf(SlotlyException.class)
                 .hasFieldOrPropertyWithValue("codigo", "LOCAL_NO_ENCONTRADO");
+    }
+
+    @Test
+    @DisplayName("Etapa 9: con un local por defecto, un host sin subdominio de un local activo usa ese local")
+    void localPorDefecto() {
+        UUID demoId = crearLocal("demo");
+        UUID otraId = crearLocal("otra");
+        UUID cerradoId = crearLocal("cerrado");
+        jdbc.update("UPDATE local SET activo = false WHERE id = ?", cerradoId);
+        LocalResolver conDemo = new LocalResolver(locales, new SlotlyProperties("localhost", "http://x", "demo"));
+
+        assertThat(conDemo.resolver("slotly-demo.onrender.com").getId()).isEqualTo(demoId);
+        assertThat(conDemo.resolver("noexiste.localhost").getId()).isEqualTo(demoId);
+        assertThat(conDemo.resolver("cerrado.localhost").getId()).isEqualTo(demoId);
+        assertThat(conDemo.resolver(null).getId()).isEqualTo(demoId);
+        // El subdominio de un local activo sigue mandando.
+        assertThat(conDemo.resolver("otra.localhost").getId()).isEqualTo(otraId);
+    }
+
+    @Test
+    @DisplayName("Etapa 9: si el local por defecto no existe o está inactivo, el host sin local sigue dando 404")
+    void localPorDefectoInactivo() {
+        UUID demoId = crearLocal("demo");
+        jdbc.update("UPDATE local SET activo = false WHERE id = ?", demoId);
+
+        for (String porDefecto : new String[] {"demo", "noexiste", " "}) {
+            LocalResolver conDefecto = new LocalResolver(locales, new SlotlyProperties("localhost", "http://x", porDefecto));
+            assertThatThrownBy(() -> conDefecto.resolver("slotly-demo.onrender.com"))
+                    .isInstanceOf(SlotlyException.class)
+                    .hasFieldOrPropertyWithValue("codigo", "LOCAL_NO_ENCONTRADO");
+        }
     }
 
     // Crea un local activo con ese subdominio y devuelve su id.

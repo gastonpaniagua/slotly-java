@@ -31,7 +31,10 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // HU-18 CA3: un profesional que usa un endpoint de admin recibe 403.
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
+                        .requestMatchers("/api/**").authenticated()
+                        // Lo que no es la API es el front compilado (Etapa 9): páginas y archivos públicos. Los datos
+                        // del panel los protege la API, no la página.
+                        .anyRequest().permitAll())
                 // La sesión (con el usuario adentro) se guarda y se lee de la HttpSession, que Spring Session
                 // guarda en Postgres. El login la guarda a mano con este mismo repositorio.
                 .securityContext(contexto -> contexto.securityContextRepository(contextos))

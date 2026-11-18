@@ -20,7 +20,8 @@ import ar.com.slotly.error.SlotlyException;
 // Frena reservas automáticas (HU-15): más de 10 pedidos por minuto de la misma IP para apartar o confirmar reciben
 // 429 y no llegan al controlador, así no se crea nada. Ver la disponibilidad (GET) no cuenta.
 // El 429 sale por el ApiExceptionHandler, con el mismo ProblemDetail y "codigo" que el resto.
-// En producción, detrás de un proxy, la IP real llega en X-Forwarded-For: se configura en el deploy (Etapa 9).
+// En producción, detrás de un proxy, la IP real llega en X-Forwarded-For: el perfil prod (Etapa 9) hace que Tomcat
+// la ponga en getRemoteAddr(), tomando la última que no sea de un proxy interno (no la que pueda inventar el cliente).
 // Se registra en la Config de abajo y no con @Component: así los @WebMvcTest (que no cargan el reloj) no lo levantan.
 class LimitePorIpFilter extends OncePerRequestFilter {
 
