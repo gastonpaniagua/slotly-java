@@ -1,5 +1,7 @@
 package ar.com.slotly.trabajo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -16,6 +18,9 @@ import ar.com.slotly.mensaje.TrabajoDeMensajes;
 @ConditionalOnProperty(name = "slotly.trabajos.activos", havingValue = "true", matchIfMissing = true)
 class TrabajosProgramados {
 
+    // Al log, solo las vueltas que hicieron algo: una vuelta vacía cada 30 s no aporta.
+    private static final Logger LOG = LoggerFactory.getLogger(TrabajosProgramados.class);
+
     private final TrabajoDeMensajes mensajes;
     private final ApartadosVencidos apartados;
     private final PedidosDeResena resenas;
@@ -28,17 +33,26 @@ class TrabajosProgramados {
 
     @Scheduled(initialDelayString = "PT10S", fixedDelayString = "PT30S")
     void mandarMensajes() {
-        mensajes.enviarPendientes();
+        int procesados = mensajes.enviarPendientes();
+        if (procesados > 0) {
+            LOG.info("Mensajes procesados: {}", procesados);
+        }
     }
 
     @Scheduled(initialDelayString = "PT10S", fixedDelayString = "PT1M")
     void vencerApartados() {
-        apartados.vencer();
+        int vencidos = apartados.vencer();
+        if (vencidos > 0) {
+            LOG.info("Apartados vencidos: {}", vencidos);
+        }
     }
 
     // HU-38: los encola; los manda mandarMensajes en su próxima vuelta.
     @Scheduled(initialDelayString = "PT10S", fixedDelayString = "PT1M")
     void pedirResenas() {
-        resenas.encolar();
+        int encolados = resenas.encolar();
+        if (encolados > 0) {
+            LOG.info("Pedidos de reseña encolados: {}", encolados);
+        }
     }
 }

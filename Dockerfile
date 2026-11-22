@@ -43,9 +43,10 @@ ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -XX:Res
 
 # Arranque más rápido con CDS: un arranque de prueba al armar la imagen guarda las clases ya cargadas en app.jsa, y
 # cada arranque real las lee de ahí. El arranque de prueba no tiene base: se apagan Flyway y la lectura del esquema,
-# y se corta apenas el contexto queda listo (spring.context.exit=onRefresh).
+# y se corta apenas el contexto queda listo (spring.context.exit=onRefresh). Sin los avisos de CDS por las clases de
+# librerías que Slotly no usa (SAML, LDAP…): no se guardan y no pasa nada, pero llenaban el log del build.
 RUN java -Djarmode=tools -jar app.jar extract --destination extraido && rm app.jar \
-    && java -XX:ArchiveClassesAtExit=app.jsa -Dspring.context.exit=onRefresh \
+    && java -XX:ArchiveClassesAtExit=app.jsa -Dspring.context.exit=onRefresh -Xlog:cds=off -Xlog:cds+dynamic=off \
         -Dspring.flyway.enabled=false -Dspring.jpa.hibernate.ddl-auto=none \
         -Dspring.jpa.properties.hibernate.boot.allow_jdbc_metadata_access=false \
         -Dspring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect \

@@ -2,6 +2,7 @@ package ar.com.slotly.seguridad;
 
 import java.io.IOException;
 
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import ar.com.slotly.error.SlotlyException;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
+import ar.com.slotly.registro.RegistroDePedidos;
 import ar.com.slotly.usuario.UsuarioSesion;
 
 // Una sesión vale solo en el local donde se inició (HU-16 CA5). El navegador ya no manda la cookie de
@@ -63,6 +65,8 @@ class SesionDelLocalFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         Authentication autenticacion = SecurityContextHolder.getContext().getAuthentication();
         if (autenticacion != null && autenticacion.getPrincipal() instanceof UsuarioSesion usuario) {
+            // Para los logs: quién hizo el pedido (su id, no el mail: el log no lleva datos personales).
+            MDC.put(RegistroDePedidos.USUARIO, usuario.id().toString());
             try {
                 Local local = localResolver.resolver(pedido.getHeader(HttpHeaders.HOST));
                 if (!local.getId().equals(usuario.localId())) {
