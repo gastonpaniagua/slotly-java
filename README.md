@@ -61,7 +61,21 @@ Back (en `backend/`; necesita Docker corriendo, porque Testcontainers levanta un
 Front (en `frontend/`):
 ```powershell
 npm run lint
+npm test
 npm run build
+```
+
+End-to-end con Playwright (los flujos críticos en un navegador de celular, contra la imagen de producción con los datos de demo y una base propia y descartable, en http://demo.localhost:8090). La primera vez, en `frontend/`, `npx playwright install chromium`. Después, desde la raíz:
+```powershell
+docker compose -f docker-compose.e2e.yml up -d --build --wait
+```
+En `frontend/`:
+```powershell
+npm run e2e
+```
+Y para apagarla y borrar su base, desde la raíz:
+```powershell
+docker compose -f docker-compose.e2e.yml down -v
 ```
 
 ## Desplegar la demo (gratis: Render + Neon)
@@ -70,13 +84,13 @@ La demo publicada es una sola app: la imagen del [`Dockerfile`](Dockerfile) trae
 
 **1. Base en Neon** ([neon.com](https://neon.com))
 
-1. Crear la cuenta y un proyecto: nombre `slotly`, Postgres 17, región **AWS US East 1 (N. Virginia)**, cerca de Render.
+1. Crear la cuenta y un proyecto: nombre `slotly`, Postgres 17, región **AWS US East 2 (Ohio)**: la misma zona que la app en Render.
 2. En "Connect", **apagar "Connection pooling"** (Flyway necesita la conexión directa: el host no tiene que terminar en `-pooler`) y anotar el host, la base, el usuario y la contraseña.
 
 **2. App en Render** ([render.com](https://render.com))
 
 1. Entrar con GitHub → "New" → "Web Service" → elegir este repo. Render detecta el `Dockerfile`.
-2. Región **Virginia (US East)** e instancia **Free**.
+2. Región **Ohio (US East)**, la misma que la base, e instancia **Free**.
 3. Variables de entorno (las de la base, de Neon):
 
    | Variable | Valor |
@@ -93,7 +107,7 @@ La demo publicada es una sola app: la imagen del [`Dockerfile`](Dockerfile) trae
 4. En "Advanced": **Health Check Path** `/api/health`. Si ofrece "Auto-Deploy: After CI Checks Pass", elegirlo (así no se publica un commit con el CI en rojo).
 5. "Create Web Service". El primer deploy tarda unos minutos (arma la imagen) y termina con "Your service is live". Las migraciones y los datos de demo se cargan solos al arrancar.
 
-**Para probarla:** la dirección de Render abre la web de "Barbería Demo"; el panel está en `/ingresar` con los usuarios de la demo (tabla de arriba) y la documentación de la API en `/swagger-ui.html`.
+**Para probarla:** la dirección de Render abre la web de "Barbería Demo"; el panel está en `/ingresar` con los usuarios de la demo (tabla de arriba) y la documentación de la API en `/swagger-ui.html`. Los mensajes al cliente salen por el envío simulado (se ven en los logs de Render); para que "Mis turnos" se pueda probar sin WhatsApp, en la demo la pantalla del código lo muestra.
 
 **Límites del plan gratis:**
 

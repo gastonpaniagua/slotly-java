@@ -37,3 +37,33 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+  # End-to-end (Etapa 9): la imagen de producción con los datos de demo y un navegador de verdad (Playwright).
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Levantar la app y su base (espera a que esté sana)
+        run: docker compose -f docker-compose.e2e.yml up -d --build --wait
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run e2e
+        working-directory: frontend
+        env:
+          CI: "true"
+      # Si algo falla: el log de la app y el reporte de Playwright (con la traza de cada test) quedan para mirar.
+      - name: Log de la app
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yml logs app
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: reporte-e2e
+          path: frontend/playwright-report
+          retention-days: 7

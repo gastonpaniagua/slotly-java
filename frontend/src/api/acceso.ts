@@ -23,7 +23,8 @@ function mensajeDeValidacion(datos: unknown): string | null {
 }
 
 export type ResultadoPedirCodigo =
-  | { estado: 'ok'; vigenciaMinutos: number }
+  // codigoDeDemo: solo en la demo publicada (quien la prueba no ve el envío simulado); si no, null.
+  | { estado: 'ok'; vigenciaMinutos: number; codigoDeDemo: string | null }
   | { estado: 'validacion'; mensaje: string }
   | { estado: 'demasiados' }
   | { estado: 'error' }
@@ -32,7 +33,8 @@ export type ResultadoPedirCodigo =
 export async function pedirCodigo(telefono: string): Promise<ResultadoPedirCodigo> {
   const respuesta = await enviar('/api/publico/codigos', { telefono })
   if (respuesta?.status === 202) {
-    return { estado: 'ok', vigenciaMinutos: (respuesta.datos as { vigenciaMinutos: number }).vigenciaMinutos }
+    const datos = respuesta.datos as { vigenciaMinutos: number; codigoDeDemo?: string | null }
+    return { estado: 'ok', vigenciaMinutos: datos.vigenciaMinutos, codigoDeDemo: datos.codigoDeDemo ?? null }
   }
   const validacion = mensajeDeValidacion(respuesta?.datos)
   if (validacion !== null) {

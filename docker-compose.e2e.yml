@@ -1,0 +1,41 @@
+# La app como en producción, para los end-to-end (Etapa 9): la imagen del Dockerfile con los datos de demo, contra un
+# Postgres propio y descartable (no toca la base de desarrollo). Desde la raíz:
+#   docker compose -f docker-compose.e2e.yml up -d --build --wait
+#   (en frontend/) npm run e2e
+#   docker compose -f docker-compose.e2e.yml down -v
+name: slotly-e2e
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: slotly
+      POSTGRES_USER: slotly
+      POSTGRES_PASSWORD: solo-para-e2e
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "slotly", "-d", "slotly"]
+      interval: 2s
+      retries: 30
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod,demo
+      POSTGRES_HOST: db
+      POSTGRES_DB: slotly
+      POSTGRES_USER: slotly
+      POSTGRES_PASSWORD: solo-para-e2e
+      POSTGRES_SSLMODE: disable
+      SLOTLY_DOMINIO_BASE: localhost
+      SLOTLY_URL_SITIO: http://{subdominio}.localhost:8090
+    # "Sana" cuando la API y la base responden (el --wait de arriba espera esto).
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 5s
+      start_period: 300s
+      retries: 60

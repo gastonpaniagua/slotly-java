@@ -7,3 +7,8 @@ docs
 **/node_modules
 **/dist
 **/target
+frontend/e2e
+frontend/playwright.config.ts
+frontend/test-results
+frontend/playwright-report
+docker-compose*.yml

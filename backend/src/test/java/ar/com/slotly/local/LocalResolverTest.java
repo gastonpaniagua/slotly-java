@@ -73,7 +73,7 @@ class LocalResolverTest {
         UUID otraId = crearLocal("otra");
         UUID cerradoId = crearLocal("cerrado");
         jdbc.update("UPDATE local SET activo = false WHERE id = ?", cerradoId);
-        LocalResolver conDemo = new LocalResolver(locales, new SlotlyProperties("localhost", "http://x", "demo"));
+        LocalResolver conDemo = new LocalResolver(locales, new SlotlyProperties("localhost", "http://x", "demo", false));
 
         assertThat(conDemo.resolver("slotly-demo.onrender.com").getId()).isEqualTo(demoId);
         assertThat(conDemo.resolver("noexiste.localhost").getId()).isEqualTo(demoId);
@@ -90,7 +90,7 @@ class LocalResolverTest {
         jdbc.update("UPDATE local SET activo = false WHERE id = ?", demoId);
 
         for (String porDefecto : new String[] {"demo", "noexiste", " "}) {
-            LocalResolver conDefecto = new LocalResolver(locales, new SlotlyProperties("localhost", "http://x", porDefecto));
+            LocalResolver conDefecto = new LocalResolver(locales, new SlotlyProperties("localhost", "http://x", porDefecto, false));
             assertThatThrownBy(() -> conDefecto.resolver("slotly-demo.onrender.com"))
                     .isInstanceOf(SlotlyException.class)
                     .hasFieldOrPropertyWithValue("codigo", "LOCAL_NO_ENCONTRADO");

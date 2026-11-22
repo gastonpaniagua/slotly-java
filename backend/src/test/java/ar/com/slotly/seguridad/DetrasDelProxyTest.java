@@ -27,9 +27,11 @@ import ar.com.slotly.TestcontainersConfiguration;
 
 // La app detrás del proxy de la plataforma (Etapa 9), con lo mismo que pone el perfil prod: Tomcat de verdad (no
 // MockMvc), así se prueba cómo lee X-Forwarded-For y X-Forwarded-Proto. El test le habla desde 127.0.0.1, que Tomcat
-// toma como un proxy interno, igual que el de Render. Sin subdominio en el host: usa el local por defecto.
+// toma como un proxy interno, igual que el de Render. Sin subdominio en el host: usa el local por defecto. Con
+// slotly.demo, como la demo publicada (y así comparte la app levantada con DemoPublicadaTest).
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-        "slotly.trabajos.activos=false", "server.forward-headers-strategy=native", "slotly.local-por-defecto=demo"})
+        "slotly.trabajos.activos=false", "server.forward-headers-strategy=native", "slotly.local-por-defecto=demo",
+        "slotly.demo=true"})
 @Import({TestcontainersConfiguration.class, RelojDeTest.Config.class, CodigosEnviadosDeTest.Config.class,
         MensajesEnviadosDeTest.Config.class})
 class DetrasDelProxyTest {

@@ -15,10 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
+import ar.com.slotly.SlotlyProperties;
 import ar.com.slotly.cliente.Telefono;
 import ar.com.slotly.local.Local;
 import ar.com.slotly.local.LocalResolver;
@@ -33,20 +35,24 @@ class MisTurnosController {
     private final CodigoService codigos;
     private final ConfirmacionService confirmaciones;
     private final JdbcTemplate jdbc;
+    private final SlotlyProperties propiedades;
 
     MisTurnosController(LocalResolver localResolver, CodigoService codigos, ConfirmacionService confirmaciones,
-            JdbcTemplate jdbc) {
+            JdbcTemplate jdbc, SlotlyProperties propiedades) {
         this.localResolver = localResolver;
         this.codigos = codigos;
         this.confirmaciones = confirmaciones;
         this.jdbc = jdbc;
+        this.propiedades = propiedades;
     }
 
     record PedirCodigoRequest(@NotBlank(message = "Ingresá tu celular.") @Telefono String telefono) {
     }
 
-    // La misma respuesta para cualquier teléfono (CA2): solo cuánto dura el código.
-    record CodigoPedido(int vigenciaMinutos) {
+    // La misma respuesta para cualquier teléfono (CA2): cuánto dura el código (y, solo en la demo, el código).
+    // codigoDeDemo: solo en la demo publicada (slotly.demo), para poder entrar sin el WhatsApp. Viene tenga o no
+    // turnos el teléfono, así la respuesta sigue siendo igual en los dos casos (CA6); en un local real, siempre null.
+    record CodigoPedido(int vigenciaMinutos, @Schema(types = {"string", "null"}) String codigoDeDemo) {
     }
 
     record VerificarCodigoRequest(
@@ -69,8 +75,8 @@ class MisTurnosController {
     @Operation(summary = "Pide un código para entrar con el teléfono. Misma respuesta tenga o no turnos (HU-22)")
     CodigoPedido pedir(@Parameter(hidden = true) @RequestHeader(HttpHeaders.HOST) String host,
             @Valid @RequestBody PedirCodigoRequest pedido) {
-        codigos.pedir(localResolver.resolver(host), pedido.telefono());
-        return new CodigoPedido((int) CodigoService.VIGENCIA.toMinutes());
+        String codigo = codigos.pedir(localResolver.resolver(host), pedido.telefono());
+        return new CodigoPedido((int) CodigoService.VIGENCIA.toMinutes(), propiedades.demo() ? codigo : null);
     }
 
     @PostMapping("/api/publico/codigos/verificar")

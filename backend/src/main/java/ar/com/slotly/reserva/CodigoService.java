@@ -48,8 +48,9 @@ public class CodigoService {
 
     // HU-22 CA1 y CA2: genera un código y lo manda solo si el teléfono es de un cliente del local. Para quien llama,
     // las dos situaciones son idénticas: misma respuesta, misma fila guardada, mismo límite por hora (CA6).
+    // Devuelve el código generado: solo lo usa la demo publicada (ver MisTurnosController).
     @Transactional
-    public void pedir(Local local, String telefonoEscrito) {
+    public String pedir(Local local, String telefonoEscrito) {
         String telefono = normalizar(telefonoEscrito);
         Instant ahora = reloj.instant();
         // Un pedido a la vez por teléfono: dos pedidos simultáneos no pasan los dos el límite.
@@ -71,6 +72,7 @@ public class CodigoService {
         if (clienteDe(local, telefono) != null) {
             envio.enviar(telefono, codigo);
         }
+        return codigo;
     }
 
     // HU-22 CA3 a CA5: con el último código del teléfono, sin vencer ni usar, y con menos de 5 intentos fallidos,

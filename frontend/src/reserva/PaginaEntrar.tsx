@@ -13,6 +13,7 @@ function PaginaEntrar() {
   const [codigo, setCodigo] = useState('')
   const [etapa, setEtapa] = useState<'telefono' | 'codigo'>('telefono')
   const [vigencia, setVigencia] = useState(10)
+  const [codigoDeDemo, setCodigoDeDemo] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,6 +30,7 @@ function PaginaEntrar() {
     switch (resultado.estado) {
       case 'ok':
         setVigencia(resultado.vigenciaMinutos)
+        setCodigoDeDemo(resultado.codigoDeDemo)
         setCodigo('')
         setEtapa('codigo')
         break
@@ -97,6 +99,12 @@ function PaginaEntrar() {
             Si tenés turnos en este local, te mandamos un código de 6 números a {telefono.trim()}.
             Vence en {vigencia} minutos.
           </p>
+          {/* Solo en la demo publicada: el código no llega a ningún lado, así que se muestra acá. */}
+          {codigoDeDemo && (
+            <p className="reserva__aviso" role="note">
+              Es una demo: tu código es <strong>{codigoDeDemo}</strong>. En un local real te llega por WhatsApp.
+            </p>
+          )}
           <div className="campo">
             <label className="campo__etiqueta" htmlFor="entrar-codigo">Código</label>
             <input id="entrar-codigo" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}

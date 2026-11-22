@@ -14,9 +14,9 @@ afterEach(() => {
 
 describe('pedirCodigo', () => {
   it('HU-22 CA1 y CA2: con 202 devuelve cuánto dura el código (la misma respuesta para cualquier teléfono)', async () => {
-    responder(202, { vigenciaMinutos: 10 })
+    responder(202, { vigenciaMinutos: 10, codigoDeDemo: null })
 
-    expect(await pedirCodigo('11 2345-6789')).toEqual({ estado: 'ok', vigenciaMinutos: 10 })
+    expect(await pedirCodigo('11 2345-6789')).toEqual({ estado: 'ok', vigenciaMinutos: 10, codigoDeDemo: null })
     const [url, opciones] = vi.mocked(fetch).mock.calls[0]
     expect(url).toBe('/api/publico/codigos')
     expect(JSON.parse(opciones?.body as string)).toEqual({ telefono: '11 2345-6789' })

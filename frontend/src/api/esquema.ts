@@ -900,6 +900,7 @@ export interface components {
         CodigoPedido: {
             /** Format: int32 */
             vigenciaMinutos: number;
+            codigoDeDemo: string | null;
         };
         VerificarCodigoRequest: {
             telefono: string;

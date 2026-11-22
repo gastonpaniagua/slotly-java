@@ -16,7 +16,7 @@ class SlotlyPropertiesTest {
     @Test
     @DisplayName("Etapa 9: una variable de entorno que falta en producción (queda \"${…}\") no pasa")
     void variableQueFalta() {
-        var propiedades = new SlotlyProperties("${SLOTLY_DOMINIO_BASE}", "${SLOTLY_URL_SITIO}", null);
+        var propiedades = new SlotlyProperties("${SLOTLY_DOMINIO_BASE}", "${SLOTLY_URL_SITIO}", null, false);
 
         assertThat(validador.validate(propiedades))
                 .extracting(v -> v.getPropertyPath().toString())
@@ -26,8 +26,8 @@ class SlotlyPropertiesTest {
     @Test
     @DisplayName("Etapa 9: los valores de desarrollo, de producción y de la demo pasan")
     void valoresValidos() {
-        assertThat(validador.validate(new SlotlyProperties("localhost", "http://{subdominio}.localhost:5173", null))).isEmpty();
-        assertThat(validador.validate(new SlotlyProperties("slotly.com.ar", "https://{subdominio}.slotly.com.ar", null))).isEmpty();
-        assertThat(validador.validate(new SlotlyProperties("onrender.com", "https://slotly-demo.onrender.com", "demo"))).isEmpty();
+        assertThat(validador.validate(new SlotlyProperties("localhost", "http://{subdominio}.localhost:5173", null, false))).isEmpty();
+        assertThat(validador.validate(new SlotlyProperties("slotly.com.ar", "https://{subdominio}.slotly.com.ar", null, false))).isEmpty();
+        assertThat(validador.validate(new SlotlyProperties("onrender.com", "https://slotly-demo.onrender.com", "demo", false))).isEmpty();
     }
 }

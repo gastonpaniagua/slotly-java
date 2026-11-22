@@ -46,7 +46,7 @@ function abrir(ruta: string) {
 const UN_MES = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString()
 
 beforeEach(() => {
-  vi.mocked(pedirCodigo).mockReset().mockResolvedValue({ estado: 'ok', vigenciaMinutos: 10 })
+  vi.mocked(pedirCodigo).mockReset().mockResolvedValue({ estado: 'ok', vigenciaMinutos: 10, codigoDeDemo: null })
   vi.mocked(verificarCodigo).mockReset()
   vi.mocked(obtenerMisTurnos).mockReset()
   vi.mocked(obtenerTurno).mockReset().mockResolvedValue({ estado: 'ok', turno: TURNO })
@@ -70,6 +70,19 @@ describe('Entrar con mi teléfono', () => {
     expect(pedirCodigo).toHaveBeenCalledWith('11 2345-6789')
     expect(verificarCodigo).toHaveBeenCalledWith('11 2345-6789', '482913')
     expect(leerAcceso()?.token).toBe('acceso-1')
+    // Fuera de la demo publicada, el código no se muestra.
+    expect(screen.queryByText(/Es una demo/)).not.toBeInTheDocument()
+  })
+
+  it('Etapa 9: en la demo publicada, la pantalla muestra el código', async () => {
+    vi.mocked(pedirCodigo).mockResolvedValue({ estado: 'ok', vigenciaMinutos: 10, codigoDeDemo: '482913' })
+    abrir('/entrar')
+    fireEvent.change(screen.getByLabelText('Celular'), { target: { value: '11 2345-6789' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir código' }))
+
+    expect(await screen.findByRole('note')).toHaveTextContent(
+      'Es una demo: tu código es 482913. En un local real te llega por WhatsApp.')
   })
 
   it('HU-22 CA4 y CA5: un código incorrecto o vencido lo dice y no entra', async () => {

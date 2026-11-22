@@ -101,7 +101,8 @@ class CodigoTest {
     void pedirCodigo() throws Exception {
         pedir("demo", "11 2345-6789")
                 .andExpect(status().isAccepted())
-                .andExpect(content().json("{\"vigenciaMinutos\": 10}", true));
+                // Fuera de la demo publicada, el código nunca viaja en la respuesta.
+                .andExpect(content().json("{\"vigenciaMinutos\": 10, \"codigoDeDemo\": null}", true));
 
         assertThat(enviados.ultimoPara(LUCIA)).hasValueSatisfying(codigo -> assertThat(codigo).matches("\\d{6}"));
         assertThat(jdbc.queryForObject("SELECT vence_en - creado_en FROM codigo_verificacion", String.class))

@@ -17,6 +17,9 @@ public record SlotlyProperties(
         @NotBlank @Pattern(regexp = "https?://\\S+") String urlSitio,
         // Opcional. El local que se usa cuando el host no lleva el subdominio de uno activo. Sirve para la demo
         // publicada en un dominio sin subdominios por local (slotly-demo.onrender.com); vacío, un host así da 404.
-        String localPorDefecto
+        String localPorDefecto,
+        // Solo la demo publicada (perfil demo): la pantalla del código lo muestra, porque quien prueba la demo no ve
+        // el envío simulado. En un local real, siempre false.
+        boolean demo
 ) {
 }
