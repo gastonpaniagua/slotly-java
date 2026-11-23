@@ -78,6 +78,12 @@ Y para apagarla y borrar su base, desde la raíz:
 docker compose -f docker-compose.e2e.yml down -v
 ```
 
+Prueba de carga con [k6](https://k6.io) (en Docker, no hace falta instalarlo), contra la misma app de los end-to-end, ya levantada. Dos escenarios: 50 personas apartando la misma hora a la vez (tiene que salir una sola y 49 "ocupado", sin errores 500) y un minuto de uso normal con hasta 20 personas a la vez, que mide los tiempos (el 95 % de las consultas en menos de 500 ms y de las reservas en menos de 1 s, en esta máquina). Desde la raíz:
+```powershell
+docker run --rm --network slotly-e2e_default -v "${PWD}/carga:/carga" grafana/k6:1.0.0 run /carga/reserva.js
+```
+Al final dice qué umbrales pasaron. Para repetirla, levantar la app de nuevo con la base vacía (`down -v` y `up`), así hay horas libres.
+
 ## Desplegar la demo (gratis: Render + Neon)
 
 La demo publicada es una sola app: la imagen del [`Dockerfile`](Dockerfile) trae la API y el front compilado, así el navegador ve un solo dominio (sin CORS y con la cookie de sesión del mismo sitio). La base va en Neon, que no vence ni se pausa por días sin uso. No hace falta tarjeta en ninguna de las dos.

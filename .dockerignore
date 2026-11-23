@@ -12,3 +12,4 @@ frontend/playwright.config.ts
 frontend/test-results
 frontend/playwright-report
 docker-compose*.yml
+carga
